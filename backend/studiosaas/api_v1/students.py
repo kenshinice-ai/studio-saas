@@ -1,4 +1,5 @@
 """api_v1.students — mechanically split from api_v1.py (v10.11.0). Pure move."""
+import math
 import secrets
 import hashlib
 import uuid as _uuid
@@ -1887,15 +1888,24 @@ def update_student(student_id: str):
         # ambiguous case rather than picking the later key by accident.
         new_balance_raw = payload.get("balance")
         new_credit_raw = payload.get("creditHours")
+        # `float()` accepts "nan" and "inf", and json.loads accepts the bare
+        # NaN/Infinity tokens — so without isfinite this route has a path where
+        # a balance is neither refused nor usable: every comparison against NaN
+        # is False, so the "did anything actually move" guard does not fire,
+        # and what lands in the ledger is a quantity no arithmetic can undo.
         if new_balance_raw is not None:
             try:
                 target_balance = float(new_balance_raw)
             except (TypeError, ValueError):
                 return _error("Invalid balance value.")
+            if not math.isfinite(target_balance):
+                return _error("Invalid balance value.")
         if new_credit_raw is not None:
             try:
                 target_credit = float(new_credit_raw)
             except (TypeError, ValueError):
+                return _error("Invalid credit hours value.")
+            if not math.isfinite(target_credit):
                 return _error("Invalid credit hours value.")
         if new_balance_raw is not None and new_credit_raw is not None:
             if target_balance != target_credit:

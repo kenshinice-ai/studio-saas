@@ -83,7 +83,7 @@ export function RosterSection(props) {
 
     <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
             <div className="w-full">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
+                <label className="cms-roster-date-label text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
                 <div className="cms-roster-date-nav">
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
                         aria-label="前一天" className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
@@ -155,12 +155,27 @@ export function RosterSection(props) {
         const groups = Object.entries(slots).sort(([a],[b]) =>
             a==='__unset' ? 1 : b==='__unset' ? -1 : a.localeCompare(b));
         const nameOf = id => db.students.find(x=>x.id===id)?.name || '';
+        /* This panel grows with the day: it prints every name again, above the
+           list those names are in. On a ten-student Saturday that is ~400px on
+           a phone, which put the first student row's bottom at 845 against an
+           844px viewport — the reorder's whole point, undone by a summary of
+           the thing it was meant to reveal. So it folds. The one thing it says
+           that the list below cannot is the 1-on-1 collision, and that opens
+           itself. */
+        const conflicted = groups.some(([, arr]) =>
+            arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne).length>0 && arr.length>1);
         return (
-            <div className="cms-roster-slot-panel">
-                <p className="font-bold text-sm text-gray-800 mb-2 flex items-center gap-2">
-                    <Icon name="clock" className="w-4 h-4"/>时段安排
-                </p>
-                <div className="space-y-1.5">
+            <details className="cms-roster-slot-panel" open={conflicted}>
+                <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3">
+                    <span className="font-bold text-sm text-gray-800 inline-flex items-center gap-2">
+                        <Icon name="clock" className="w-4 h-4"/>时段安排
+                        <span className="text-xs font-normal text-gray-400">
+                            {conflicted ? '有 1 对 1 时间冲突' : `${groups.length} 个时段`}
+                        </span>
+                    </span>
+                    <span className="text-indigo-600" aria-hidden="true">⌄</span>
+                </summary>
+                <div className="space-y-1.5 pt-2">
                 {groups.map(([t,arr])=>{
                     const soloIds = arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne);
                     const clash = soloIds.length>0 && arr.length>1;
@@ -182,7 +197,7 @@ export function RosterSection(props) {
                     );
                 })}
                 </div>
-            </div>
+            </details>
         );
     })()}
     </div>
@@ -380,7 +395,8 @@ export function RosterSection(props) {
             </summary>
             <div className="p-3 bg-white">
                 <PrivateLessonsPanel api={v1Api} showToast={showToast}
-                    canWrite={canWriteScheduling} students={db.students.filter(s=>!s.archived)} />
+                    canWrite={canWriteScheduling} canWritePolicy={canManageOperations}
+                    students={db.students.filter(s=>!s.archived)} />
             </div>
         </details>
     )}

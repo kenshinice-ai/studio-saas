@@ -340,7 +340,8 @@
     ['改为普通班课', 'Change to group class'], ['撤销本日签到', 'Undo today’s check-in'],
     ['时间未设置', 'Time not set'],
     ['移出本日课程安排', 'Remove from this date'],
-    ['来自固定课表，需在上方班次中调整', 'From the recurring schedule — edit the class above'],
+    ['来自固定课表，需在页尾的固定课表中调整',
+     'From the recurring schedule — edit the class at the foot of this page'],
 
     /* ── Students ── */
      ['活跃', 'Active'], ['低频', 'Infrequent'],
@@ -509,9 +510,19 @@
     ['网站与品牌', 'Website & brand'], ['公开网站', 'Public website'],
     ['固定课表 ICS', 'Weekly timetable ICS'],
     ['班组模板与批量工具', 'Group templates and bulk tools'],
+    ['当日操作', 'Day actions'], ['复制日报', 'Copy the daily report'],
+    /* v10.13 gave every credit movement an operator; the label that
+       renders it had never been translated because it had never had
+       data to render. */
+    ['操作人：', 'By: '],
     ['今天还没有排课', 'Nothing scheduled for this day yet'],
-    ['可以在上方「每周课表」建一个固定班次，之后每到这一天会自动排入；也可以直接在下方添加学员。',
-     'Add a recurring class under Weekly schedule above and it will appear on this day automatically — or add students directly below.'],
+    ['有 1 对 1 时间冲突', 'One-to-one clash'],
+    ['今日上课', 'On today'], ['上课名单', 'Class register'],
+    ['在下方「调整这一天的名单」加人；要让每周都自动排入，用页尾的「固定课表」建一个班次。',
+     'Add someone under Adjust this day below; to have them appear every week, create a class under Recurring schedule at the foot of the page.'],
+    ['在下方「调整这一天的名单」添加学员即可开始今天的排课。',
+     'Add a student under Adjust this day below to start today\u2019s roster.'],
+    ['调整这一天的名单', 'Adjust this day'],
     ['1 对 1（同时段还有其他人时会提示冲突）',
      'One-to-one (you will be warned if anyone else is booked at the same time)'],
     ['选择学员', 'Choose a student'], ['确认收款并入账', 'Confirm payment and post it'],
@@ -787,6 +798,7 @@
       [/^还差：(.+)$/, (_m, rest) => `Still missing: ${rest.replace(/、/g, ', ')}`],
       [/^已连接\s+(.+)$/, 'Connected to $1'],
       [/^(\d+)\s*个每周班次$/, '$1 weekly classes'],
+      [/^(\d+)\s*个时段$/, '$1 time slots'],
       [/^周一\s+(.+)，(\d+)\s*人$/, 'Mon $1, $2 students'],
       [/^周二\s+(.+)，(\d+)\s*人$/, 'Tue $1, $2 students'],
       [/^周三\s+(.+)，(\d+)\s*人$/, 'Wed $1, $2 students'],

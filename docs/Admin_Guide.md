@@ -193,30 +193,48 @@ Seven roles are defined by `ROLE_PERMISSIONS` in `backend/studiosaas/auth.py`:
 |---|---|---|---|---|---|
 | `tenant:read` / `tenant:update` | read+update | read | — | — | — |
 | `students:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `students:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `students:write` | ✓ | ✓ | — | ✓ | — |
 | `courses:write` | ✓ | ✓ | — | — | — |
-| `credits:read` / `credits:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `credits:read` / `credits:write` | ✓ | ✓ | — | ✓ | — |
 | `credits:refund` | ✓ | ✓ | — | — | — |
 | `attendance:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `attendance:write` | ✓ | ✓ | ✓ | — | ✓ |
+| `attendance:write` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `portfolio:read` / `portfolio:write` | ✓ | ✓ | ✓ | — | ✓ |
 | `portfolio:share` | ✓ | ✓ | — | — | — |
-| `registrations:read` / `registrations:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `registrations:read` / `registrations:write` | ✓ | ✓ | — | ✓ | — |
 | `analytics:read` | ✓ | ✓ | — | — | — |
 | `data:export` | ✓ | ✓ | — | — | — |
 | `settings:write` | ✓ | — | — | — | — |
 | `plans:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `scheduling:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `scheduling:write` | ✓ | ✓ | — | ✓ | — |
+| `scheduling:policy:write` | ✓ | ✓ | — | — | — |
+| `class_bookings:review` | ✓ | ✓ | — | ✓ | — |
 
 Key boundaries:
 
 - **Teacher** handles attendance and portfolio work (`attendance:read/write`,
   `portfolio:read/write`, `students:read`, `plans:read`) but has **no**
   financial access (`credits:*`, `analytics:read`) and **no** registrations.
-- **Front desk** handles students, credits, and registrations (read+write)
-  but has **no** `attendance:write` and **no** portfolio access.
-- **Staff** sits between the two: it has `attendance:write` and
-  `portfolio:read/write` in addition to the front-desk bundle, but no
-  `credits:refund` and no `portfolio:share`.
+- **Front desk** handles students, credits, registrations and the counter's
+  half of the day — including `attendance:write` since v10.13, because it
+  already held `credits:write` and could therefore already take a credit off a
+  balance, only through the path that records neither an attendance row nor
+  (before v10.13) an actor. It has **no** portfolio access and **no** refunds.
+- **Assistant** (`staff`, labelled 助教 in the product since v10.13) is a
+  **strict subset of teacher** — asserted in
+  `backend/tests/test_role_boundaries.py`. `teacher - staff` is exactly
+  `{progress_reports:write, payroll:self:read}`. It previously held
+  `students:write`, `credits:*`, `registrations:*` and `billing:read`, i.e.
+  more than the teacher it assists, while lacking the timetable that teacher
+  can see.
+- **`scheduling:policy:write`** is split out of `scheduling:write` (v10.13).
+  Booking a lesson is reception work; the leave policy behind it decides
+  `late_absence_pays_teacher` and `studio_cancel_chargeable` — payroll and
+  what a family is billed — so it is owner/manager only. The front desk holds
+  `scheduling:write` and has done for a long time; until v10.13 no page it
+  could open reached the policy form, so the boundary was kept by `roleTabs`
+  rather than by a permission.
 - `credits:refund` and `portfolio:share` are reserved for
   `super_admin`/`owner`/`manager` only.
 - `analytics:read` and `data:export` are owner/manager only.

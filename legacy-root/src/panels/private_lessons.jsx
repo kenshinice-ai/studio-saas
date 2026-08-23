@@ -28,7 +28,7 @@ const WHO = [
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function PrivateLessonsPanel({ api, showToast, canWrite, students }) {
+export function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, students }) {
     const [view, setView] = useState('upcoming');
     const [series, setSeries] = useState([]);
     const [occurrences, setOccurrences] = useState([]);
@@ -301,7 +301,7 @@ export function PrivateLessonsPanel({ api, showToast, canWrite, students }) {
 
             {view === 'policy' && policy && (
                 <PolicyEditor policy={policy} api={api} showToast={showToast}
-                              canWrite={canWrite} onSaved={load} />
+                              canWrite={canWritePolicy} onSaved={load} />
             )}
 
             {cancelling && (

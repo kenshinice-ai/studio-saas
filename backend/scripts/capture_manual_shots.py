@@ -89,7 +89,13 @@ SHOTS = [
     ("09-billing",         "owner",   f"/{SLUG}/cms?view=billing", DESKTOP, None, 2.5, None),
     ("09-finance",         "owner",   f"/{SLUG}/cms?view=finance", DESKTOP, None, 2.5, None),
     ("09-billing-identity","owner",   f"/{SLUG}/cms?view=settings&section=billing-identity", DESKTOP, None, 2.5, None),
-    ("09-private-lessons", "owner",   f"/{SLUG}/cms?view=roster", DESKTOP, None, 2.5, None),
+    # This one needs a prepare step, and did not have one before v10.13: it
+    # shoots the roster URL and the screenshot is viewport-only, so it used to
+    # photograph whatever happened to be at the top of that page. That worked
+    # only because 一对一循环课 was the first block. The reorder moved it to the
+    # end, which would have shipped a figure captioned "one-to-one lessons"
+    # showing the day's register.
+    ("09-private-lessons", "owner",   f"/{SLUG}/cms?view=roster", DESKTOP, None, 2.5, "private_lessons"),
     ("04-timetable",       "owner",   f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, "timetable"),
     ("04-booking",         None,      f"/{SLUG}/timetable",     MOBILE,  None, 2.0, "timetable_booking"),
     ("04-topup",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["topup"], 2.0, None),
@@ -121,10 +127,17 @@ def recent_class_date() -> str:
 
     from datetime import date, timedelta
 
-    # `class_schedules.weekday` is 1 = Monday … 7 = Sunday; Python's
-    # `date.weekday()` is 0 = Monday. The seeded classes are 2, 4 and 6 —
-    # Tuesday, Thursday and Saturday.
-    scheduled = {2, 4, 6}
+    # Ask the seeder, do not restate it. This was a hand-written {2, 4, 6}
+    # ("Tuesday, Thursday and Saturday") while showcase_content.SCHEDULES has
+    # taught five days for some time — Wednesday and Sunday were missing, so
+    # the walk stepped over teaching days it should have landed on.
+    #
+    # SCHEDULES stores JS weekdays (0 = Sunday … 6 = Saturday); this function
+    # compares against `date.weekday() + 1`, i.e. ISO (1 = Monday … 7 = Sunday).
+    from showcase_content import SCHEDULES
+
+    scheduled = {7 if js == 0 else js for (_c, _l, js, *_rest) in SCHEDULES}
+    assert scheduled, "showcase_content.SCHEDULES is empty — nothing teaches"
     today = date.today()
     for offset in range(8):
         candidate = today - timedelta(days=offset)
@@ -449,6 +462,22 @@ TIMETABLE_EDITOR = """
 # at v9.9.5 it rendered no booking buttons at all and failed this capture. The
 # shot photographs the real seeded timetable now, like every other shot here.
 
+# The one-to-one block is a collapsed <details> at the foot of the roster
+# page since v10.13, and the CMS scrolls `main`, not the document.
+OPEN_PRIVATE_LESSONS = """
+(() => {
+  const block = [...document.querySelectorAll('details')].find(
+    d => /一对一循环课|Recurring private lessons/.test((d.querySelector('summary') || {}).textContent || ''));
+  if (!block) return 'MISSING';
+  block.open = true;
+  const scroller = document.querySelector('main.overflow-y-auto');
+  if (scroller) {
+    scroller.scrollTop += block.getBoundingClientRect().top - 88;
+  }
+  return 'ok';
+})()
+"""
+
 ROSTER_UI_CONTRACT = """
 (() => {
   const planner = document.querySelector('.cms-roster-planner');
@@ -476,9 +505,33 @@ ROSTER_UI_CONTRACT = """
     // not only through the ordering above.
     addOutsidePlanner: !!add && !!planner && !planner.contains(add),
     // The point of the reorder: on both captured viewports the first student
-    // has to be visible without scrolling. Measured, not assumed.
-    firstRowInFold: !!row && row.getBoundingClientRect().top < innerHeight,
-    noOverflow: document.documentElement.scrollWidth <= innerWidth + 1,
+    // has to be READABLE without scrolling. `top < innerHeight` is not that
+    // assertion — it is satisfied by a row whose first pixel is the last pixel
+    // of the viewport, and the layout this reorder replaced had the row at
+    // y=898 against a 900px fold, so it would have passed on the bug too. The
+    // fixed bottom nav on phones covers the last ~56px plus the safe area, so
+    // subtract the tallest fixed chrome anchored to the bottom and require the
+    // whole row above what is left.
+    firstRowInFold: (() => {
+      if (!row) return false;
+      const rect = row.getBoundingClientRect();
+      const covered = [...document.querySelectorAll('body *')]
+        .filter(el => getComputedStyle(el).position === 'fixed')
+        .map(el => el.getBoundingClientRect())
+        .filter(r => r.height > 0 && r.width > 0 && r.bottom >= innerHeight - 1)
+        .reduce((most, r) => Math.max(most, innerHeight - r.top), 0);
+      return rect.bottom <= innerHeight - covered;
+    })(),
+    // The CMS scrolls `main`, not the document: `overflow-y:auto` makes the
+    // computed overflow-x a scrollport too, so the element absorbs every
+    // horizontal overflow and documentElement.scrollWidth can never exceed
+    // its clientWidth. Asserting on the document could not fail for any
+    // roster content — including the ≤360px week strip this round went
+    // looking for. Ask the container that actually scrolls.
+    noOverflow: (() => {
+      const scroller = document.querySelector('main.overflow-y-auto') || document.documentElement;
+      return scroller.scrollWidth <= scroller.clientWidth + 1;
+    })(),
     rowLayout: !!row && !!info && !!actions && (desktop
       ? Math.abs(info.getBoundingClientRect().top - actions.getBoundingClientRect().top) < 10
       : actions.getBoundingClientRect().top >= info.getBoundingClientRect().bottom),
@@ -562,6 +615,16 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         if result.get("result", {}).get("value") == "MISSING":
             raise SystemExit(f"{name}: Selected work editor is missing its video field")
         time.sleep(1.0)
+    elif prepare == "private_lessons":
+        for _attempt in range(8):
+            result = browser.call("Runtime.evaluate", returnByValue=True,
+                                  expression=OPEN_PRIVATE_LESSONS)
+            if result.get("result", {}).get("value") == "ok":
+                break
+            time.sleep(1.0)
+        else:
+            raise SystemExit(f"{name}: no 一对一循环课 block on the roster page")
+        time.sleep(2.0)
     elif prepare == "timetable":
         result = browser.call("Runtime.evaluate", returnByValue=True,
                               expression=TIMETABLE_EDITOR)

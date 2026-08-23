@@ -1567,6 +1567,10 @@ function App() {
            failure here must not blank the schedule list — the dropdown just
            falls back to "不关联课程". */
         await loadCourses();
+        /* Reception-scoped since v10.13, like the PATCH beside it. Teachers and
+           assistants get a 403 here, which is the answer, not a fault — the
+           same shape as loadAuditEvents below. Asking regardless of role keeps
+           this correct on the first frame, when `actorRole` has not arrived. */
         try {
             const b = await v1Api('/class-bookings');
             setBookings(b.bookings || []);
@@ -2072,9 +2076,16 @@ function App() {
     const applyGroup = async () => {
         if (!grpSel) return;
         const ids = (db.groups||{})[grpSel]||[];
-        /* Same union: a student already on the day via the timetable must not be
-           added a second time as a manual entry. */
-        const cur = dayIds;
+        /* Deliberately the MANUAL list, not `dayIds`. A student the weekly
+           timetable places on this date has no daily_roster_entries row, and
+           `entry.id` is what unlocks the per-row time, the 待上课/补课 status,
+           the 1-on-1 flag and 移出本日课程安排. Applying a template is the only
+           remaining way to give them one — addToRoster returns early on
+           `dayIds.includes(rPick)`. Deduplicating against the union here read
+           as tidier and silently removed the last path: the toast said
+           「模板学员均已在当前排课中」 and nothing was created. The list itself
+           dedupes through a Set, so no row appears twice. */
+        const cur = db.rosters[rDate]||[];
         const add = ids.filter(id => !cur.includes(id) && db.students.some(s=>s.id===id&&!s.archived));
         if (!add.length) { showToast('模板学员均已在当前排课中', 'warn'); return; }
         /* A group template is a set of students who sit the same slot, so the

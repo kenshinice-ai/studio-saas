@@ -2261,7 +2261,7 @@
     { value: "studio", label: "工作室停课" }
   ];
   var iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  function PrivateLessonsPanel({ api, showToast, canWrite, students }) {
+  function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, students }) {
     const [view, setView] = useState7("upcoming");
     const [series, setSeries] = useState7([]);
     const [occurrences, setOccurrences] = useState7([]);
@@ -2476,7 +2476,7 @@
         policy,
         api,
         showToast,
-        canWrite,
+        canWrite: canWritePolicy,
         onSaved: load
       }
     ), cancelling && /* @__PURE__ */ React.createElement(
@@ -4243,7 +4243,7 @@
       undoCheckIn,
       updateRosterEntry
     } = props;
-    return /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "课程安排"), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), /* @__PURE__ */ React.createElement("div", { className: "cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "cms-roster-date-nav" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "课程安排"), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), /* @__PURE__ */ React.createElement("div", { className: "cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "cms-roster-date-label text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "cms-roster-date-nav" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -4331,7 +4331,8 @@
       });
       const groups = Object.entries(slots).sort(([a], [b]) => a === "__unset" ? 1 : b === "__unset" ? -1 : a.localeCompare(b));
       const nameOf = (id) => db.students.find((x) => x.id === id)?.name || "";
-      return /* @__PURE__ */ React.createElement("div", { className: "cms-roster-slot-panel" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800 mb-2 flex items-center gap-2" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "时段安排"), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, groups.map(([t, arr]) => {
+      const conflicted = groups.some(([, arr]) => arr.filter((id) => !!rosterMetaFor(rDate, id).oneToOne).length > 0 && arr.length > 1);
+      return /* @__PURE__ */ React.createElement("details", { className: "cms-roster-slot-panel", open: conflicted }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-sm text-gray-800 inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "时段安排", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, conflicted ? "有 1 对 1 时间冲突" : `${groups.length} 个时段`)), /* @__PURE__ */ React.createElement("span", { className: "text-indigo-600", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5 pt-2" }, groups.map(([t, arr]) => {
         const soloIds = arr.filter((id) => !!rosterMetaFor(rDate, id).oneToOne);
         const clash = soloIds.length > 0 && arr.length > 1;
         return /* @__PURE__ */ React.createElement("div", { key: t, className: `cms-roster-slot-row ${clash ? "has-conflict" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800 min-w-[56px]" }, t === "__unset" ? "时间未设置" : t), /* @__PURE__ */ React.createElement("span", { className: "px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold" }, arr.length, " 人"), /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, arr.map(nameOf).filter(Boolean).join("、"))), soloIds.length > 0 && /* @__PURE__ */ React.createElement("p", { className: `mt-1 text-xs font-bold ${clash ? "text-red-700" : "text-indigo-600"}` }, clash ? `1 对 1 时间冲突：${soloIds.map(nameOf).join("、")} 与同时段其他排课重叠` : `1 对 1：${soloIds.map(nameOf).join("、")}`));
@@ -4497,6 +4498,7 @@
         api: v1Api,
         showToast,
         canWrite: canWriteScheduling,
+        canWritePolicy: canManageOperations,
         students: db.students.filter((s) => !s.archived)
       }
     ))), TENANT_SLUG && /* @__PURE__ */ React.createElement("details", { id: "rosterSchedules", className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[52px] px-4 py-3 flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2 min-w-0" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4 text-gray-500" }), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "block text-sm font-bold text-gray-800" }, "固定课表"), /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-normal text-gray-400" }, schedules.length ? `${schedules.length} 个每周班次` : "创建每周自动排课班次"))), /* @__PURE__ */ React.createElement("span", { className: "text-indigo-600 group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3 border-t border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-sm text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "每周课表 ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "固定班次按周几自动排入当日名单")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement(
@@ -7974,7 +7976,7 @@ ${lines.join("\n")}`, "日报已复制到剪贴板");
     const applyGroup = async () => {
       if (!grpSel) return;
       const ids = (db.groups || {})[grpSel] || [];
-      const cur = dayIds;
+      const cur = db.rosters[rDate] || [];
       const add = ids.filter((id) => !cur.includes(id) && db.students.some((s) => s.id === id && !s.archived));
       if (!add.length) {
         showToast("模板学员均已在当前排课中", "warn");

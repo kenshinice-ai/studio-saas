@@ -62,6 +62,18 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "reports:read",
         "scheduling:read",
         "scheduling:write",
+        # Booking a lesson and rewriting the rule that decides whether a
+        # cancelled one still pays the teacher are not the same authority.
+        # `scheduling:write` is reception work: seat a student, move a slot,
+        # open a recurring series. The leave policy behind it
+        # (`late_absence_pays_teacher`, `studio_cancel_chargeable`) decides
+        # payroll and what a family is billed, so it sits with the roles that
+        # already hold `payroll:write` — which the front desk deliberately
+        # does not. Until v10.13 this was invisible: the front desk held
+        # `scheduling:write`, but roleTabs gave it no page that reached the
+        # policy form, so the gap was closed by navigation rather than by
+        # permission. Handing the front desk the roster tab uncovered it.
+        "scheduling:policy:write",
         "progress_reports:read",
         "progress_reports:write",
         "progress_reports:publish",
@@ -98,6 +110,18 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "reports:read",
         "scheduling:read",
         "scheduling:write",
+        # Booking a lesson and rewriting the rule that decides whether a
+        # cancelled one still pays the teacher are not the same authority.
+        # `scheduling:write` is reception work: seat a student, move a slot,
+        # open a recurring series. The leave policy behind it
+        # (`late_absence_pays_teacher`, `studio_cancel_chargeable`) decides
+        # payroll and what a family is billed, so it sits with the roles that
+        # already hold `payroll:write` — which the front desk deliberately
+        # does not. Until v10.13 this was invisible: the front desk held
+        # `scheduling:write`, but roleTabs gave it no page that reached the
+        # policy form, so the gap was closed by navigation rather than by
+        # permission. Handing the front desk the roster tab uncovered it.
+        "scheduling:policy:write",
         "progress_reports:read",
         "progress_reports:write",
         "progress_reports:publish",

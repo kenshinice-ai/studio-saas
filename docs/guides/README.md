@@ -47,6 +47,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **退款 credits:refund** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 课表查看 scheduling:read | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 排课 scheduling:write | ✅ | ✅ | ❌ | ✅ | ❌ |
+| **请假规则 scheduling:policy:write** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 签到 attendance:write | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 作品查看 portfolio:read | ✅ | ✅ | ✅ | ❌ | ✅ |
 | 作品集编辑 portfolio:write | ✅ | ✅ | ✅ | ❌ | ✅ |
@@ -71,7 +72,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 > 用的是后者。**前台（Front Desk）连作品都读不到**（没有 `portfolio:read`），
 > 不只是不能编辑。
 >
-> **v10.13 起的两处改动**：
+> **v10.13 起的三处改动**：
 > 1. **前台可以签到**。它一直就能通过课时台账直接扣课时（`credits:write`），
 >    只是那条路不写考勤行、也不记是为哪一节课扣的。给它 `attendance:write`
 >    不是放宽，是把同一个动作挪到记得清楚的那条路上。退款（`credits:refund`
@@ -82,6 +83,11 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 >    充值扣课时、能通过 `billing:read` 看到工作室的收款账户，却看不到自己
 >    正在协助的课表。助教与老师的差别只剩两把钥匙：不写学习报告
 >    （`progress_reports:write`）、没有本人课酬（`payroll:self:read`）。
+> 3. **请假规则从 `scheduling:write` 里拆了出来**（`scheduling:policy:write`，
+>    仅 Owner / Manager）。排一节课和改写「临时请假老师照不照付课酬」不是同
+>    一种权限：后者决定课酬与家长账单。前台一直持有 `scheduling:write`，
+>    只是 v10.13 之前它没有任何一页能走到那张表单——边界是靠导航守的，不是
+>    靠权限。这一版给了前台课程安排页，于是必须把它改成靠权限。
 
 （Super Admin 拥有全部权限 `*`，但 v7.7.7 起进入任一租户的 CMS/Studio
 Admin **必须先在 Super Admin 控制台开启支持模式**（填写原因、全程审计），

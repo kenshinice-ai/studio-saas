@@ -335,7 +335,120 @@ today+2；而签到窗口是 `[today-90, today+1]`，于是手册里最忙的一
 
 全量 `2843 passed, 87 skipped`。
 
-## 十一、本轮仍未做的
+## 十一、发布前对抗式复查：一个越权、一处隐私、四个假守卫
+
+`/code-review` 是在排课重排**之前**跑的，所以重排 + 五处缺陷修复那一批没被审过。
+提交之后、推送之前跑了一轮六视角对抗复查。**验证阶段撞上月度额度上限**
+（84 个 agent 里 73 个报错），所以 `confirmed: []` 是「一个都没验」，不是
+「一个都不真」——六个发现者跑完了，26 条候选我逐条自己查。
+
+### 越权（阻断发布）
+
+**前台可以改课酬口径。** 链条是我自己接上的：
+
+```
+roleTabs.front_desk 加了 'roster'        ← 本轮
+  → 排课页渲染 PrivateLessonsPanel canWrite={canWriteScheduling}
+  → canWriteScheduling 含 front_desk     ← 一直如此
+  → 「请假规则」表单可写
+  → PUT /scheduling/policy 只要 scheduling:write ← 前台持有
+  → 200
+```
+
+前台可以关掉「临时请假老师照付课酬」，把老师那节课的课酬清零——而这一版
+**同时**明确不给前台 `payroll:read`，它连自己改了什么都看不到。
+
+我在上一份 handoff 里写过「`canWriteScheduling` 里的 front_desk 是死代码，
+因为 roleTabs 没给它那一页」。然后我给了它那一页，没有回头重查这句话。
+**权限的死代码是由导航表宣布死亡的，导航表一改它就活了。**
+
+修法：新增 `scheduling:policy:write`（仅 Owner/Manager），PUT 改判这把钥匙，
+前端 `PolicyEditor` 收 `canWritePolicy={canManageOperations}`。前台保留
+`scheduling:write`（约课、改时间、开循环课），只是看得到、改不了规则。
+
+### 隐私
+
+**`GET /class-bookings` 一直没有权限判断**（`@auth_required`），而它返回每个
+待处理约课请求的 `contactName` / `contactPhone` / `message`，并且
+`loadSchedules()` 对**所有角色**在每次排课页加载时都调它。旁边那条 PATCH
+一直判 `class_bookings:review`。
+
+这是旧洞，但**本轮把它变成了承重的**：助教被拿掉 `registrations:read`、
+并被加进「清空 pending」的投影分支，于是产品开始声称一条 API 并不执行的边界。
+改判 `class_bookings:review`。实测 manager 200 / front_desk 200 / **teacher 403**。
+手机「更多」上那个点不开的角标数字也跟着消失了。
+
+### 四个假守卫（其中两个是我这轮新加的）
+
+1. **`firstRowInFold` 用 `top < innerHeight`** —— 重排前桌面是 898，首屏 900，
+   `898 < 900` 为真。**这条断言在 bug 上也通过**。改成要求整行的 `bottom`
+   高于「可读首屏」（减掉底部固定导航实测的 53px）。
+2. **`noOverflow` 量的是 documentElement** —— CMS 滚的是
+   `main.overflow-y-auto`，`overflow-y:auto` 让 `overflow-x` 也成为滚动区，
+   于是 `documentElement.scrollWidth` 永远等于 `clientWidth`。这条断言对任何
+   排课内容都不可能失败。改成问真正滚动的那个容器。
+3. **`recent_class_date()` 里手写的 `{2,4,6}`** —— 播种器教五天
+   （周二三四六日）。改成 `from showcase_content import SCHEDULES` 推导。
+4. **`09-private-lessons` 没有 prepare 步骤** —— 它拍 `?view=roster` 的视口顶部，
+   而一对一那块原本恰好在顶部。重排把它挪到页尾，这张图会变成「标题写一对一、
+   画面是当天名单」。补了展开 + 滚动的 prepare。
+
+### 收紧的断言立刻抓到一个真问题
+
+`03-roster-mobile` 截图**失败**了。量出来：**中文过、英文不过**。
+英文的概览条折成两行（69px vs 42px）、星期标签更高（83px vs 68px），
+第一行学员的底边落在 810，可读首屏是 791。
+
+> 只截一种语言，就只量了一半的产品。
+
+修法（`@media (max-width:430px)`）：可见的「课程日期」标签转为仅读屏可见
+（左右箭头 +「今天」+ 日期框本来就不含糊），概览条 / 时段面板 / 星期条收紧间距。
+英文 810 → 778，中文 740 → 712，两边都进可读首屏。
+
+另外把**时段安排折叠**了：它把当天每个人的名字在名单**上方**再印一遍，
+十人的周六在手机上要 400px。只有「1 对 1 时间冲突」是下面名单说不出来的，
+所以有冲突时自动展开。
+
+### i18n：改中文=改字典键
+
+字典是按中文原文做键的。我改了三句、加了两句，于是：
+
+| 中文串 | 状态 |
+|---|---|
+| `来自固定课表，需在上方班次中调整` | 键成孤儿 → 英文界面**回退成中文**（回归） |
+| `可以在上方「每周课表」建一个固定班次…` | 同上 |
+| `调整这一天的名单`（新） | 无条目 |
+| `今日上课` / `上课名单`（新） | 无条目 |
+| `${groups.length} 个时段`（新） | 需要走正则表 |
+
+全部补齐。顺带补了 `当日操作`、`复制日报`、`操作人：`。
+`audit_cms_translation.py`：排课页 15 → 13（剩下的是双语种子数据），全站 27 → 25。
+
+### 「存了 ≠ 显示了」
+
+本轮给课时流水补上了 `actor_user_id`，但 `_legacy_data_for_tenant` 的
+logs 查询**从来没 select 这一列**——而操作日志的渲染早就有
+`操作人：{l.actorEmail}`，只是永远拿不到值。补一个 `LEFT JOIN users`。
+实测：60 条流水 **60 条带操作人**，签到和手工调整都有。
+
+### 其它
+
+- `PATCH /students/<id>` 传 `{"balance": "nan"}`：`float()` 收下，
+  `abs(delta) <= 0.001` 因为 NaN 比较恒假而不拦，最后写进账本。加 `math.isfinite`。
+- `applyGroup` 改用 `dayIds` 并集是**我改错了**：课表来的学员没有
+  `daily_roster_entries` 行，而 `entry.id` 正是行内改时间 / 标补课 / 标 1 对 1 /
+  移出当日的开关。`addToRoster` 已经对 `dayIds.includes` 提前返回，所以套模板
+  是最后一条能给他们建行的路。已改回手工名单。`saveGroup` 用并集是对的，保留。
+- 客户手册的权限表、`docs/Admin_Guide.md` 的矩阵与结论段、前台手册的
+  权限边界表全部停在改动前；前台手册第五节标题写「Front Desk 与 Staff 都可以」，
+  三行之后写「Front Desk 没有这个标签页」；两个问答都编号 Q7。全部改正。
+- `manual.html` 与 `Teacher_Guide.md` 还在讲已删除的排课页生日横幅；
+  生日提醒现在在工作台，窗口 8 天（横幅是 14 天）。文档改为指向工作台。
+
+新增测试 4 条：请假规则权限、策略路由判的是哪把钥匙、约课列表与审批同权、
+非有限数的余额被拒。全量 `2848 passed`；门禁 `All checks passed`。
+
+## 十二、本轮仍未做的
 
 - 阶段二 · 乙（页内标签），清单第 9–19 步。
 - 按账号勾权限（Lee 定为下一轮）。

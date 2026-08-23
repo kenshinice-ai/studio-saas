@@ -837,7 +837,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         """
         SELECT ct.id, ct.student_id, s.display_name AS student_name,
                ct.transaction_type, ct.amount::float AS amount,
-               ct.fee_aud_cents, ct.note,
+               ct.fee_aud_cents, ct.note, actor.email AS actor_email,
                to_char(COALESCE(att.class_date,
                                 (ct.occurred_at AT TIME ZONE %s)::date),
                        'DD/MM/YYYY') ||
@@ -846,6 +846,13 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                att.id AS attendance_id
         FROM credit_transactions ct
         JOIN students s ON s.id = ct.student_id
+        -- v10.13: the ledger has carried actor_user_id on check-ins for some
+        -- time and now carries it on manual adjustments too, but this query
+        -- never selected it — so the operations log rendered 操作人 for
+        -- audit-derived rows and left it blank for every movement of credit.
+        -- Stored is not shown. LEFT JOIN because rows written before the
+        -- column was populated legitimately have no actor.
+        LEFT JOIN users actor ON actor.id = ct.actor_user_id
         LEFT JOIN attendance_sessions att
           ON att.tenant_id = ct.tenant_id AND att.credit_transaction_id = ct.id
         LEFT JOIN attendance_sessions rev
@@ -961,6 +968,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "note": row["note"],
                 "date": row["occurred_display"],
                 "attendanceId": str(row["attendance_id"]) if row["attendance_id"] else None,
+                "actorEmail": row["actor_email"] or "",
             }
             for row in logs
         ],

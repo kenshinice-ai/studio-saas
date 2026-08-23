@@ -692,6 +692,8 @@
         .cms-roster-summary strong { color:var(--ink); }
         .cms-roster-summary .is-success { color:var(--success); }
         .cms-roster-summary .is-warning { color:var(--warning); font-weight:700; }
+        .cms-roster-slot-panel > summary::-webkit-details-marker { display:none; }
+        .cms-roster-slot-panel[open] > summary { margin-bottom:2px; }
         .cms-roster-slot-panel {
             padding:13px;
             border:1px solid var(--line);
@@ -912,6 +914,34 @@
                 grid-template-areas:"time reminder primary more";
             }
             .cms-roster-reminder { width:auto; }
+        }
+        /* Phone-width trim for the roster's context strip.
+         *
+         * The register is the page. Above it sit four blocks that only say
+         * WHICH day — date nav, week strip, overview, slots — and on a 390x844
+         * phone they add up to 334px before the first student. With the fixed
+         * bottom nav taking 53px, that put the first row's bottom at 810
+         * against a 791px readable fold in ENGLISH: the overview bar wraps to
+         * two lines and the weekday labels are taller than the Chinese ones,
+         * which the Chinese measurement (740) never showed. Screenshot both
+         * languages or measure only half the product.
+         *
+         * Nothing is removed here — the visible date label goes to screen
+         * readers only (the arrows, "Today" and a date field are not ambiguous
+         * about what they pick), and the rest is spacing. */
+        @media (max-width:430px) {
+            .cms-roster-date-label {
+                position:absolute;
+                width:1px; height:1px;
+                margin:-1px; padding:0; border:0;
+                overflow:hidden;
+                clip-path:inset(50%);
+                white-space:nowrap;
+            }
+            .cms-roster-summary { gap:4px 13px; padding:8px 10px; }
+            .cms-roster-slot-panel { padding:10px; }
+            .cms-roster-week { gap:4px; }
+            .cms-roster-week-day { padding:6px 2px; }
         }
         @media (max-width:639px) {
             .cms-roster-week { gap:5px; }

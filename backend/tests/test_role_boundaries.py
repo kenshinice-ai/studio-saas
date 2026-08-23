@@ -15,6 +15,20 @@ def _actor(role: Role) -> ActorContext:
     return ActorContext(user_id="u", role=role, tenant_id="t")
 
 
+def _api_source(name: str) -> str:
+    """One api_v1 module, read from disk.
+
+    These assertions are about a decorator on a route, which importing the
+    module cannot show: the decorator has already run and left no trace an
+    assertion can read.
+    """
+
+    from pathlib import Path as _Path
+
+    root = _Path(__file__).resolve().parents[1] / "studiosaas" / "api_v1"
+    return (root / name).read_text(encoding="utf-8")
+
+
 def test_refunds_are_owner_manager_only():
     for role in (Role.OWNER, Role.MANAGER):
         require_permission(_actor(role), "credits:refund")
@@ -167,3 +181,89 @@ def test_the_roster_panel_is_handed_the_attendance_gate():
         "RosterSection must receive canWriteAttendance — every write control "
         "on that page calls an attendance:write route"
     )
+
+
+def test_writing_the_leave_policy_is_owner_manager_only():
+    """Booking a lesson and rewriting who gets paid for a cancelled one differ.
+
+    `scheduling:write` is reception work. The leave policy behind it decides
+    `late_absence_pays_teacher` and `studio_cancel_chargeable` — payroll and
+    what a family is billed — so it needs the roles that hold `payroll:write`.
+
+    This was invisible until v10.13. The front desk has always held
+    `scheduling:write`, but `roleTabs` gave it no page that reached the policy
+    form, so the boundary was kept by navigation rather than by permission.
+    Handing the front desk the roster tab in that release turned a dead code
+    path into two clicks: roster → 一对一循环课 → 请假规则 → 保存规则.
+    """
+
+    for role in (Role.OWNER, Role.MANAGER):
+        require_permission(_actor(role), "scheduling:policy:write")
+    for role in (Role.FRONT_DESK, Role.TEACHER, Role.STAFF, Role.PARENT):
+        with pytest.raises(PermissionDeniedError):
+            require_permission(_actor(role), "scheduling:policy:write")
+    # The point of the split: the front desk keeps the booking half.
+    require_permission(_actor(Role.FRONT_DESK), "scheduling:write")
+
+
+def test_the_policy_route_asks_for_the_narrow_key():
+    """A permission nothing checks is a comment."""
+
+    source = _api_source("scheduling.py")
+    body = source[source.index('@api_v1.route("/scheduling/policy"'):]
+    body = body[: body.index("@api_v1.route", 1)]
+    assert 'require_permission(getattr(g, "actor", None), "scheduling:policy:write")' in body, (
+        "PUT /scheduling/policy must require scheduling:policy:write; "
+        "scheduling:write is held by the front desk"
+    )
+    assert 'require_permission(getattr(g, "actor", None), "scheduling:write")' not in body
+    # Reading it stays open to anyone who books: the notice window is not secret.
+    assert '@permission_required("scheduling:read")' in body
+
+
+def test_reading_who_is_waiting_needs_the_same_key_as_deciding():
+    """`GET /class-bookings` returns every enquirer's name, phone and message.
+
+    It was `@auth_required` — no permission at all — while the PATCH beside it
+    required `class_bookings:review`. Every signed-in role received the contact
+    details, because the CMS fetches this on every roster load. v10.13 made
+    that load-bearing: narrowing the assistant role removed `registrations:read`
+    and blanked `pending` in the legacy projection, so the product began stating
+    a boundary the API did not keep.
+    """
+
+    source = _api_source("scheduling.py")
+    listing = source[source.index('@api_v1.route("/class-bookings", methods=["GET"])'):]
+    listing = listing[: listing.index("def list_class_bookings")]
+    assert '@permission_required("class_bookings:review")' in listing, listing
+    assert "@auth_required" not in listing
+
+    for role in (Role.OWNER, Role.MANAGER, Role.FRONT_DESK):
+        require_permission(_actor(role), "class_bookings:review")
+    for role in (Role.TEACHER, Role.STAFF, Role.PARENT):
+        with pytest.raises(PermissionDeniedError):
+            require_permission(_actor(role), "class_bookings:review")
+
+
+def test_a_balance_that_is_not_a_number_is_refused_not_stored():
+    """`float("nan")` parses. Nothing downstream survives it.
+
+    PATCH /students/<id> with {"balance": "nan"} used to get past the parse,
+    then past the `abs(delta) <= 0.001` no-op guard — every comparison against
+    NaN is False — and reach the ledger. What it wrote there was a balance no
+    later arithmetic could correct. "inf" behaves the same way.
+    """
+
+    import math
+
+    source = (
+        __import__("pathlib").Path(__file__).resolve().parents[1]
+        / "studiosaas" / "api_v1" / "students.py"
+    ).read_text(encoding="utf-8")
+    assert source.count("math.isfinite(target_balance)") == 1
+    assert source.count("math.isfinite(target_credit)") == 1
+
+    # The property the guard relies on, asserted rather than assumed.
+    assert not (abs(float("nan") - 3.0) <= 0.001)
+    assert not math.isfinite(float("nan"))
+    assert not math.isfinite(float("inf"))

@@ -1441,9 +1441,21 @@ def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
 
 
 @api_v1.route("/class-bookings", methods=["GET"])
-@auth_required
+@permission_required("class_bookings:review")
 def list_class_bookings():
-    """Booking requests awaiting a decision."""
+    """Booking requests awaiting a decision.
+
+    Same key as the PATCH below, which has always had one. This route did not:
+    it was `@auth_required`, so every signed-in role — teacher, assistant —
+    received `contactName`, `contactPhone` and `message` for every family that
+    had enquired, because `loadSchedules()` fetches it on every roster load.
+
+    v10.13 is what made that load-bearing. Narrowing the assistant role took
+    `registrations:read` away and added it to the branch that blanks
+    `pending` in the legacy projection, so the product now states a boundary
+    the API was not enforcing. Reading who is waiting and deciding about them
+    are the same authority.
+    """
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -1614,7 +1626,10 @@ def scheduling_policy():
             return jsonify({"policy": _scheduling.policy(conn, tenant.tenant_id)})
 
         try:
-            require_permission(getattr(g, "actor", None), "scheduling:write")
+            # Reading the policy is `scheduling:read` (the decorator): anyone
+            # who books a lesson needs to see the notice window. Writing it is
+            # payroll and billing configuration — see auth.py.
+            require_permission(getattr(g, "actor", None), "scheduling:policy:write")
             payload = _json_payload()
             saved = _scheduling.save_policy(conn, tenant.tenant_id, payload)
         except PermissionDeniedError as exc:
