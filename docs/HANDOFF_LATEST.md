@@ -1,4 +1,4 @@
-# PWE Studio v10.13.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.14.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,15 +13,15 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.13.0，2026-08-23）
+## 当前四层身份（v10.14.0 candidate，2026-08-24）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.13.0 发布提交 `78ff836`（链：`6ccbe0b` 角色模型 + 排课页重排 → `3a92f1f` 发布前复查的越权/隐私/假守卫修复 → `78ff836` 发布账本）。门禁全绿（leastpriv 三变量形状）：`2848 passed`、租户隔离 `254 passed, 0 failed`、legacy smoke `73`、控制台冒烟通过 |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`，SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`（三方守卫全等：bundle BUILD_INFO == 本地 HEAD == origin/main == `78ff836c89ffdb9770116b4baef84ff8b72ce68b`） |
-| Package / Edition | `dist/PWE-Studio-Edition-10.13.0.tar.gz`，SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c` |
-| Production | `pwestudio.online` = v10.13.0；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 19.6%，内网与公网边缘各验一次；`http -> 301`、`https -> 200 tls=0 proto=2`。重截的手册图线上与构建树逐字节相同（03-roster-mobile.zh.webp 48200 bytes） |
-| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260823T031503Z.dump` 及同名 manifest（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（**本版零迁移**） |
+| Source | v10.14.0 品牌首页候选：Living Studio System 将 Portal / Register / Operations CMS / Studio Admin 串成一个空间故事；HTML 为事实层，浅/深海报 → Canvas → Three.js 渐进增强。候选提交与最终门禁待本轮记录。 |
+| Package / SaaS | 待候选提交与完整门禁后构建 `dist/PWE-StudioSaaS-aws-10.14.0.tar.gz`。 |
+| Package / Edition | 待同一干净提交构建 `dist/PWE-Studio-Edition-10.14.0.tar.gz`。 |
+| Production | 发布前事实仍为 `pwestudio.online` = v10.13.0；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 18.9%；`http -> 301`、`https -> 200 tls=0 proto=2`。 |
+| Backup / migration | schema 仍至 `0047_xero_transport.sql`（本版零迁移）；v10.14.0 部署前备份由受保护控制器生成。 |
 
 ## 上一版四层身份（v10.12.3，2026-08-22）
 

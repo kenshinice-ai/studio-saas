@@ -137,6 +137,8 @@ if [ -x "$PYTHON" ]; then
     # S5 (LetsPaintCMS v6.6.5 run_tests.sh): compiled CMS bundle sanity.
     CMS_SRC="$SCRIPT_DIR/../legacy-root/src/cms-app.jsx"
     CMS_OUT="$SCRIPT_DIR/frontend/assets/cms-app.js"
+    SPATIAL_SRC="$SCRIPT_DIR/frontend/src/product-spatial-three.js"
+    SPATIAL_OUT="$SCRIPT_DIR/frontend/assets/product-spatial-three.js"
     if command -v node >/dev/null 2>&1; then
         if node "$SCRIPT_DIR/scripts/check_inline_scripts.mjs" >/dev/null 2>&1; then
             ok "all inline HTML scripts compile"
@@ -175,10 +177,20 @@ if [ -x "$PYTHON" ]; then
         else
             ok "CMS bundle is up to date with its source"
         fi
+        if [ -f "$SPATIAL_OUT" ] && node --check "$SPATIAL_OUT" >/dev/null 2>&1; then
+            ok "product-spatial-three.js compiled bundle is valid JS"
+        else
+            fail "product-spatial-three.js missing or invalid (run: bash backend/scripts/build_product_spatial.sh)"
+        fi
+        if [ -f "$SPATIAL_SRC" ] && [ -f "$SPATIAL_OUT" ] && [ "$SPATIAL_SRC" -nt "$SPATIAL_OUT" ]; then
+            fail "product-spatial-three.js source is newer than its bundle — forgot to build? (bash backend/scripts/build_product_spatial.sh)"
+        else
+            ok "product spatial bundle is up to date with its source"
+        fi
         if "$PYTHON" "$SCRIPT_DIR/scripts/build_asset_manifest.py" --check >/dev/null 2>&1; then
             ok "frontend asset manifest matches content hashes"
         else
-            fail "frontend asset manifest is missing or stale (run: bash backend/scripts/build_cms.sh)"
+            fail "frontend asset manifest is missing or stale (run: python3 backend/scripts/build_asset_manifest.py)"
         fi
     else
         ok "node not available — skipped CMS bundle checks"

@@ -2,8 +2,9 @@
   "name": "studiosaas-build-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Pinned build toolchain for StudioSaaS. Not an application package: the only dependency is the esbuild release used by backend/scripts/build_cms.sh, pinned here so the CMS bundle is byte-reproducible across machines and CI (REL-04). Install with `npm ci`.",
+  "description": "Pinned build toolchain for StudioSaaS. esbuild produces deterministic browser bundles; Three.js powers the optional product-home spatial scene. Install with `npm ci`.",
   "devDependencies": {
-    "esbuild": "0.25.12"
+    "esbuild": "0.25.12",
+    "three": "0.185.1"
   }
 }
