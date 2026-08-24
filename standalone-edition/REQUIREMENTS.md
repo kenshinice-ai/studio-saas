@@ -1,7 +1,6 @@
 # PWE Studio Edition · 部署前提与必备环境
 
-> 当前发布候选：v10.14.0 Edition；尚未形成已验证归档包。最后验证的
-> Edition 运行包仍为 v10.13.0。候选 `BUILD_INFO` 必须为
+> 当前已验证交付物：v10.14.0 Edition。包内 `BUILD_INFO` 必须为
 > `mode=standalone`。完整实施顺序见 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
 ## 1. 标准部署形态

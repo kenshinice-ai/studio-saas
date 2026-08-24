@@ -13,15 +13,15 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.14.0 candidate，2026-08-24）
+## 当前四层身份（v10.14.0，2026-08-24）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.14.0 品牌首页候选：Living Studio System 将 Portal / Register / Operations CMS / Studio Admin 串成一个空间故事；HTML 为事实层，浅/深海报 → Canvas → Three.js 渐进增强。候选提交与最终门禁待本轮记录。 |
-| Package / SaaS | 待候选提交与完整门禁后构建 `dist/PWE-StudioSaaS-aws-10.14.0.tar.gz`。 |
-| Package / Edition | 待同一干净提交构建 `dist/PWE-Studio-Edition-10.14.0.tar.gz`。 |
-| Production | 发布前事实仍为 `pwestudio.online` = v10.13.0；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 18.9%；`http -> 301`、`https -> 200 tls=0 proto=2`。 |
-| Backup / migration | schema 仍至 `0047_xero_transport.sql`（本版零迁移）；v10.14.0 部署前备份由受保护控制器生成。 |
+| Source | v10.14.0 运行提交 `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2` 已推送到 `main`。Living Studio System 将 Portal / Register / Operations CMS / Studio Admin 串成一个空间故事；HTML 为事实层，浅/深海报 → Canvas → Three.js 渐进增强。PostgreSQL-required gate：`2118 passed, 8 skipped`；租户隔离 `254 passed, 0 failed`；legacy smoke `73`；两个控制台 smoke 通过。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.14.0.tar.gz`，SHA-256 `d140cb435c954b82bcbb994049d47e69658b441821a4885ba8adff1eea1fdc67`；`BUILD_INFO commit=ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2`，mode=saas。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.14.0.tar.gz`，SHA-256 `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28`；同一提交，mode=standalone。 |
+| Production | `pwestudio.online` = v10.14.0，镜像 `studiosaas:10.14.0`；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 19.1%；`http -> 301`、`https -> 200 tls=0 proto=2`。375px Canvas、1440px Three.js、英文/中文单 H1、零横向溢出、控制台无警告。线上 Three.js 文件 SHA-256 与提交逐字节相同，immutable，条件请求 304。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260824T034213Z.dump` 及 manifest；volume `pwestudio-volumes-20260824T034214Z.tar.gz`。schema 仍至 `0047_xero_transport.sql`（本版零迁移）。 |
 
 ## 上一版四层身份（v10.12.3，2026-08-22）
 
@@ -36,6 +36,14 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-24（Codex）v10.14.0 Living Studio System 品牌首页**（**已发布**）：
+  `product-home.html` 以“一个系统、四个相连界面”为核心重构；语义 HTML 承担
+  内容、SEO 与转化，浅/深静态海报先显示，移动/减弱动效走 Canvas，合适桌面
+  再动态加载自托管 Three.js。Portal、Register、Operations CMS、Studio Admin
+  保持普通链接；Data Saver、WebGL2 不可用、context lost 均 fail-open 到完整页面。
+  运行提交 `ba6c897`，双包、备份、deep health、公开路由、资产哈希、浏览器矩阵
+  均验收；本版不改租户主题、数据模型、权限或 API。
 
 - **2026-08-23（Claude Opus 5）层 2 前两步落地 + 角色权限的事实与取舍**（**已发布 v10.13.0**）：
   `docs/handoff/claude/2026-08-23-two-page-refactor-and-roles.md`

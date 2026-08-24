@@ -1,4 +1,4 @@
-# PWE Studio Edition v10.14.0 candidate · Standalone 完整部署方案（未发布）
+# PWE Studio Edition v10.14.0 · Standalone 完整部署方案
 
 > 用途：客户售前说明、实施工程师部署、交付验收和后续运维交接。
 >
@@ -11,12 +11,12 @@
 | 项目 | 当前基线 |
 |---|---|
 | 产品 | PWE Studio Edition |
-| 版本 | `10.14.0 candidate` |
+| 版本 | `10.14.0` |
 | 运行模式 | `standalone` |
-| 官方包 | **尚未构建**；候选文件名 `PWE-Studio-Edition-10.14.0.tar.gz` |
-| 包 SHA-256 | **待候选包构建后生成**（最后验证的 v10.13.0 包仍按根目录 handoff 记录） |
-| `BUILD_INFO` commit | **待候选提交后生成** |
-| 包构建时间 | **待候选包构建后生成** |
+| 官方包 | `PWE-Studio-Edition-10.14.0.tar.gz`（已构建并验证） |
+| 包 SHA-256 | `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28` |
+| `BUILD_INFO` commit | `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2` |
+| 包构建时间 | `2026-08-24T03:40:51Z` |
 | 标准数据库 | PostgreSQL 16（Docker `postgres:16-alpine`） |
 | 标准反向代理 | 主机 nginx + Let’s Encrypt/客户证书 |
 

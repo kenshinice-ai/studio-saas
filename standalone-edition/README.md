@@ -1,8 +1,8 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：v10.14.0 发布候选（2026-08-24）；尚未形成已验证归档包。**
-> 最后验证的 Edition 运行包仍为 v10.13.0；方案 A，定价已拍板。
-> 基于 StudioSaaS v10.14.0 candidate。产品名：**PWE Studio Edition**。
+> **状态：v10.14.0 Edition 归档包已构建并验证（2026-08-24）。**
+> `BUILD_INFO` 为 `version=10.14.0`、`mode=standalone`、
+> `commit=ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2`。产品名：**PWE Studio Edition**。
 
 ---
 
@@ -99,7 +99,7 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 除明确的 `0/false/no/off` 与 `1/true/yes/on` 外，其他值会让配置校验失败，
 不会静默猜测。
 
-## 6. v10.14.0 Edition 候选交付基线（尚未发布）
+## 6. v10.14.0 Edition 已验证交付基线
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量
@@ -129,6 +129,13 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 > **当前交付边界**：媒体文件的独立备份自动化和默认异地副本暂不包含在标准
 > Edition 安装中。PostgreSQL 每日备份已经闭环；媒体 Docker volume 会在
 > 应用升级中保留，但不能视为服务器故障后的可恢复副本。
+
+**正式归档：** `dist/PWE-Studio-Edition-10.14.0.tar.gz`
+
+**SHA-256：** `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28`
+
+**构建提交 / 时间：** `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2` ·
+`2026-08-24T03:40:51Z`
 
 **端到端实测**（scratch PostgreSQL 库，两条数据路径 + 三个负例）：
 
