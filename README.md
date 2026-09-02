@@ -17,11 +17,12 @@ an operator and the operations log finally displays it. And the roster page
 shows the day's register first: the first student row moved from y=898 to
 y=542 on a 1440x900 desktop, and from y=1124 to inside the fold on a phone.
 Layer evidence lives in `docs/handoff/claude/2026-08-23-two-page-refactor-and-roles.md`.
+The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.13.0 committed** | release commit `78ff836` (chain `6ccbe0b` roles + roster reorder → `3a92f1f` pre-release review fixes → `78ff836` ledger); gate green under the split app/owner/migration database roles: `2848 passed`, tenant isolation `254 passed, 0 failed`, legacy smoke `73`, console smoke green. **Zero migrations** — schema stays at `0047_xero_transport.sql`. |
-| Package | **v10.13.0 SaaS and Edition archives verified** | SaaS SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`; Edition SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c`; checksum, BUILD_INFO (`commit=78ff836c89ffdb9770116b4baef84ff8b72ce68b`), entrypoint, exclusion and smoke checks all passed; three-way guard (bundle == local HEAD == origin/main) identical. |
+| Source | **v10.13.0 committed** | runtime release commit `78ff836` (chain `6ccbe0b` roles + roster reorder → `3a92f1f` pre-release review fixes → `78ff836` ledger); current `main`/`origin/main` is docs-only closure `532cebd`. Fresh documentation-audit verification using split app/owner roles: `2928 passed, 7 skipped`; tenant isolation `254 passed, 0 failed`; legacy smoke `73`; both console smokes green. **Zero v10.13.0 migrations** — schema stays at `0047_xero_transport.sql`. |
+| Package | **v10.13.0 SaaS and Edition archives verified** | SaaS SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`; Edition SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c`; both archives carry `BUILD_INFO commit=78ff836c89ffdb9770116b4baef84ff8b72ce68b` and passed checksum, entrypoint, exclusion and archive smoke checks. The later docs-only HEAD is intentionally not inside these already-deployed runtime archives. |
 | Production | **v10.13.0 deployed to `pwestudio.online`** | deep health `appVersion=10.13.0`, `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 19.6% used — confirmed both internally and from the public edge; `http -> 301`, `https -> 200 tls=0 proto=2`; pre-deploy backup `studiosaas_studiosaas_20260823T031503Z.dump` with its manifest; the re-shot manual images are served byte-identical to the built tree. |
 
 Source, Package and Production are separate facts; do not infer Production

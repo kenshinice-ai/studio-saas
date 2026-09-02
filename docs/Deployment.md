@@ -1,9 +1,9 @@
 # StudioSaaS Deployment Guide
 
-Version: v9.9.1
-Date: 2026-08-12（Stage 2 上线记录：2026-07-30）
+Version: v10.13.0 documentation baseline
+Date: 2026-08-23（Stage 2 上线记录：2026-07-30）
 Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
-当前 SaaS 发布基线 v9.9.1；Source、Package、Production 的独立证据以
+当前 SaaS 发布基线 v10.13.0；Source、Package、Production 的独立证据以
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) 顶部记录为准。
 本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
 不得再为该域名重新引入。生产事实与实测证据见
@@ -62,15 +62,16 @@ PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（v9.9.1）
+### 1.2 验证基线（v10.13.0）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
 | 健康 | `curl localhost:8901/v1/health` | `{"ok":true,...}` |
-| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 全绿、不得以 skip 绕过 PostgreSQL gate |
+| pytest | 使用受限 app URL + owner fixture URL 运行 `.venv/bin/python -m pytest -q backend/tests` | 全绿；RLS 构造检查必须真正运行 |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 73 通过 |
 | 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 需包含品牌草稿/发布/恢复、角色权限、来源漏斗与跨租户检查 |
-| 页面 | `/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
+| 控制台浏览器 | `.venv/bin/python backend/scripts/console_smoke.py` | Studio Admin / Platform Admin 启动、i18n、错误登录交互全绿 |
+| 页面 | `/`、`/pricing`、`/manual/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/timetable`、`/<slug>/showcase`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
 
 ---
 
@@ -157,10 +158,10 @@ cd backend
 bash scripts/package_release.sh   # ← 已弃用，脚本本身会拒绝执行
 ```
 
-当前候选的逐项证据和未关闭阻塞项记录在本地归档
-`achieve/docs/Release_Readiness_2026-07-12.md`。AWS 已于
-2026-07-30 上线，但这不豁免任何一项：迁移、媒体衍生图检查、真实 PostgreSQL
-隔离测试与本地浏览器链路仍是每次发布的必过项。
+早期候选的逐项证据保存在历史归档
+`achieve/docs/Release_Readiness_2026-07-12.md`，不得作为当前状态。
+AWS 已于 2026-07-30 上线，但这不豁免任何一项：迁移、媒体衍生图检查、
+真实 PostgreSQL 隔离测试与浏览器链路仍是每次发布的必过项。
 
 ---
 

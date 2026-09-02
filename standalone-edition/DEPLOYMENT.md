@@ -1,7 +1,6 @@
 # PWE Studio Edition · 部署方式
 
-> 当前源码候选：v10.13.0（未提交、未打包、未交付）；最后验证的 Edition
-> 运行包仍为 v10.6.3。Edition 包内 `BUILD_INFO` 必须包含
+> 当前已验证交付物：v10.13.0 Edition。Edition 包内 `BUILD_INFO` 必须包含
 > `mode=standalone`；客户/实施人员的完整部署方案见
 > [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
@@ -59,8 +58,9 @@ PostgreSQL。它不会复用 Edition 的一键安装器、默认卷布局、root
 
 - 交付物 = `build_aws_bundle.sh --edition` 产物（BUILD_INFO 含版本、commit、
   `mode=standalone`）+ standalone 附件（install.sh、导入模板、客户手册）
-- 候选包名为 `PWE-Studio-Edition-10.13.0.tar.gz`，但本轮尚未构建；不得发送或部署。
-  候选包构建后，发送前必须在包所在目录执行
+- 已验证包为 `PWE-Studio-Edition-10.13.0.tar.gz`，SHA-256 为
+  `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c`。
+  每次发送或部署前必须在包所在目录执行
   `shasum -a 256 -c PWE-Studio-Edition-10.13.0.tar.gz.sha256`
 - 客户拿到的是**指定版本的完整源码包**（Apache-2.0 内核 + 交付协议
   约束商用条款——COMMERCIAL.md 详述）

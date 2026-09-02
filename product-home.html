@@ -45,24 +45,28 @@
   <meta data-lang="zh" property="og:title" content="把时间还给创作 | PWE Studio">
   <meta data-lang="en" property="og:description" content="Public site, online registration, class-credit ledger and brand front door in one system — so studio owners teach more and reconcile less.">
   <meta data-lang="zh" property="og:description" content="官网获客、在线报名、课时账本与品牌门面，都在一个系统里 —— 琐事交给系统，你回到教室与作品。">
-  <meta property="og:image" content="https://pwestudio.online/assets/showcase-botanical-home.webp">
-  <meta property="og:image:alt" content="PWE Studio — studio management for creative schools">
+  <meta property="og:image" content="https://pwestudio.online/assets/living-studio-system-poster.webp">
+  <meta property="og:image:alt" content="PWE Studio — one connected system for four studio surfaces">
   <meta name="twitter:card" content="summary_large_image">
   <meta data-lang="en" name="twitter:title" content="Give the time back to the work | PWE Studio">
   <meta data-lang="zh" name="twitter:title" content="把时间还给创作 | PWE Studio">
   <meta data-lang="en" name="twitter:description" content="Enrolments, scheduling, attendance, credits and student portfolios in one connected system.">
   <meta data-lang="zh" name="twitter:description" content="报名、排课、签到、课时与作品集，连成一个系统。">
-  <meta name="twitter:image" content="https://pwestudio.online/assets/showcase-botanical-home.webp">
+  <meta name="twitter:image" content="https://pwestudio.online/assets/living-studio-system-poster.webp">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="/assets/living-studio-system-poster.webp?v=__APP_VERSION__" media="(prefers-color-scheme: dark)" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/living-studio-system-poster-light.webp?v=__APP_VERSION__" media="(prefers-color-scheme: light)" fetchpriority="high">
   <script src="/assets/marketing-shell.js?v=__APP_VERSION__" defer></script>
   <script src="/assets/product-home.js?v=__APP_VERSION__" defer></script>
+  <script src="/assets/product-spatial.js?v=__APP_VERSION__" defer></script>
   <!-- Structured data is written by the server so its offers carry the same
        plan rows as the cards below. A price maintained in two places is the
        drift this release exists to remove. -->
   <!--PRODUCT-JSONLD-->
   <link rel="stylesheet" href="/assets/marketing.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/product-home.css?v=__APP_VERSION__">
 </head>
-<body>
+<body class="product-home">
   <a class="skip" href="#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
 
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
@@ -108,26 +112,60 @@
 
   <main id="main">
     <section class="hero">
-      <div class="hero-spark" aria-hidden="true"><svg viewBox="-16 -16 32 32"><use href="#spark"/></svg></div>
-      <div class="wrap hero-in split">
-        <div>
-          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>PWE Studio</p>
-          <h1 data-lang="en">Give the time back to the work.</h1>
-          <h1 data-lang="zh">把时间还给创作</h1>
-          <p class="lead" data-lang="en">Public site, online registration, class-credit ledger, brand front door — the busywork moves into the system, and you move back to the room and the work.</p>
-          <p class="lead" data-lang="zh">官网获客 · 在线报名 · 课时账本 · 品牌门面 —— 琐事交给系统，你回到教室与作品。</p>
-          <p class="lead" data-lang="en">One operating system for creative studios: art, music and dance schools, and tutoring centres.</p>
-          <p class="lead" data-lang="zh">创意工作室的一体化操作系统，面向美术 / 音乐 / 舞蹈工作室与培训机构。</p>
+      <div class="wrap hero-layout">
+        <div class="hero-copy">
+          <p class="hero-kicker" data-lang="en">One system · Four connected surfaces</p>
+          <p class="hero-kicker" data-lang="zh">一个系统 · 四个相连界面</p>
+          <h1 id="heroTitleEn" data-lang="en">Give the time back to the work.</h1>
+          <h1 id="heroTitleZh" data-lang="zh">把时间还给创作</h1>
+          <p class="lead" data-lang="en">Your brand opens the door. Registration, schedules, class credits and daily operations move through one connected studio system.</p>
+          <p class="lead" data-lang="zh">品牌在台前迎接每个人，报名、排课、课时与日常运营，在同一个工作室系统里连起来。</p>
+          <p class="hero-value" data-lang="en">Built for art, music and dance schools, and tutoring centres — so the busywork moves into the system and you move back to the room and the work.</p>
+          <p class="hero-value" data-lang="zh">面向美术、音乐、舞蹈工作室与培训机构——琐事交给系统，你回到教室与作品。</p>
           <div class="btns">
-            <a class="btn" href="#plans"><span data-lang="en">See pricing</span><span data-lang="zh">看定价</span></a>
+            <a class="btn" href="#product"><span data-lang="en">Enter the system</span><span data-lang="zh">走进这个系统</span></a>
             <a class="btn btn-ghost" href="#contact"><span data-lang="en">Book a 30-minute walkthrough</span><span data-lang="zh">预约 30 分钟演示</span></a>
           </div>
           <p class="proof" data-lang="en">Running in production for Let’s Paint Studio — the studio our own team teaches at, so the first customer of this system was us. <a href="/lets-paint-showcase">Walk the whole story →</a></p>
           <p class="proof" data-lang="zh">已在 Let’s Paint Studio 的生产环境运行——那是我们自己团队任教的工作室，所以这套系统的第一个用户是我们自己。<a href="/lets-paint-showcase">完整走一遍 →</a></p>
         </div>
-        <div class="art-stack" aria-label="Original demo portfolio artworks">
-          <figure class="art art-a"><img src="/assets/showcase-botanical-home.webp" width="760" height="760" alt="Watercolour botanical still life"></figure>
-          <figure class="art art-b"><img src="/assets/showcase-coast-home.webp" width="760" height="760" alt="Textured coastal landscape painting"></figure>
+
+        <div class="system-stage" id="livingSystem" data-renderer="poster" data-three-module="/assets/product-spatial-three.js?v=__APP_VERSION__" data-art-a="/assets/showcase-botanical-home.webp?v=__APP_VERSION__" data-art-b="/assets/showcase-coast-home.webp?v=__APP_VERSION__">
+          <picture class="system-poster" data-lang="en">
+            <source srcset="/assets/living-studio-system-poster-light.webp?v=__APP_VERSION__" media="(prefers-color-scheme: light)">
+            <img src="/assets/living-studio-system-poster.webp?v=__APP_VERSION__" width="1586" height="992" alt="Four connected creative-studio rooms arranged around one shared operating core" fetchpriority="high">
+          </picture>
+          <picture class="system-poster" data-lang="zh">
+            <source srcset="/assets/living-studio-system-poster-light.webp?v=__APP_VERSION__" media="(prefers-color-scheme: light)">
+            <img src="/assets/living-studio-system-poster.webp?v=__APP_VERSION__" width="1586" height="992" alt="四个创意工作室界面围绕同一个运营核心相互连接" fetchpriority="high">
+          </picture>
+          <canvas class="system-canvas" id="livingSystemCanvas" aria-hidden="true"></canvas>
+          <canvas class="system-canvas system-canvas-three" id="livingSystemThree" aria-hidden="true"></canvas>
+          <div class="system-stage-meta" aria-hidden="true">
+            <span data-lang="en">Living Studio System</span><span data-lang="zh">工作室生命系统</span>
+            <span data-renderer-label data-lang="en">Poster → Canvas → WebGL</span><span data-renderer-label data-lang="zh">海报 → Canvas → WebGL</span>
+          </div>
+          <div class="system-core-label">
+            <span data-lang="en"><strong>One studio core</strong><small>One record · one audit trail</small></span><span data-lang="zh"><strong>一个工作室核心</strong><small>一套事实 · 一条审计链</small></span>
+          </div>
+          <nav class="system-stage-controls" aria-label="Four connected product surfaces / 四个相连界面">
+            <a class="system-chip" data-system-target="0" href="#surface-portal">
+              <span data-lang="en">Portal</span><span data-lang="zh">品牌门户</span>
+              <small data-lang="en">Welcome families</small><small data-lang="zh">迎接家庭</small>
+            </a>
+            <a class="system-chip" data-system-target="1" href="#surface-register">
+              <span data-lang="en">Register</span><span data-lang="zh">快速报名</span>
+              <small data-lang="en">Capture intent</small><small data-lang="zh">接住意向</small>
+            </a>
+            <a class="system-chip" data-system-target="2" href="#surface-cms">
+              <span data-lang="en">Operations CMS</span><span data-lang="zh">运营 CMS</span>
+              <small data-lang="en">Run the day</small><small data-lang="zh">跑完日常</small>
+            </a>
+            <a class="system-chip" data-system-target="3" href="#surface-admin">
+              <span data-lang="en">Studio Admin</span><span data-lang="zh">品牌工作台</span>
+              <small data-lang="en">Shape the brand</small><small data-lang="zh">管理品牌</small>
+            </a>
+          </nav>
         </div>
       </div>
     </section>
@@ -142,22 +180,22 @@
           <p class="lead" data-lang="zh">开工作室是因为热爱创作与教学。没有人是为了对账、催费、翻聊天记录才创业的。</p>
         </div>
         <div class="grid g4">
-          <article class="card reveal">
+          <article class="card reveal" data-index="01">
             <h3 data-lang="en">The interrupted rehearsal</h3><h3 data-lang="zh">被打断的排练</h3>
             <p data-lang="en">“How many classes are left?” One question — and answering it means scrolling three months of group chat.</p>
             <p data-lang="zh">「还剩几节课？」一句询问，要翻三个月的群记录才答得上。</p>
           </article>
-          <article class="card reveal" data-delay="1">
+          <article class="card reveal" data-index="02" data-delay="1">
             <h3 data-lang="en">The late-night spreadsheet</h3><h3 data-lang="zh">深夜的对账表</h3>
             <p data-lang="en">Teaching all day, reconciling Excel all evening. What it eats is lesson preparation and new work.</p>
             <p data-lang="zh">白天上课，晚上核 Excel，吃掉的是备课和新作品的时间。</p>
           </article>
-          <article class="card reveal" data-delay="2">
+          <article class="card reveal" data-index="03" data-delay="2">
             <h3 data-lang="en">The slip of paper you can’t lose</h3><h3 data-lang="zh">经不起丢的纸条</h3>
             <p data-lang="en">Receipts in a drawer, promises made out loud. A family’s trust should not hang on one piece of paper.</p>
             <p data-lang="zh">收据在抽屉、承诺在口头，家长的信任不该系在一张纸上。</p>
           </article>
-          <article class="card reveal" data-delay="3">
+          <article class="card reveal" data-index="04" data-delay="3">
             <h3 data-lang="en">The gallery nobody can see</h3><h3 data-lang="zh">看不见的作品墙</h3>
             <p data-lang="en">A room full of student work with nowhere online to show it, so every new enrolment still arrives by word of mouth.</p>
             <p data-lang="zh">作品攒了一屋子，线上无处可看，新学员只能靠转介绍。</p>
@@ -168,41 +206,87 @@
 
     <section id="product">
       <div class="wrap">
-        <div class="head">
-          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">What you get</span><span data-lang="zh">产品全览</span></p>
-          <h2 data-lang="en">Your brand in front. One system behind it.</h2>
-          <h2 data-lang="zh">台前是你的品牌，幕后是一个系统</h2>
-          <p class="lead" data-lang="en">Four surfaces, one back office. Each role gets its own screen instead of everyone sharing one overpowered login.</p>
-          <p class="lead" data-lang="zh">四个界面，一个后台。每个角色只拿到属于自己的那一屏，不再共用一个权限过大的账号。</p>
+        <div class="system-story-head">
+          <div class="head">
+            <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Your brand in front. One system behind it.</span><span data-lang="zh">台前是你的品牌，幕后是一个系统</span></p>
+            <h2 data-lang="en">Four surfaces. One studio moving through them.</h2>
+            <h2 data-lang="zh">四个界面，同一个工作室在其中流动</h2>
+          </div>
+          <p class="lead" data-lang="en">Your brand stays in front. One shared record moves behind it — from the first visit to the daily class, without four disconnected tools or one overpowered login.</p>
+          <p class="lead" data-lang="zh">台前始终是你的品牌，背后流动的是同一套事实——从第一次访问走到每天上课，不再是四套断开的工具，也不再共用一个权限过大的账号。</p>
         </div>
-        <div class="grid g4">
-          <a class="card reveal" href="/lets-paint-showcase">
-            <h3 data-lang="en">Portal</h3><h3 data-lang="zh">门户 Portal</h3>
-            <p data-lang="en">Your public site: courses, portfolio, FAQ. Families register on the page without leaving it, and students have their own sign-in.</p>
-            <p data-lang="zh">公开官网：课程、作品集、FAQ。页内直接报名，不跳转；学员自助区入口。</p>
-            <span class="arrow"><span data-lang="en">Visit the studio portal →</span><span data-lang="zh">访问工作室门户 →</span></span>
-          </a>
-          <a class="card reveal" data-delay="1" href="/lets-paint-showcase/register">
-            <h3 data-lang="en">Register</h3><h3 data-lang="zh">快速报名 Register</h3>
-            <p data-lang="en">A standalone registration page you can put behind a QR code, with your own questions, feeding the same review queue as the portal.</p>
-            <p data-lang="zh">独立报名页可扫码直达，机构自定义报名问题，与门户共用同一审核流。</p>
-            <span class="arrow"><span data-lang="en">Start a registration →</span><span data-lang="zh">开始报名 →</span></span>
-          </a>
-          <a class="card reveal" data-delay="2" href="/lets-paint-showcase/cms">
-            <h3 data-lang="en">Operations CMS</h3><h3 data-lang="zh">运营 CMS</h3>
-            <p data-lang="en">Students, timetable, check-in, class credits, payments and refunds, registration review, portfolio and reporting.</p>
-            <p data-lang="zh">学员、排课、签到、课时、收退费、报名审核、作品集与数据统计。</p>
-            <span class="arrow"><span data-lang="en">Open the CMS →</span><span data-lang="zh">进入 CMS →</span></span>
-          </a>
-          <a class="card reveal" data-delay="3" href="/lets-paint-showcase/studio-admin">
-            <h3 data-lang="en">Studio Admin</h3><h3 data-lang="zh">品牌工作台 Studio Admin</h3>
-            <p data-lang="en">Logo, palette, bilingual copy, registration fields and preview. Draft → publish → roll back.</p>
-            <p data-lang="zh">Logo、配色、双语文案、报名字段配置与预览。草稿 → 发布 → 版本回滚。</p>
-            <span class="arrow"><span data-lang="en">Open Studio Admin →</span><span data-lang="zh">进入品牌工作台 →</span></span>
-          </a>
+
+        <div class="system-story-grid">
+          <aside class="system-map" aria-label="One studio connected to four product surfaces / 一个工作室连接四个界面">
+            <svg class="map-lines" viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 50 C37 45 29 31 21 20 M50 50 C63 45 71 31 79 20 M50 50 C37 55 29 69 21 80 M50 50 C63 55 71 69 79 80" fill="none" stroke="currentColor" stroke-width=".6"/>
+              <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" stroke-width=".3" stroke-dasharray="1.5 2"/>
+            </svg>
+            <div class="system-map-core">
+              <span><strong data-lang="en">One studio</strong><strong data-lang="zh">一个工作室</strong><small data-lang="en">brand · people · ledger</small><small data-lang="zh">品牌 · 人员 · 账本</small></span>
+            </div>
+            <a class="system-map-node" data-system-target="0" data-system-node="0" href="#surface-portal"><span data-lang="en">Portal</span><span data-lang="zh">品牌门户</span></a>
+            <a class="system-map-node" data-system-target="1" data-system-node="1" href="#surface-register"><span data-lang="en">Register</span><span data-lang="zh">快速报名</span></a>
+            <a class="system-map-node" data-system-target="2" data-system-node="2" href="#surface-cms"><span data-lang="en">Operations CMS</span><span data-lang="zh">运营 CMS</span></a>
+            <a class="system-map-node" data-system-target="3" data-system-node="3" href="#surface-admin"><span data-lang="en">Studio Admin</span><span data-lang="zh">品牌工作台</span></a>
+          </aside>
+
+          <div class="surface-chapters">
+            <article class="surface-chapter" id="surface-portal" data-system-chapter="0" data-system-target="0">
+              <span class="surface-number">01</span>
+              <div>
+                <h3 data-lang="en">A front door that already feels like your studio.</h3>
+                <h3 data-lang="zh">一扇打开就像你工作室的门</h3>
+                <p data-lang="en">Portal carries your courses, selected work and answers in your own identity. Families can understand the studio, register without leaving the page, and return through the student area.</p>
+                <p data-lang="zh">门户用你的身份呈现课程、精选作品与常见问题。家庭可以先了解工作室、不离开页面直接报名，之后再从学员区回来。</p>
+                <span class="surface-detail" data-lang="en">Published brand → courses → portfolio → student area</span><span class="surface-detail" data-lang="zh">已发布品牌 → 课程 → 作品 → 学员区</span>
+                <a class="surface-link" href="/lets-paint-showcase"><span data-lang="en">Visit the studio portal</span><span data-lang="zh">访问工作室门户</span></a>
+              </div>
+            </article>
+
+            <article class="surface-chapter" id="surface-register" data-system-chapter="1" data-system-target="1">
+              <span class="surface-number">02</span>
+              <div>
+                <h3 data-lang="en">Every enquiry arrives with its context intact.</h3>
+                <h3 data-lang="zh">每一次意向，都带着完整来路抵达</h3>
+                <p data-lang="en">Quick Registration sits behind a QR code or campaign link, uses the studio’s own questions, and enters the same review queue as the portal — with source and language attached.</p>
+                <p data-lang="zh">快速报名可以放在二维码或推广链接后面，使用工作室自己的问题，与门户进入同一条审核队列，并保留来源与语言。</p>
+                <span class="surface-detail" data-lang="en">QR or campaign → one schema → one review queue</span><span class="surface-detail" data-lang="zh">二维码或推广 → 同一字段 → 同一审核队列</span>
+                <a class="surface-link" href="/lets-paint-showcase/register"><span data-lang="en">Start a registration</span><span data-lang="zh">开始一次报名</span></a>
+              </div>
+            </article>
+
+            <article class="surface-chapter" id="surface-cms" data-system-chapter="2" data-system-target="2">
+              <span class="surface-number">03</span>
+              <div>
+                <h3 data-lang="en">The room where the studio day gets done.</h3>
+                <h3 data-lang="zh">把工作室的一天真正跑完的地方</h3>
+                <p data-lang="en">Operations CMS joins students, schedules, check-in, class credits, payments, registration follow-up, portfolios and reporting. Each role sees the work it can actually do.</p>
+                <p data-lang="zh">运营 CMS 把学员、排课、签到、课时、收款、报名跟进、作品与报表接在一起。每个角色只看到自己真正能完成的工作。</p>
+                <span class="surface-detail" data-lang="en">Owner · manager · teacher · front desk · assistant</span><span class="surface-detail" data-lang="zh">店主 · 店长 · 老师 · 前台 · 助教</span>
+                <a class="surface-link" href="/lets-paint-showcase/cms"><span data-lang="en">Open the CMS</span><span data-lang="zh">进入运营 CMS</span></a>
+              </div>
+            </article>
+
+            <article class="surface-chapter" id="surface-admin" data-system-chapter="3" data-system-target="3">
+              <span class="surface-number">04</span>
+              <div>
+                <h3 data-lang="en">Your brand can change without a developer.</h3>
+                <h3 data-lang="zh">品牌可以改变，不必每次都找开发者</h3>
+                <p data-lang="en">Studio Admin owns the logo, palette, bilingual copy, public sections and registration fields. Preview the draft, publish deliberately, and roll back to a known version.</p>
+                <p data-lang="zh">品牌工作台管理 Logo、配色、双语文案、公开版块与报名字段。先预览草稿，再明确发布，也能回到一个已知版本。</p>
+                <span class="surface-detail" data-lang="en">Draft → preview → publish → restore</span><span class="surface-detail" data-lang="zh">草稿 → 预览 → 发布 → 恢复</span>
+                <a class="surface-link" href="/lets-paint-showcase/studio-admin"><span data-lang="en">Open Studio Admin</span><span data-lang="zh">进入品牌工作台</span></a>
+              </div>
+            </article>
+          </div>
         </div>
-        <p class="note" data-lang="en">Behind all four sits the platform-side <a href="/platform-admin">Super Admin</a>: tenant provisioning, plans and billing, usage monitoring and audit logs. Platform staff do not hold studio sign-ins and do not read student records; entering a studio requires a support session that is logged.</p>
-        <p class="note" data-lang="zh">四个界面之外，另有平台侧 <a href="/platform-admin">Super Admin</a>：租户开通、套餐与账单、用量监控、审计日志。平台方不持有工作室账号，也不读取学员资料；进店必须走留痕的支持模式。</p>
+
+        <div class="system-platform-note">
+          <span class="num">05</span>
+          <p data-lang="en">Behind all four sits the platform-side <a href="/platform-admin">Super Admin</a>: tenant provisioning, plans and billing, usage monitoring and audit logs. Platform staff do not hold studio sign-ins and do not read student records; entering a studio requires a support session that is logged.</p>
+          <p data-lang="zh">四个界面之外，另有平台侧 <a href="/platform-admin">Super Admin</a>：租户开通、套餐与账单、用量监控、审计日志。平台方不持有工作室账号，也不读取学员资料；进店必须走留痕的支持模式。</p>
+        </div>
 
         <div class="phi-rule"></div>
 

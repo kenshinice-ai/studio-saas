@@ -1,14 +1,14 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：PWE Studio v10.13.0 · 最后更新：2026-08-16
+> 适用版本：PWE Studio v10.13.0 · 最后更新：2026-08-23
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
 
-## 一、六个界面
+## 一、七个界面
 
 StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独立的网址标识
-（slug），系统共有六个界面：
+（slug），系统共有七个界面：
 
 | 界面 | 地址 | 给谁用 | 干什么 |
 |---|---|---|---|
@@ -16,6 +16,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **Studio Admin** 工作室管理 | `/<slug>/studio-admin` | 租户 Owner | 品牌、配色主题、官网内容、报名表、家长话术、发布 |
 | **CMS** 运营后台 | `/<slug>/cms` | 工作室员工 | 学员、排课、签到、课时、作品、报名审批 |
 | **Timetable** 公开课表 | `/<slug>/timetable` | 访客 / 学员家长 | 浏览近期公开班次，并在开启后提交约课申请 |
+| **Showcase** 作品展示 | `/<slug>/showcase` | 访客 / 学员家长 | 浏览已发布的工作室/学员作品与分类 |
 | **Portal** 官网门户 | `/<slug>` | 访客 / 学员家长 | 浏览、在线报名、访问码自助查询 |
 | **Register** 快速报名页 | `/<slug>/register` | 访客 | 独立的报名表单页（可单独转发） |
 
@@ -27,8 +28,8 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **Owner** 工作室主理人 | Studio Admin + CMS | 品牌与官网发布、团队账号、财务终审；CMS 全权限 | [Studio_Owner_Guide.md](Studio_Owner_Guide.md) |
 | **Manager** 店长 | CMS | 日常运营全流程：档案/排课/签到/充值/退款/审批/统计 | [CMS_Manager_Guide.md](CMS_Manager_Guide.md) |
 | **Teacher** 任课老师 | CMS | 当日排课与签到、学员作品集 | [Teacher_Guide.md](Teacher_Guide.md) |
-| **Front Desk** 前台 | CMS | 报名审批、约课请求查看、建档、充值、访问码发放（不能签到、无财务报表） | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
-| **Staff**（legacy 通用员工） | CMS | 接近 Manager 但无退款/分享链接/统计/导出 | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
+| **Front Desk** 前台 | CMS | 报名/约课审核、建档、充值、开票收款、排课、签到与访问码（无退款/课酬/作品） | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
+| **Staff / Assistant** 助教 | CMS | Teacher 的严格子集：看课表、签到、作品维护、读学习报告；不碰钱/报名/档案 | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
 | **学员 / 家长** | 不登录（访问码） | 浏览官网、在线报名、自助查询课时与作品 | [Student_Parent_Guide.md](Student_Parent_Guide.md) |
 
 > **家长（parent）身份不能登录 CMS**：即使有账号，登录会被拒绝并提示
@@ -113,26 +114,20 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 > 「课程目录」。当前名称是：课程目录、学员档案、作品管理、账单发票、
 > 课酬与报表。
 
-| 标签页 | Owner/Manager | Teacher | Front Desk | Staff |
+| 当前标签页 | Owner/Manager | Teacher | Front Desk | Staff / Assistant |
 |---|---|---|---|---|
 | 工作台 | ✅ | ✅ | ✅ | ✅ |
-| 课程安排 | ✅ | ✅ | ❌ | ✅ |
-| 课程目录 | ✅ | ✅ | ❌ | ✅ |
-| 课程 | ✅ | ✅ | ❌ | ✅ |
-| 学员档案 | ✅ | ✅（只读+作品） | ✅ | ✅ |
-| 学员 | ✅ | ✅（只读+作品） | ✅ | ✅ |
+| 待处理 | ✅ | ❌ | ✅ | ❌ |
+| 课程安排 | ✅ | ✅ | ✅ | ✅ |
+| 课程目录 | ✅ | ✅（只读） | ❌ | ✅（只读） |
+| 学员档案 | ✅ | ✅（只读+作品） | ✅（可维护档案） | ✅（只读+作品） |
 | 作品管理 | ✅ | ✅ | ❌ | ✅ |
-| 作品 | ✅ | ✅ | ❌ | ✅ |
-| 待审核 | ✅ | ❌ | ✅ | ✅ |
-| 待处理 | ✅ | ❌ | ✅ | ✅ |
-| 账单发票 | ✅ | ❌ | ✅ | ✅ |
-| 账单 | ✅ | ❌ | ✅ | ✅ |
-| 充值结算 | ✅ | ❌ | ✅ | ✅ |
+| 账单发票 | ✅ | ❌ | ✅ | ❌ |
+| 充值与退款 | ✅ | ❌ | ✅（不能退款） | ❌ |
 | 课酬与报表 | ✅ | ❌ | ❌ | ❌ |
-| 财务（课酬与报表） | ✅ | ❌ | ❌ | ❌ |
-| 充值与退款 | ✅ | ❌ | ✅ | ✅ |
-| 操作日志 | ✅ | ✅ | ✅ | ✅ |
 | 经营统计 | ✅ | ❌ | ❌ | ❌ |
+| 操作日志 | ✅ | ✅ | ✅ | ✅ |
+| 系统设置 | ✅ | ✅（受限） | ✅（受限） | ✅（受限） |
 
 ## 三点五、v8.1.0 之后变了什么（手册使用者请先看这段）
 
@@ -154,7 +149,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 ## 四、通用概念
 
 - **租户（工作室）**：一家入驻的教培机构。数据完全隔离；网址标识（slug）
-  创建后不可更改。生命周期状态：lead → trial/onboarding → active →
+  可由平台按冷却期和明确确认流程修改，旧地址永久 301、从不重新分配。生命周期状态：lead → trial/onboarding → active →
   （past_due / paused / cancelled）→ archived → deleted。
 - **课时（credit）**：预付的教学时间单位。充值购入、签到扣减、可退款；
   一节课可能扣多于 1 个课时，所以对家长显示的是「剩余课时」而非
@@ -181,7 +176,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 - 想改官网颜色/文案/报名问题 → [Owner 手册](Studio_Owner_Guide.md)
 - 想办充值、退款、审批报名 → [Manager 手册](CMS_Manager_Guide.md)
 - 前台审批报名、查看约课请求、发访问码、看到「疑似重复」角标 →
-  [前台/员工手册](Front_Desk_Staff_Guide.md)
+  [前台/助教手册](Front_Desk_Staff_Guide.md)
 - 想给学员签到、传作品 → [Teacher 手册](Teacher_Guide.md)
 - 家长问「还剩几节课怎么查」 → [学员/家长手册](Student_Parent_Guide.md)
 - 要开新工作室、暂停租户、支持模式、备份 → [Super Admin 手册](Super_Admin_Guide.md)

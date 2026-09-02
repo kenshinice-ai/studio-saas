@@ -1,8 +1,8 @@
 # StudioSaaS API Reference
 
-Version: v3.6
-Date: 2026-08-16
-Release: v10.7.1 deployed; production deep health reports `db=ok` and `mode=saas`
+Version: v10.13.0 documentation baseline
+Date: 2026-08-23
+Release: v10.13.0 deployed; production deep health reports `db=ok` and `mode=saas`
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -47,7 +47,7 @@ curl -sS http://localhost:8901/v1/health
 ```
 
 Response keeps `version: "v1"` as the API contract and reports the product
-release separately as `appVersion` (v8.1.0). The response also exposes the
+release separately as `appVersion` (currently `10.13.0`). The response also exposes the
 safe runtime fields `mode` and `showProducerCredit`; the latter drives the
 Edition-only contractual footer. Add `?deep=1` to require a
 successful PostgreSQL probe.
@@ -58,7 +58,7 @@ successful PostgreSQL probe.
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/v1/auth/login` | None | Login (returns session cookie). Rejected (403) for users whose only active memberships are `parent` — the family self-service surface does not exist yet |
+| POST | `/v1/auth/login` | None | Staff/platform login (returns session cookie). Rejected (403) for users whose only active memberships are `parent`; family access uses the separate student-area code/session flow |
 | GET | `/v1/auth/me` | Session | Current user + memberships |
 | POST | `/v1/auth/logout` | Session | End session |
 | POST | `/v1/auth/change-password` | Session | Change current password |
@@ -597,12 +597,18 @@ pilot/production (`STUDIOSAAS_ENV`): the message is the fixed text
 "Database unavailable. Please try again later." — driver and connection
 detail is only included in local development.
 
-### Xero connection (X2, v10.9.0)
+### Xero connection and one-way transport (X2–X4, v10.9.0–v10.10.3)
 
 - `POST /s/<slug>/v1/integrations/xero/connect-url` — begin the OAuth handshake (permission `integrations:manage`); returns `{url}` for a full-page redirect to Xero. `409` with a named reason when the server is unconfigured.
 - `GET /xero/callback` — root-level OAuth redirect target (no tenant in the URL; the pending state row is the tenant resolution). Redirects back to `/{slug}/cms?view=settings&section=integrations&xero=connected|cancelled|error`.
 - `POST /s/<slug>/v1/integrations/xero/disconnect` — best-effort revocation at Xero plus unconditional local token wipe; returns the new `connection` state.
 - `POST /s/<slug>/v1/integrations/xero/refresh-check` — proves a working access token now (silently refreshing if stale); a dead refresh token flips the connection to `expired` with the error recorded, `409`.
 - `GET /s/<slug>/v1/integrations/xero` now includes `connection: {configured, configMissing, connected, status, orgName, lastError, connectedAt, accessTokenExpiresAt}`.
+- `PUT /s/<slug>/v1/integrations/xero/mappings` — save accountant-reviewed account/tax mappings.
+- `POST /s/<slug>/v1/integrations/xero/single-entry` — record the single-entry/clearing-account decision.
+- `POST /s/<slug>/v1/integrations/xero/gate` — run the Demo Company trial/reconciliation gate and control pushing.
+- `GET /s/<slug>/v1/integrations/xero/errors` and `POST .../errors/<job_id>/replay` — inspect and deliberately replay failed jobs using the same idempotency key.
+- `POST /s/<slug>/v1/integrations/xero/push-now` and `.../backfill` — drain due work or enqueue eligible historical documents.
+- `GET /s/<slug>/v1/integrations/xero/reconciliation` and `.../queue` — per-document comparison and queue visibility.
 
-Tokens are Fernet-encrypted at rest (`STUDIOSAAS_XERO_TOKEN_KEY`); server credentials come from `XERO_CLIENT_ID`/`XERO_CLIENT_SECRET` set via `deploy/aws/set_xero_env.sh`. Pushing documents remains behind the X3 gate — the connection sends nothing to the accounting API.
+Tokens are Fernet-encrypted at rest (`STUDIOSAAS_XERO_TOKEN_KEY`); server credentials come from `XERO_CLIENT_ID`/`XERO_CLIENT_SECRET` set via `deploy/aws/set_xero_env.sh`. Issued invoices, credit notes and recorded payments can be queued only after connection, mappings, a real Demo Company trial, and the single-entry decision are complete. The integration is Beta and strictly one-way: StudioSaaS may read provider responses for verification, but it does not import or apply Xero edits to local records.

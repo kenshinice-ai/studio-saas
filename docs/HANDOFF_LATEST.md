@@ -17,11 +17,28 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.13.0 发布提交 `78ff836`（链：`6ccbe0b` 角色模型 + 排课页重排 → `3a92f1f` 发布前复查的越权/隐私/假守卫修复 → `78ff836` 发布账本）。门禁全绿（leastpriv 三变量形状）：`2848 passed`、租户隔离 `254 passed, 0 failed`、legacy smoke `73`、控制台冒烟通过 |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`，SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`（三方守卫全等：bundle BUILD_INFO == 本地 HEAD == origin/main == `78ff836c89ffdb9770116b4baef84ff8b72ce68b`） |
+| Source | v10.13.0 运行代码发布提交 `78ff836`（链：`6ccbe0b` 角色模型 + 排课页重排 → `3a92f1f` 发布前复查的越权/隐私/假守卫修复 → `78ff836` 发布账本）；当前 `main` / `origin/main` 为发布证据文档收口 `532cebd`。2026-08-23 文档体检复跑：`2928 passed, 7 skipped`、租户隔离 `254 passed, 0 failed`、legacy smoke `73`、两控制台 Chrome 冒烟通过。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`，SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`；包内 `BUILD_INFO` 指向运行提交 `78ff836c89ffdb9770116b4baef84ff8b72ce68b`。后续 `532cebd` 仅为文档证据收口，未宣称进入已部署运行包。 |
 | Package / Edition | `dist/PWE-Studio-Edition-10.13.0.tar.gz`，SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c` |
 | Production | `pwestudio.online` = v10.13.0；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 19.6%，内网与公网边缘各验一次；`http -> 301`、`https -> 200 tls=0 proto=2`。重截的手册图线上与构建树逐字节相同（03-roster-mobile.zh.webp 48200 bytes） |
 | Backup / migration | 部署前 dump `studiosaas_studiosaas_20260823T031503Z.dump` 及同名 manifest（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（**本版零迁移**） |
+
+文档权威级别、客户 Markdown/公开 HTML 对应关系、历史资料边界见
+[`docs/README.md`](README.md)。历史版本说明只描述当时状态，不覆盖本表。
+
+## 当前已知开放项（2026-08-23 文档体检）
+
+- 特权账号 MFA/SSO、异地主机备份副本、运行/备份失败告警、on-call 归属与
+  合同化 SLA 尚未完成；同机备份与恢复演练已经通过，但不能替代异地灾备。
+- Xero timer 为 enabled/active、最近一次 service 结果成功；队列聚合仍保留
+  1 条 2026-08-19 的历史 failed job（已付款发票更新被 Xero 400 拒绝）。不得
+  盲目 replay，须由运营判断应修映射、标记 skipped 还是人工关闭。
+- 课程安排阶段二页内标签、按账号权限覆盖、每周课表 permission 化和
+  320×700 的 5px 边缘问题仍未实现。
+- 完整 role × route × 375/768/1024/1440 浏览器 CI 矩阵仍未建立；已有两控制台
+  Chrome smoke、手册截图契约和当前公开页/桌面运营面验收。
+- 音乐合成样板公开站可用，但 Platform Admin 仍显示 Needs setup，公开品牌的
+  `publishedVersion` 为空；这是样板发布生命周期卫生项，不是客户数据问题。
 
 ## 上一版四层身份（v10.12.3，2026-08-22）
 

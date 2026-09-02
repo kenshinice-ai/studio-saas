@@ -1,4 +1,4 @@
-# PWE Studio Edition v10.13.0 candidate · Standalone 完整部署方案（未发布）
+# PWE Studio Edition v10.13.0 · Standalone 完整部署方案
 
 > 用途：客户售前说明、实施工程师部署、交付验收和后续运维交接。
 >
@@ -11,17 +11,19 @@
 | 项目 | 当前基线 |
 |---|---|
 | 产品 | PWE Studio Edition |
-| 版本 | `10.13.0 candidate` |
+| 版本 | `10.13.0` |
 | 运行模式 | `standalone` |
-| 官方包 | **尚未构建**；候选文件名 `PWE-Studio-Edition-10.13.0.tar.gz` |
-| 包 SHA-256 | **待候选包构建后生成**（最后验证的 v10.6.3 包仍按根目录 handoff 记录） |
-| `BUILD_INFO` commit | **待候选提交后生成** |
-| 包构建时间 | **待候选包构建后生成** |
+| 官方包 | `PWE-Studio-Edition-10.13.0.tar.gz`（已构建并验证） |
+| 包 SHA-256 | `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c` |
+| `BUILD_INFO` commit | `78ff836c89ffdb9770116b4baef84ff8b72ce68b` |
+| 包构建时间 | `2026-08-23T05:14:18Z` |
 | 标准数据库 | PostgreSQL 16（Docker `postgres:16-alpine`） |
 | 标准反向代理 | 主机 nginx + Let’s Encrypt/客户证书 |
 
 正式包必须同时通过 SHA-256 和 `BUILD_INFO` 检查。版本号、压缩包文件名或
 工作区中的 `VERSION` 文件都不能单独证明客户正在使用哪个版本。
+本表证明归档交付物已经存在；客户服务器是否已安装、备份、演练和签收仍须
+由每个客户实例自己的验收记录证明。
 
 ## 1. 产品和部署边界
 

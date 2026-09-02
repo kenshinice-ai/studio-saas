@@ -1,7 +1,7 @@
 # StudioSaaS Architecture
 
-Version: v3.2
-Date: 2026-07-26
+Version: v10.13.0 documentation baseline
+Date: 2026-08-23
 Purpose: Current system architecture, routing model, file layout, data flow — plus the target architecture (v2 vision) and its adoption policy.
 
 ---
@@ -40,7 +40,7 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
               │
        ┌──────▼──────┐
        │ PostgreSQL  │
-       │ (RDS later) │
+       │ 16 container│
        └─────────────┘
 ```
 
@@ -66,6 +66,8 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 | `/` | Super Admin dashboard |
 | `/platform-admin` | Direct StudioSaaS Super Admin login |
 | `/super-admin` | Optional Cloudflare Access-protected alias of the same dashboard |
+| `/pricing`, `/zh/pricing` | Public plan catalogue and calculator |
+| `/manual/`, `/zh/manual/` | Public bilingual product manual |
 | `/register` | Closed (404) — registration belongs to tenants |
 | `/v1/*` | Platform and tenant API v1 |
 
@@ -77,6 +79,8 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 | `/<tenant_slug>/cms` | Tenant CMS daily operations shell |
 | `/<tenant_slug>/studio-admin` | Website/brand and registration-form console |
 | `/<tenant_slug>/register` | Tenant registration |
+| `/<tenant_slug>/timetable` | Public timetable and booking request |
+| `/<tenant_slug>/showcase` | Published work archive |
 | `/s/<tenant_slug>/v1/*` | Tenant-scoped API prefix |
 
 ### 2.3 Reserved Slugs
@@ -95,14 +99,17 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 
 ```
 studiosaas/
-├── super-admin.html              # Platform dashboard (~2716 lines)
+├── super-admin.html              # Platform dashboard shell
 ├── start_studiosaas_local.sh     # Local startup script
 ├── START_STUDIOSAAS_LOCAL.command # macOS double-click launcher
 │
 ├── backend/                      # Canonical runtime
-│   ├── server.py                 # Flask application (~1860 lines)
+│   ├── server.py                 # Flask application and page/static routes
 │   ├── studiosaas/
-│   │   ├── api_v1.py             # All API routes (~8482 lines — split still planned, P2-01)
+│   │   ├── api_v1/               # Domain route package (split completed in v10.11.0)
+│   │   │   ├── auth.py, tenant.py, platform.py, public.py
+│   │   │   ├── students.py, scheduling.py, teaching.py, media.py
+│   │   │   └── billing.py, xero.py, misc.py, _shared.py
 │   │   ├── auth.py               # Auth helpers, decorators, ROLE_PERMISSIONS matrix
 │   │   ├── models.py             # Role/TenantStatus enums, Tenant/Actor contexts
 │   │   ├── audit.py              # Audit log writer
@@ -112,22 +119,23 @@ studiosaas/
 │   │   ├── lifecycle.py          # Canonical tenant/subscription/registration transition maps
 │   │   ├── migration.py          # Legacy data migration helpers
 │   │   ├── presets.py            # Industry + visual-theme presets (single source of truth)
-│   │   ├── services/             # media / notifications / student_access / tenant_archive
+│   │   ├── services/             # billing, media, notifications, scheduling,
+│   │   │                         # student access, reports, Xero transport, archives
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   ├── schema_v1.sql         # Kept in sync with migrations (through 0021); migrations are canonical
-│   │   └── migrations/           # 0001–0021, applied by scripts/run_migrations.py
+│   │   ├── schema_v1.sql         # Bootstrap reference; migrations are canonical
+│   │   └── migrations/           # 0001–0047, applied by scripts/run_migrations.py
 │   ├── scripts/
 │   │   ├── run_migrations.py
 │   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py
-│   │   ├── seed_random_demo_data.py
+│   │   ├── reset_professional_demo.py  # art/music synthetic showcase packs
 │   │   ├── import_lets_paint_json.py
 │   │   ├── migrate_legacy_media.py
 │   │   └── verify_local.sh
 │   ├── frontend/
-│   │   ├── studio-admin.html     # Shared Studio Admin page (~4108 lines)
+│   │   ├── studio-admin.html     # Shared Studio Admin shell
 │   │   └── assets/               # cms-app.js (prebuilt), portal-theme.css, brand-system.css, ui-*
 │   ├── vendor/                   # react/react-dom/tailwind runtime bundles (Babel removed)
 │   ├── test_cms.py               # Legacy smoke test (73 checks, script-style)
@@ -136,19 +144,23 @@ studiosaas/
 │   └── requirements.txt
 │
 ├── legacy-root/                  # Tenant CMS (core product surface)
-│   ├── index.html                # CMS shell with request bridge (~332 lines)
-│   ├── src/cms-app.jsx           # CMS application source (esbuild → backend/frontend/assets/cms-app.js)
+│   ├── index.html                # CMS shell with tenant request bridge
+│   ├── src/cms-app.jsx           # CMS entry; imports components and domain panels
+│   ├── src/components.jsx
+│   ├── src/panels/               # Extracted CMS panels
 │   └── register.html             # Register shell with request bridge (~811 lines)
 │
 ├── tenant-template/              # Template for new tenants
 │   ├── index.html
 │   ├── studio-admin.html
-│   └── register.html
+│   ├── register.html
+│   ├── timetable.html
+│   └── showcase.html
 │
 ├── tenants/                      # Generated tenant workspaces
 │   ├── lets-paint-studio/
-│   ├── lets-play-piano/
-│   └── lets-play-game/
+│   ├── lets-paint-showcase/
+│   └── music-studio-showcase/
 │
 ├── deploy/
 │   ├── aws/                      # Dockerfile, entrypoint.sh, docker-compose.yml, nginx/,
@@ -220,16 +232,21 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | CloudFront | CDN for public assets and portfolio — future |
 | SES | Email delivery — future |
 | Secrets Manager / SSM | Environment variables and secrets — future |
+| Xero | OAuth2 + encrypted tokens + gated one-way invoice/credit-note/payment queue; Beta, no two-way edits |
+| Email | Console backend by default; SMTP adapter available when a tenant/deployment supplies its own sending configuration |
+| SMS | Routing, quota, opt-out and logging exist; provider transport is not enabled |
 | Deployment kit | `deploy/aws/` — Dockerfile, docker-compose, nginx, systemd, `build_aws_bundle.sh`, `README_AWS.md` (v7.4.0) |
 
 ---
 
-## 6. Known Risks and Weak Points (verified 2026-07-26)
+## 6. Known Risks and Weak Points (reconciled 2026-08-23)
 
 | Area | Issue | Priority |
 |---|---|---|
-| Browser QA | Playwright smoke coverage is not yet in the repo | P1-06 |
-| Code size | `api_v1.py` is ~8482 lines — split along target module boundaries | P2-01 |
+| Browser QA | Real Chrome smoke covers both consoles and the manual capture checks key CMS/public screens; a full role × route × breakpoint CI matrix is still open | P1 |
+| Privileged access | MFA/SSO is not implemented for privileged accounts | P0 before broader commercial scale |
+| Recovery | Backups and restore rehearsal pass, but off-instance copies and failure alerting are open | P0 before broader commercial scale |
+| Xero operations | One-way transport is live Beta; failures need operator review and must never be blindly replayed | P1 |
 | Vendor JS | Babel eliminated (CMS is esbuild-precompiled); only `/vendor/tailwindcss.js` still compiles Tailwind at runtime | P2-03 |
 | Rate limiting | In-memory, per-process — resets on restart (pilot-acceptable; Redis at P3-04) | P3 |
 

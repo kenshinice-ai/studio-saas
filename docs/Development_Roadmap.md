@@ -1,7 +1,7 @@
 # StudioSaaS Development Roadmap
 
-Version: v3.1
-Date: 2026-07-27
+Version: v10.13.0 documentation baseline
+Date: 2026-08-23
 Purpose: Phased development plan, milestones, current status, and deployment targets.
 
 ---
@@ -11,9 +11,9 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Phase | Timeline | Status | Goal |
 |---|---|---|---|
 | Phase 0: Product Definition & Prototype | 1–2 weeks | ✅ Complete | PRD, data model, wireframes, API draft |
-| Phase 1: SaaS MVP | 8–12 weeks | 🟡 In progress | Support 1–3 pilot studios |
-| Phase 2: Pilot Optimization | 4–8 weeks | ⬜ Pending | Fix real-use issues, optimize UI |
-| Phase 3: Commercial Release | 2–4 months | ⬜ Pending | Public website, pricing, subscriptions |
+| Phase 1: SaaS MVP | 8–12 weeks | ✅ Complete | Multi-tenant product and operating surfaces |
+| Phase 2: Pilot Optimization | Ongoing | 🟡 Active | Real-use fixes, roles, workflow and UI hardening |
+| Phase 3: Commercial Release | Incremental | 🟡 Partial | AWS production, public site and pricing are live; commercial controls remain open |
 | Phase 4: Mobile App | 2–4 months | ⬜ Pending | Teacher/admin iOS app |
 | Phase 5: Mature SaaS | 6–12 months | ⬜ Pending | Self-serve, billing, extensions |
 
@@ -33,7 +33,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 ---
 
-## 3. Phase 1 — SaaS MVP (In Progress)
+## 3. Phase 1 — SaaS MVP (Complete)
 
 **Goal:** Support 1–3 pilot studios in real use.
 
@@ -47,36 +47,36 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 - Basic backup and export
 - Basic permission controls
 
-**Current Status (verified 2026-07-03):**
+**Completion baseline (reconciled 2026-08-23):**
 
 | Feature | Status | Notes |
 |---|---|---|
 | Multi-tenant routing | ✅ | Path, header, subdomain resolution |
 | Tenant workspace generation | ✅ | From `tenant-template/` |
-| PostgreSQL schema evolution | ✅ | Ordered migrations through 0021; private student sessions, safe media variants, daily roster and portal analytics included |
-| Super Admin dashboard | ✅ | Create/pause/resume tenants |
+| PostgreSQL schema evolution | ✅ | Ordered migrations through 0047; forced RLS, money layer and Xero transport included |
+| Super Admin dashboard | ✅ | Lifecycle, plans, subscriptions, usage, audit and exact-tenant support sessions |
 | Studio Admin login | ✅ | Per-tenant website/brand console |
 | Studio CMS | ✅ | Legacy bridge with tenant routing |
 | Tenant registration | ✅ | Tenant-specific registration page |
 | Brand sync (Studio Admin → public surfaces) | ✅ | Logo, colors, welcome, industry, registration profile |
-| Demo data seeding | ✅ | Randomized relational data |
+| Demo data seeding | ✅ | Guarded synthetic art/music content packs |
 | Legacy smoke test | ✅ | 73 checks passing |
 | Public endpoint rate limiting | ✅ | In-memory: registrations 5/min, balance 10/min, uploads 5/min |
 | dict_row indexing bugs | ✅ | No tuple indexing remains in `api_v1.py` |
 | Credit transaction alignment | ✅ | `(tenant_id, student_id, course_id)` conflict key in use |
 | Role model consistency | ✅ | Platform admin = NULL-tenant membership (P0-01, 2026-07-03) |
-| pytest infrastructure | ✅ | `pytest -q` green, 20 tests (P0-02, 2026-07-03) |
+| pytest infrastructure | ✅ | Full suite, 73-check legacy smoke and 254-check isolation integration gate |
 | Migration runner | ✅ | `run_migrations.py` + `schema_migrations` (P0-03, 2026-07-03) |
 | Login rate limiting | ✅ | 5/min per IP+email, 30/min per IP (P0-05, 2026-07-03) |
 | Route protection audit | ✅ | 146 routes audited; 12 open GET reads fixed (P0-06, 2026-07-03) |
 | Registration review loop | ✅ | Duplicate detection, approve-to-student, review notes, audit (P1-04, 2026-07-03) |
 | Attendance / credits closed loop | ✅ | Attendance consume/void linked to credit ledger (P1-05, 2026-07-03) |
 | Media upload endpoint (v1) | ✅ | Canonical media service + `/s/<slug>/v1/media/upload` (P1-03, 2026-07-03) |
-| Browser smoke tests | ❌ | Playwright — P1-06 |
+| Browser smoke tests | 🟡 | Real Chrome console smoke and manual capture contracts exist; full role × route × breakpoint CI remains open |
 
 ---
 
-## 4. Phase 2 — Pilot Optimization
+## 4. Phase 2 — Pilot Optimization (Active)
 
 **Timeline:** 4–8 weeks after Phase 1 completion.
 
@@ -96,7 +96,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 ---
 
-## 5. Phase 3 — Commercial Release
+## 5. Phase 3 — Commercial Release (Partially live)
 
 **Timeline:** 2–4 months after Phase 2.
 
@@ -107,6 +107,12 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 - Privacy policy and terms of service
 - Support backend
 - System monitoring and alerting
+
+**Current boundary:** product marketing, public pricing, AWS Lightsail
+production, subscriptions as data, guarded deployment and customer resources
+are live. Stripe subscription charging, self-service onboarding, off-instance
+backup copies, uptime/backup-failure alerts, on-call ownership, contractual
+SLA and privileged MFA remain open.
 
 **AWS Deployment Target:**
 

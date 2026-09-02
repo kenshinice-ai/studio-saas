@@ -1,7 +1,7 @@
 # Admin Guide
 
 > **StudioSaaS Platform Administration**
-> Last updated: 2026-07-26
+> Last updated: 2026-08-23 · v10.13.0 documentation baseline
 
 ---
 
@@ -186,7 +186,7 @@ Seven roles are defined by `ROLE_PERMISSIONS` in `backend/studiosaas/auth.py`:
 > [`docs/guides/`](guides/README.md): [Super Admin](guides/Super_Admin_Guide.md) ·
 > [Owner](guides/Studio_Owner_Guide.md) · [Manager](guides/CMS_Manager_Guide.md) ·
 > [Teacher](guides/Teacher_Guide.md) ·
-> [Front Desk / Staff](guides/Front_Desk_Staff_Guide.md) ·
+> [Front Desk / Assistant](guides/Front_Desk_Staff_Guide.md) ·
 > [Student / Parent](guides/Student_Parent_Guide.md).
 
 | Permission | owner | manager | teacher | front_desk | staff |
@@ -239,20 +239,20 @@ Key boundaries:
   `super_admin`/`owner`/`manager` only.
 - `analytics:read` and `data:export` are owner/manager only.
   `settings:write` is **owner-only** (manager does not have it).
-- **Parent** carries only reserved self-service permissions
-  (`student:self:read`, `portfolio:self:read`); no route implements them yet,
-  and `/v1/auth/login` returns **403** for users whose only active
-  memberships are `parent`.
+- **Parent** membership carries reserved self-service permissions
+  (`student:self:read`, `portfolio:self:read`) but is not a staff/admin login;
+  `/v1/auth/login` returns **403** for users whose only active memberships are
+  `parent`. Current family access uses the separate student-area code/session flow.
 
 CMS tab visibility mirrors the backend bundles
 (`legacy-root/src/cms-app.jsx` `roleTabs`):
 
 | Role | CMS tabs |
 |---|---|
-| owner / manager / super_admin | `dashboard`, `roster`, `students`, `new_student`, `pending`, `topup`, `logs`, `stats` (full set) |
-| teacher | `dashboard`, `roster`, `students`, `logs` |
-| front_desk | `dashboard`, `students`, `new_student`, `pending`, `topup`, `logs` |
-| staff | full set minus `stats` (`dashboard`, `roster`, `students`, `new_student`, `pending`, `topup`, `logs`) |
+| owner / manager / super_admin | `dashboard`, `pending`, `roster`, `courses`, `students`, `works`, `new_student`, `billing`, `topup`, `finance`, `logs`, `stats`, `settings` |
+| teacher | `dashboard`, `roster`, `courses`, `students`, `works`, `logs`, `settings` |
+| front_desk | `dashboard`, `pending`, `roster`, `students`, `new_student`, `billing`, `topup`, `logs`, `settings` |
+| staff / assistant | `dashboard`, `roster`, `courses`, `students`, `works`, `logs`, `settings` |
 
 ---
 
@@ -480,5 +480,5 @@ created after the backup timestamp.
 ---
 
 面向最终用户的分角色操作手册见 [`docs/guides/`](guides/README.md)（总览 +
-Super Admin / Owner / Manager / Teacher / Front Desk & Staff / 学员家长
-六本手册，均已更新到 v7.7.0）。
+Super Admin / Owner / Manager / Teacher / Front Desk & Assistant / 学员家长
+六本角色手册，当前基线为 v10.13.0）。

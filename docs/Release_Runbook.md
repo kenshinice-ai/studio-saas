@@ -58,13 +58,13 @@ passed.
 |---|---|---|
 | 1 | Preflight | `bash backend/scripts/release_preflight.sh` |
 | 2 | Version ledger | edit `VERSION`, `server.py`, guides, README, release notes, Edition docs — then re-run step 1 |
-| 3 | Handoff section | write this release's section at the **top** of `docs/HANDOFF_LATEST.md` |
+| 3 | Prepared ledger | write the candidate Source and expected package/deploy gates in `docs/HANDOFF_LATEST.md`; do not claim deployment yet |
 | 4 | Gate | `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh` |
 | 5 | Commit | everything, including docs — the bundle is `git archive HEAD` |
 | 6 | Build | `bash deploy/aws/build_aws_bundle.sh <version>` and `… --edition` |
 | 7 | Verify bundles | `bash deploy/aws/verify_release_bundles.sh` |
 | 8 | Deploy | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` |
-| 9 | Close | record evidence in README's three rows and the handoff; push; sync `main` |
+| 9 | Evidence closure | after public acceptance, record exact Production/Backup evidence in README and the handoff as a clearly labelled docs-only closure commit |
 
 ### release.sh — the orchestration shell
 
@@ -91,12 +91,12 @@ What it adds beyond sequencing:
   silently missing. It never touches `docs/HANDOFF_LATEST.md`: step 3 is
   yours, and preflight failing until the handoff names the new version is
   that rule working, not a bug.
-- **The three-way commit guard** (between steps 7 and 8): the bundle's
+- **The three-way runtime guard** (between steps 7 and 8): the bundle's
   `BUILD_INFO` commit, local `HEAD`, and a freshly fetched `origin/main` must
   be identical or the deploy is refused. This makes "nothing may be added
   after step 6" a machine check — and it means `main` is synced **before**
-  the deploy, not after it; step 9's push becomes a verification that this
-  already happened, plus the evidence rows.
+  the deploy. A later step-9 docs-only evidence commit is allowed, but it is
+  not inside the deployed archive and must say so explicitly.
 - Two interactive confirmations, before build and before deploy, and a public
   deep-health summary at the end.
 - `--until <step>` / `--from <step>` with steps `bump preflight verify commit
@@ -105,21 +105,23 @@ What it adds beyond sequencing:
 
 ### Rules the sequence encodes
 
-**Nothing may be added after step 6.** The bundle is `git archive HEAD`, so a
-commit made after the build is not in the running package even though it is on
-the branch and in `main`. This has happened: a one-off data script written
-between the build and the deploy had to be copied into the container by hand,
-and the handoff had to say so. If something must change after step 6, go back
-to step 6.
+**No runtime, migration, generated asset, customer package content, or
+pre-deploy instruction may be added after step 6.** The bundle is
+`git archive HEAD`, so such a commit would not be in the running package even
+if it later appears on `main`. If packaged behavior or content must change,
+go back to step 6. The only normal post-deploy change is the step-9
+documentation-only evidence closure; it records what happened and preserves
+the runtime commit/package hash rather than pretending the closure commit was
+deployed.
 
 **Step 2 before step 4, not after.** `test_release_ledger.py` fails when the
 version label disagrees anywhere, and it is part of the gate. Bumping the label
 after a green gate means the gate that passed is not the one you are shipping.
 
-**Step 3 before step 5.** The handoff is the ledger the next session reads
-first, and the gate now checks that its first heading names the current
-version. A handoff written after the deploy is a report; a handoff written
-before it is a plan someone else can finish.
+**Step 3 before step 5, step 9 after acceptance.** The prepared handoff is the
+plan another operator can finish and the gate checks that its first heading
+names the release. The step-9 closure then replaces pending wording with exact
+package, production, backup and acceptance evidence in a docs-only commit.
 
 **Always pass the version to step 6.** Without an argument the builder names
 the file `<version>-<sha>`, which is a different naming convention from the one

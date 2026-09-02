@@ -1,5 +1,10 @@
 # 钱这一层 · 产品优化方案 v2
 
+> **状态更正（2026-08-23）：**发票、付款/退款、课时结算、课酬、家庭日历、
+> 成长报告与 Xero Beta 单向推送已在 v10.0.0–v10.10.3 分阶段落地。在线
+> payment-provider 处理、SMS provider transport 与 Xero 双向编辑仍未实现。
+> 本文保留产品推导，不覆盖当前 Integration Boundaries。
+
 > 2026-08-14，对照 PWE Studio v9.9.6。v2 已并入产品方的九条决定。
 > 来源：Sinobeats Music School 需求单（`docs/sales/sinobeats-2026-08/`）反推。
 > 承接 `docs/design/Competitor_MyMusicStaff.md` 的 #14 / #16 / #21。

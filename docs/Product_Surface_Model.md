@@ -2,9 +2,11 @@
 
 Status: canonical product-language and responsibility reference.
 
+Current release baseline: v10.13.0 (2026-08-23).
+
 ## Product hierarchy
 
-StudioSaaS is one commercial platform with two tenant workspaces and one public acquisition experience. The standalone registration page is an alternate entry, not a separate product.
+StudioSaaS is one commercial platform with two tenant workspaces and four linked public surfaces. Quick Registration is an alternate acquisition entry, not a separate product.
 
 | Surface | Canonical route | Primary user | Owns | Must not own |
 |---|---|---|---|---|
@@ -13,6 +15,8 @@ StudioSaaS is one commercial platform with two tenant workspaces and one public 
 | Studio CMS | `/<slug>/cms` | Owner, manager, teacher, front desk | Students, schedules, rosters, attendance, credits, payments/refunds, registration follow-up, portfolio, logs and reporting | Platform billing or public-site design |
 | Studio Portal | `/<slug>` | Prospects, families and students | Bilingual studio introduction, courses, work gallery, primary registration CTA and optional student area | Administrative operations |
 | Quick Registration | `/<slug>/register` | QR, campaign and direct-link visitors | Focused alternate registration form using the same schema and API as the portal | A second portal or a separate registration database |
+| Public Timetable | `/<slug>/timetable` | Prospects and families | Published upcoming classes and optional booking requests | A confirmed seat before CMS review |
+| Showcase | `/<slug>/showcase` | Prospects and families | Published studio/student work, categories and plan-bounded pagination | Private, draft, archived or unconsented work |
 
 Root `/register` remains closed. All public registration is tenant scoped.
 Root `/studio-admin` is a neutral tenant-admin login requiring an explicit
@@ -50,15 +54,15 @@ All post-conversion work stays in Studio CMS. Studio Admin may show a read-only 
 
 | Role | Platform | Studio Admin | Studio CMS |
 |---|---|---|---|
-| `super_admin` | Full platform control | Audited support access | Audited support access |
+| `super_admin` | Full platform control | Exact-tenant audited support session only | Exact-tenant audited support session only |
 | `owner` | None | Full tenant brand/publication control | Full tenant operations |
 | `manager` | None | None | Broad CMS operations, exports and team coordination, including refund and share-link authority (`credits:refund` / `portfolio:share`) |
-| `teacher` | None | None | Student lookup, attendance and portfolio work |
-| `front_desk` | None | None | Registration follow-up, student records and credits |
-| `staff` | None | None | Legacy general staff bundle retained for compatibility |
+| `teacher` | None | None | Student lookup, schedule read, attendance, portfolio and progress-report authoring; own-pay view only |
+| `front_desk` | None | None | Registration/booking review, student records, credits, invoicing/payment intake, scheduling and attendance; no refunds, payroll or publication |
+| `staff` | None | None | Assistant role: strict subset of Teacher; roster, attendance, portfolio and read-only progress context |
 | `parent` | None | None | No admin UI; public student-area access only |
 
-Manager, teacher and front-desk permissions are explicit backend bundles. Brand publication remains owner-only; CMS screens must progressively hide actions that the active bundle cannot perform.
+Manager, teacher, front-desk and assistant permissions are explicit backend bundles. Brand publication remains owner-only; leave/payroll policy requires `scheduling:policy:write` (Owner/Manager), and booking-family details require `class_bookings:review` (Owner/Manager/Front Desk). CMS screens must progressively hide actions that the active bundle cannot perform.
 
 ## Release invariants
 

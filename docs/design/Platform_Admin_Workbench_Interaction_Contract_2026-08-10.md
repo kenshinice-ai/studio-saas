@@ -3,7 +3,8 @@
 版本：v1.0（设计冻结候选）
 日期：2026-08-10
 适用版本：PWE Studio v9.7.0 及后续 Platform Admin 重构
-状态：只读设计 handoff；本文件不授权本轮修改代码
+状态：已实施的历史交互合同；三栏工作台与支持会话 Inspector 已在后续版本
+落地。当前行为以 Platform Admin 代码、测试和 `Product_Surface_Model.md` 为准。
 
 ## 1. 合同目的
 

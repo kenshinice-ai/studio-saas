@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-08-01
+> Last updated: 2026-08-23 · v10.13.0 documentation baseline
 
 ---
 
@@ -29,7 +29,7 @@
 - [ ] `/<tenant_slug>/manifest-cms.json` starts at `/<tenant_slug>/cms` and uses tenant scope
 - [ ] Unknown tenant slug returns 404 (not a blank page)
 - [ ] Reserved slugs (`api`, `v1`, `cms`, `register`, `platform-admin`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
-- [ ] Unauthenticated mutation requests return 401/403 (see Current_Sprint §4 curl checks)
+- [ ] Unauthenticated mutation requests return 401/403 (see route-protection and tenant-isolation tests)
 - [ ] Tenant A session cannot read or write tenant B data (isolation tests)
 - [ ] `X-Tenant-Slug` header spoofing cannot cross tenant boundaries
 
@@ -155,7 +155,7 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-v8.1.0 runs in production on AWS Lightsail at `https://pwestudio.online`
+v10.13.0 runs in production on AWS Lightsail at `https://pwestudio.online`
 (live 2026-07-30). Cloudflare Tunnel is retained for local development only and
 must not be reintroduced for that hostname:
 
@@ -173,14 +173,21 @@ must not be reintroduced for that hostname:
 
 ### 8.1 PWE Studio Edition
 
-- [ ] Startup rejects zero tenants, extra archived tenants, or any platform membership
-- [ ] Application process uses the least-privilege runtime DB role; migrations use the owner role
-- [ ] Installer writes stable config/state/current paths and a root-owned backup cron
-- [ ] First database backup and manifest exist with 0600 permissions
-- [ ] `maintenance.sh restore-dry-run` matches migrations and critical table counts
-- [ ] Trusted outer bundle SHA-256 and format-v2 DB/media inventory are both verified
-- [ ] Upgrade takes a pre-upgrade backup and health-failure rollback is exercised
-- [ ] Media-volume backup is recorded as deferred, not reported as complete
+Package/code baseline (verified for v10.13.0):
+
+- [x] Startup rejects zero tenants, extra tenants, or any platform membership
+- [x] Application process uses the least-privilege runtime DB role; migrations use the owner role
+- [x] Installer writes stable config/state/current paths and a root-owned backup cron
+- [x] `maintenance.sh restore-dry-run` validates migrations and critical table counts
+- [x] Trusted outer bundle SHA-256 and format-v2 DB/media inventory are enforced
+- [x] Upgrade takes a pre-upgrade backup and has health-failure rollback
+- [x] Media-volume off-instance backup is recorded as deferred, not reported as complete
+
+Per-customer acceptance (still required for every installation):
+
+- [ ] First database backup and manifest exist with 0600 permissions on the customer host
+- [ ] Customer DNS/TLS, firewall, restore rehearsal and rollback are verified
+- [ ] Customer data reconciliation and credential handover are signed off
 
 ### 8.2 v8.0.1 Brand System Acceptance
 

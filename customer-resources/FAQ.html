@@ -101,14 +101,14 @@
 
   <details>
     <summary><span data-lang="en">Does PWE Studio send SMS or email automatically?</span><span data-lang="zh">PWE Studio 会自动发送短信或邮件吗？</span></summary>
-    <p data-lang="en">No. Communication actions open your own Mail or Messages application with prepared text, and you decide whether to send. There is no messaging provider, no delivery log, no bounce handling and no retry queue. Nothing is claimed about delivery.</p>
-    <p data-lang="zh">不会。通信操作只会打开你设备自带的邮件或信息应用并预填文本，由你决定是否发送。系统未接入任何消息服务商，没有送达日志、退信处理或重试队列，也不对送达做任何承诺。</p>
+    <p data-lang="en">Most operator actions open your own Mail or Messages application with prepared text, and you decide whether to send. PWE Studio also has a logged SMTP path for configured transactional events, but it sends externally only when the deployment supplies and operates its own sending account and domain. No managed sending domain or SMS provider transport is included by default.</p>
+    <p data-lang="zh">大多数运营操作只会打开设备自带的邮件或信息应用并预填文本，由你决定是否发送。PWE Studio 也具备带日志的 SMTP 事务邮件路径，但只有部署方提供并运维自己的发信账号与域名时才会对外发送。标准服务不默认包含托管发信域名或短信服务商传输。</p>
   </details>
 
   <details>
     <summary><span data-lang="en">Are online payments included?</span><span data-lang="zh">包含在线支付吗？</span></summary>
-    <p data-lang="en">No. Staff can record purchases, refunds and credit adjustments, and every one of those actions is audited. Card processing and automatic accounting reconciliation are deferred. Do not upload payment-card numbers into any field.</p>
-    <p data-lang="zh">不包含。工作人员可以记录购买、退款与课时调整，且每一项都会写入审计记录。银行卡收款与自动对账属于延后项。请勿在任何字段中上传银行卡号。</p>
+    <p data-lang="en">No. Staff can record purchases, invoices, payments, refunds and credit adjustments, and every action is audited, but PWE Studio does not capture cards or move money. Automatic merchant/bank settlement reconciliation is deferred. The optional Xero add-on pushes recorded documents one way; it is not a payment processor. Do not upload payment-card numbers into any field.</p>
+    <p data-lang="zh">不包含。工作人员可以记录购买、发票、收款、退款与课时调整，且每一项都会写入审计记录，但 PWE Studio 不采集银行卡，也不划转资金。商户/银行结算的自动对账属于延后项；可选 Xero 加购只会单向推送已记录单据，不是支付处理器。请勿在任何字段中上传银行卡号。</p>
   </details>
 
   <details>
@@ -131,8 +131,8 @@
 
   <details>
     <summary><span data-lang="en">Are custom domains and third-party integrations live?</span><span data-lang="zh">自定义域名与第三方集成上线了吗？</span></summary>
-    <p data-lang="en">No. Your studio pages are served under the platform domain. Per-studio custom domains, Stripe and provider-driven calendar, email or SMS integrations are deferred unless a signed order specifically includes implementation and acceptance. Xero is currently a Preview-only preparation screen: its mappings and gate state can be reviewed, but there is no provider transport and no data is sent. Reserved interfaces are never described to you as working integrations.</p>
-    <p data-lang="zh">没有。你的工作室页面目前托管在平台域名下。按工作室的自定义域名，以及 Stripe 和由服务商驱动的日历、邮件、短信集成，均属延后项，除非已签署订单明确包含实施与验收。Xero 目前只是预接入（Preview）准备页，可以查看映射和 gate 状态，但没有 provider transport，也不会发出数据。预留接口不会被描述为可用集成。</p>
+    <p data-lang="en">Studio pages remain under the platform domain; per-studio custom domains, Stripe, provider calendar APIs and SMS provider transport are deferred unless a signed order includes implementation and acceptance. Xero is different: it is a paid Beta add-on with OAuth, reviewed mappings, a Demo Company trial, a persistent queue and gated one-way push for issued invoices, credit notes and recorded payments. It never imports or applies edits from Xero, and pushing stays off until every gate passes.</p>
+    <p data-lang="zh">工作室页面仍托管在平台域名下；按工作室的自定义域名、Stripe、日历服务商 API 与短信服务商传输均属延后项，除非已签署订单明确包含实施与验收。Xero 不同：它是付费 Beta 加购，具备 OAuth、复核后的科目映射、Demo Company 试跑、持久队列，以及对已开具发票、贷记单与已记录收款的门控单向推送。系统不会从 Xero 导入或应用修改，所有门槛通过前推送始终关闭。</p>
   </details>
 
   <div class="notice">

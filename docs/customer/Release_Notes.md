@@ -1,16 +1,21 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+Current product boundary: v10.13.0. Entries below are chronological and state
+what was true for that release; an older entry saying “Preview” does not
+override the current Xero Beta one-way transport described in
+`Integration_Boundaries.md`.
+
 ## v10.13.0 — 前台可以签到，助教的权限收窄了，排课页先给你看名单
 
-**前台现在可以签到扣课时。** 前台本来就能给学员充值、退款、改余额，却不能做
+**前台现在可以签到扣课时。** 前台本来就能给学员充值、手工调整余额，却不能做
 最轻的那一件——学员站在柜台前签到。这不是安全设计，是漏的：每一笔课时变动都
 记名记时，能改余额的人挡在签到之外只会让人绕道去手工改数字，而手工改数字比
-签到更难查。
+签到更难查。退款仍然只属于 Owner / Manager。
 
 **「Staff」改名「助教」，权限收成老师的真子集。** 原来的 staff 能改学员档案、
 能看能改课时余额、能审报名、能看账单——比老师权限还大。现在助教能做的每一件事
 老师都能做，老师比助教多的只有两项：写学习报告、看自己的课酬。**如果你把某人
-设成了 Staff 并指望他改学员档案或调课时，请把他改成经理或老师。**
+设成了 Staff 并指望他改学员档案或调课时，请按职责改成经理或前台。**
 
 **课程安排页先给你看今天上课的人。** 以前一打开这一页，先看到的是「添加学员」
 表单、班组模板、固定课表，学员名单被挤到屏幕外——桌面上一行都看不见，手机上

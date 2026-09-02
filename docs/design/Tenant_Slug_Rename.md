@@ -1,6 +1,8 @@
 # 工作室地址（slug）改名 · 设计方案
 
-> 状态：**方案，未改任何代码。** 对照 v9.8.10（`codex/v9.8.10-public-shell`，commit `d8c11da`）。
+> 状态更正：**已在 v9.9.0 实现并发布。** `tenant_slug_aliases`、旧地址永久
+> 301、墓碑 410、地址不复用、冷却期和 workspace 重生成均已落地。
+> 本文主体保留为设计依据，修复前“没有 UPDATE 路径”的描述属于历史现状。
 > 触发场景：Ruby's Studio 已在后台改名为 Mellow Pear Studio，但地址仍是 `/ruby-s-studio`。
 
 ---
