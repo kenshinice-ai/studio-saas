@@ -1,4 +1,8 @@
-# 公开课表 + 免注册约课 · 定案（未实现）
+# 公开课表 + 免注册约课 · 历史定案
+
+> **状态更正：**本文主方案已在 v8.10.x–v9.3.0 落地；当前公开课表、约课
+> 提交与 Owner/Manager/Front Desk 审核均已存在。当前权限边界以
+> `Product_Surface_Model.md`、角色手册和后端权限为准。
 
 第三轮。前两轮：`Public_Timetable.md`、`Public_Timetable_Round_2.md`。
 **本文是要执行的那一份**，前两轮里被本文推翻的以本文为准。

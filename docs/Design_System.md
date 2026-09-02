@@ -1,7 +1,7 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-08-01 · Unified UI contract: v8.1.1
+> Last updated: 2026-08-23 · Current release baseline: v10.13.0
 
 The visual system is generated, not hand-picked: every colour token is solved
 for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the

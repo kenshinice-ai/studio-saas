@@ -4,6 +4,11 @@ Version: v2.0
 Date: 2026-07-02
 Purpose: Single source of truth for product vision, positioning, user roles, business model, and market strategy.
 
+> Vision/positioning authority only. Current routes, roles, architecture,
+> prices and release boundaries are maintained in `docs/README.md` and the
+> canonical documents it lists. The pricing table below was reconciled to the
+> live v10.13.0 catalogue on 2026-08-23.
+
 ---
 
 ## 1. Product Overview
@@ -173,9 +178,9 @@ Full schema: `backend/db/schema_v1.sql`
 
 | Plan | Monthly Fee | Limits | Suitable For |
 |---|---:|---|---|
-| Starter | AUD 49 | 100 students, 1 user, 2GB storage | Solo teacher or startup studio |
-| Studio | AUD 99 | 500 students, 5 users, 10GB storage | MVP flagship studio |
-| Growth | AUD 199 | 1000 students, 20 users, 50GB storage | Multi-location or growing studio |
+| Starter | AUD 49 | 50 students, 1 user, 2GB storage, 15 public showcase items | Solo teacher or startup studio |
+| Studio | AUD 99 | 250 students, 5 users, 10GB storage, 60 public showcase items | Established single studio |
+| Growth | AUD 189 | 500 students, 20 users, 50GB storage, 150 public showcase items | Growing studio with a larger team |
 
 Optional one-time setup fee: AUD 299–999 (brand setup, data migration, training).
 

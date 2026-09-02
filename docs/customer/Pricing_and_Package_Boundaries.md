@@ -6,13 +6,13 @@ GST: treatment must be stated in the signed order form
 
 ## Subscription catalogue
 
-| Plan | Monthly subscription | Students | Team users | Storage allowance | Included product capabilities |
-|---|---:|---:|---:|---:|---|
-| Starter | $49 | 100 | 1 | 2 GB | Public registration, student records and portfolios |
-| Studio | $99 | 500 | 5 | 10 GB | Starter plus communication templates and data export |
-| Growth | $199 | 1,000 | 20 | 50 GB | Studio plus priority support |
+| Plan | Monthly subscription | Students | Team users | Storage | Public showcase items |
+|---|---:|---:|---:|---:|---:|
+| Starter | $49 | 50 | 1 | 2 GB | 15 |
+| Studio | $99 | 250 | 5 | 10 GB | 60 |
+| Growth | $189 | 500 | 20 | 50 GB | 150 |
 
-These figures match the v8.1.0 product plan catalogue. The signed order form controls the final price, GST treatment, start date, minimum term and any negotiated inclusions.
+These figures match the current public plan catalogue and server-enforced limits. Core operations are not intentionally broken apart by tier; tiers primarily govern scale and team size. Xero is a separately granted paid add-on. The signed order form controls GST treatment, start date, minimum term and any negotiated inclusions.
 
 ## Included in the recurring subscription
 
@@ -33,7 +33,7 @@ These figures match the v8.1.0 product plan catalogue. The signed order form con
 - third-party hosting, messaging, payment or accounting provider fees;
 - restoration work caused by unsupported customer changes or incomplete source data.
 
-## Explicitly deferred from v8.1.0
+## Explicitly deferred from the current standard offer
 
 - online payment processing and automatic financial reconciliation;
 - automated SMS/email delivery providers;
@@ -41,7 +41,7 @@ These figures match the v8.1.0 product plan catalogue. The signed order form con
 - an off-instance backup copy, uptime monitoring, backup-failure alerting and a contractual SLA (AWS production hosting, daily database and media backups and a rehearsed restore are in place since 30 July 2026);
 - organisation-level multi-campus aggregation.
 
-Current messaging actions open the user’s own Mail or Messages application. The user reviews and sends the message; PWE Studio does not claim provider delivery or delivery tracking.
+Most messaging actions open the user’s own Mail or Messages application. A deployment may configure the logged SMTP email adapter, but no managed sending domain or SMS provider transport is included by default.
 
 ## Data migration boundary
 
@@ -57,7 +57,7 @@ Migration work begins only after:
 
 ## Multi-campus commercial rule
 
-For v8.1.0, each campus is a separate tenant and subscription. This gives each campus independent data, staff access, branding, operating settings, backup scope and support boundary. A future organisation layer may aggregate reporting and shared identity without weakening tenant isolation.
+Each campus is a separate tenant and subscription. This gives each campus independent data, staff access, branding, operating settings, backup scope and support boundary. A future organisation layer may aggregate reporting and shared identity without weakening tenant isolation.
 
 ## Price changes and cancellation
 

@@ -1,19 +1,19 @@
 # StudioSaaS Database
 
-Version: v3.4
-Date: 2026-08-16
-Release: v10.9.0; migration `0045_xero_oauth_state.sql` is current (pending OAuth handshakes for the Xero connection flow)
+Version: v10.13.0 documentation baseline
+Date: 2026-08-23
+Release: v10.13.0; migration `0047_xero_transport.sql` is current
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
 
 ## 1. Database Overview
 
-- **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
+- **Engine:** PostgreSQL 16+ locally; production uses `postgres:16-alpine` on the Lightsail host (not RDS)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0044_credit_refund_source.sql`
-- **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
+- **Canonical schema evolution:** ordered migrations through `0047_xero_transport.sql`
+- **Isolation model:** Tenant-scoped tables use `tenant_id`, forced row-level security, and a restricted runtime role; application code also binds tenant context.
 
 ### 1.1 Design Principles
 
@@ -75,7 +75,18 @@ memberships.
 | `registrations` | `id`, `tenant_id`, identity/contact fields, `status`, `source`, `source_language`, `campaign`, follow-up fields, `student_id`, review fields, timestamps | Portal/Quick Registration leads and the CMS conversion funnel |
 | `daily_roster_entries` | `tenant_id`, `roster_date`, `student_id`, `source`, reversible `status` fields | Canonical date-level roster additions/cancellations; recurring schedules remain templates |
 
-### 2.4 Content Tables
+### 2.4 Money And Integration Tables
+
+| Table group | Core tables | Purpose |
+|---|---|---|
+| Billing identity and payers | `tenant_billing_identity`, `billing_accounts`, `billing_account_members`, `tax_codes`, `document_number_sequences` | Tenant legal/supplier identity, payer relationships, tax snapshots and document numbering |
+| Invoices and credit notes | `invoices`, `invoice_lines`, `invoice_events`, `credit_notes`, `credit_note_lines`, `billing_schedules` | Immutable issued-document snapshots, lines, lifecycle history and recurring draft instructions |
+| Payments and reconciliation | `payment_providers`, `payments`, `payment_allocations`, `refunds`, `payment_provider_events`, `bank_statement_lines` | Recorded money movements, invoice allocation, refunds and reserved provider/bank reconciliation evidence; provider transport is not implied |
+| Teacher pay | `teacher_engagements`, `teacher_pay_rates`, `teacher_pay_periods`, `teacher_pay_adjustments`, `teaching_sessions` | Tenant-scoped teacher rates, hours, payable periods and explicit adjustments |
+| Credit/financial provenance | `credit_financial_links`, `financial_operation_requests` | Connect credit purchases/refunds to invoices/payments/credit notes and make aggregate operations idempotent |
+| Xero | `xero_connections`, `xero_oauth_states`, `xero_account_mappings`, `xero_sync_settings`, `xero_object_links`, `integration_sync_jobs` | Encrypted OAuth lifecycle, mappings, gated one-way push, persistent backoff/replay and provider object identity |
+
+### 2.5 Content Tables
 
 | Table | Key Columns | Purpose |
 |---|---|---|
@@ -85,17 +96,20 @@ memberships.
 | `student_publication_consent_events` | `tenant_id`, `student_id`, append-only status and evidence | Latest event controls public publication; withdrawal takes effect immediately |
 | `share_tokens` | `id`, `tenant_id`, `portfolio_item_id`, `token`, `expires_at` | Parent portal security tokens |
 
-### 2.5 System Tables
+### 2.6 System Tables
 
 | Table | Key Columns | Purpose |
 |---|---|---|
 | `email_templates` | `id`, `tenant_id`, `key`, `subject`, `body` | Per-tenant email templates |
 | `notification_logs` | `id`, `tenant_id`, `user_id`, `template_id`, `status`, `sent_at` | Email/notification send records |
+| `notification_channels`, `notification_routes`, `notification_optouts` | tenant/channel/provider config, event routes, recipient opt-outs | Channel routing, quota/cost visibility and consent; SMS provider transport remains disabled |
 | `cms_notifications` | `id`, `sequence_no`, `tenant_id`, `notification_type`, `title`, `summary`, `resource_*`, `target_*`, `dedupe_key` | Durable in-app CMS notifications created by public registration and class-booking events; tenant-scoped polling cursor and deduplication |
 | `cms_notification_reads` | `notification_id`, `user_id`, `read_at` | Per-CMS-user read state for durable in-app notifications |
 | `student_access_sessions` / `student_access_attempts` | tenant-bound token hash, expiry/revocation, lookup hash and lock window | One-hour private student sessions and non-enumerating brute-force protection |
 | `public_analytics_events` | `tenant_id`, allowlisted event, anonymous session hash, campaign, timestamp | Privacy-preserving aggregate portal analytics without student/contact/browser identifiers |
 | `tenant_archives` | `id`, `tenant_id`, archive path, snapshot metadata | Pre-deletion archive snapshots of all tenant-owned tables (migration 0005) |
+| `calendar_subscriptions` | tenant/family or teacher scope, token hash, state and expiry | Revocable privacy-safe ICS subscription feeds |
+| `progress_report_settings`, `progress_reports` | tenant/report settings, student, author, publish state | Draft/author/publish separation for student progress reports |
 
 ---
 
@@ -239,10 +253,14 @@ backend/db/
     ├── 0015_student_privacy_and_media_variants.sql
     ├── 0016_daily_roster_entries.sql
     ├── 0017_public_website_media_and_analytics.sql
-    ├── 0018_student_enrolment_date.sql
-    ├── 0019_stability_indexes.sql
-    ├── 0020_drop_redundant_indexes.sql
-    └── 0021_plan_quota_revision.sql
+    ├── 0018…0033              # enrolment, indexes, public pages, slug aliases, schedules
+    ├── 0034…0041              # invoices, payments, payroll, channels, billing identity
+    ├── 0042_tenant_isolation_by_construction.sql
+    ├── 0043_invoice_and_credit_settlements.sql
+    ├── 0044_credit_refund_source.sql
+    ├── 0045_xero_oauth_state.sql
+    ├── 0046_plan_student_limits_match_published.sql
+    └── 0047_xero_transport.sql
 ```
 
 Migration 0019 (v7.4.1 stability pass) adds tenant-leading indexes for
@@ -270,6 +288,13 @@ catalogue. Reductions are admission-control only — `_student_capacity`, the
 team create/reactivate paths and `media._assert_storage_quota` all reject new
 records with 403 and never remove existing rows. No new tables, so
 `SNAPSHOT_TABLES` is unchanged.
+
+Later migrations are canonical even though the detailed notes above explain
+the earlier stability sequence. The current release adds invoice/payment/
+teacher-payable tables, channel routing, billing identity, forced RLS,
+settlement/refund provenance, Xero OAuth state and the one-way Xero transport.
+Migration `0046` aligns published student limits to 50 / 250 / 500; `0047`
+adds persistent retry timing and organisation-scoped Xero object links.
 
 Tracking table:
 

@@ -1,6 +1,6 @@
 # Multi-campus Policy
 
-## v8.1.0 decision
+## Current decision (reconfirmed for v10.13.0)
 
 One physical/operational campus is one tenant.
 

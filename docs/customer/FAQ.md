@@ -12,15 +12,15 @@ Studio Admin is the owner’s website and brand workspace: public content, prese
 
 ## Can families sign in?
 
-A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in v8.1.0.
+A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in the current release.
 
 ## Does PWE Studio send SMS or email automatically?
 
-Not in v8.1.0. Communication actions open the device’s Mail or Messages application with a prepared message. The user reviews and sends it. This avoids claiming provider delivery before a messaging service, delivery logs, retry handling and commercial terms are ready.
+Most operator communication actions open the device’s Mail or Messages application with prepared text, and the user reviews and sends it. The product also has a logged SMTP email path for configured transactional events, but production/customer delivery is available only when the deployment supplies and operates its own sending account and domain. PWE Studio does not currently provide a managed sending domain or SMS provider transport.
 
 ## Are online payments included?
 
-No. The system records credit purchases, refunds and balances, but online payment processing and automatic accounting reconciliation are deferred. Staff should use the customer’s approved payment process and record the result.
+No. The system records credit purchases, invoices, payments, refunds and balances, but it does not capture cards or move money. Automatic merchant/bank settlement reconciliation is deferred. The optional Xero add-on pushes recorded documents one way; it is not a payment processor.
 
 ## Can we import our existing CSV or Excel file?
 
@@ -36,7 +36,7 @@ Media is private by default. Student/family access is bound to one student. Publ
 
 ## Can one tenant contain several campuses?
 
-Not in v8.1.0. One campus is one tenant. This is currently the safer and clearer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple tenant campuses without merging their operational records.
+One campus is one tenant and one subscription in the current release. This is the safer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple campus tenants without merging their operational records.
 
 ## Can we use our own domain?
 

@@ -3,6 +3,7 @@
 > **状态：v10.14.0 Edition 归档包已构建并验证（2026-08-24）。**
 > `BUILD_INFO` 为 `version=10.14.0`、`mode=standalone`、
 > `commit=ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2`。产品名：**PWE Studio Edition**。
+> 这证明交付物可验证，不证明已经存在任何客户安装或客户验收。
 
 ---
 

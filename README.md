@@ -11,6 +11,7 @@ Register, Operations CMS and Studio Admin remain ordinary, keyboard-reachable
 links, and reduced-motion, data-saver, mobile and WebGL failure paths keep the
 complete page. Design and execution notes live in
 `docs/design/portal-spatial-redesign-2026-08-23/`.
+The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|

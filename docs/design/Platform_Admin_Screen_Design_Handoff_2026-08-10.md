@@ -3,7 +3,8 @@
 版本：v1.0
 日期：2026-08-10
 前置合同：[`Platform_Admin_Workbench_Interaction_Contract_2026-08-10.md`](Platform_Admin_Workbench_Interaction_Contract_2026-08-10.md)
-状态：下一阶段逐屏设计入口；只做视觉与交互规格，不改代码
+状态：历史设计入口；三栏工作台、Today/Tenants/Plans/Audit 与 Inspector 已在
+v9.7.0–v9.8.5 分阶段落地。本文保留逐屏规格，不再表示“尚未实现”。
 
 ## 1. 设计目标
 
