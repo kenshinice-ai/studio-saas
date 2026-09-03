@@ -15,17 +15,29 @@
 
 ## 当前四层身份（v10.15.0，2026-09-03）
 
-> **状态：候选。** 本节按发布手册第 3 步写在构建之前 —— Source 是候选提交，
-> Package / Production / Backup 是**期望**的门禁，不是已发生的事实。
-> 部署与公网验收之后由第 9 步的 docs-only 收口提交替换为实测值。
-
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.15.0 候选：CMS 密度与排列一轮（工作台合并、排课页分标签、Tabs 原语、对话框统一）+ 对外页面材质三条 + `hero_shape` 上配色管线 + CMS 进浏览器门禁。**本机门禁读数：`2177 passed, 6 skipped`，另有 2 条 RLS 构造测试失败。** 那 2 条在**未改动的 `main`（c53d625）上以同一命令失败同样两条**，是本机数据库角色所致（`$(whoami)` 是超级用户，超级用户无条件绕过 RLS）；换 `studiosaas_app` 后这 2 条通过，但 xero 夹具改为 74 个错误 —— 本机没有任何单一配置能让整套门禁全绿。详见下方「已知门禁缺口」。 |
-| Package / SaaS | 期望 `dist/PWE-StudioSaaS-aws-10.15.0.tar.gz`，`BUILD_INFO commit` == 本地 HEAD == `origin/main`（三方守卫）。 |
-| Package / Edition | 期望 `dist/PWE-Studio-Edition-10.15.0.tar.gz`，同一提交，mode=standalone。 |
-| Production | 期望 `pwestudio.online` = v10.15.0，deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`。**本版改了 `tenant-template/`，四个租户工作区已重新生成**，`workspaces.stale` 必须为 0。 |
-| Backup / migration | 部署脚本自动产出部署前 dump 与 volume 归档。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+| Source | v10.15.0 运行提交 `50e89dfcf4dcd29ebdd374ab094a8018d3a15ced` 已推送到 `main`。CMS 密度与排列一轮（工作台合并、排课页分标签、`Tabs` 原语滚动、对话框统一）+ 对外页面材质三条 + `hero_shape` 上配色管线 + 8 个 CMS 页面进浏览器门禁。本机门禁：smoke `73 passed, 0 failed`、租户隔离 `254 passed, 0 failed`、两个控制台冒烟通过、preflight clear；pytest `2177 passed, 6 skipped` 另有 2 条 RLS 构造测试失败 —— **对照实验：未改动的 `main`（c53d625）以同一命令失败同样两条**，属本机数据库角色所致，见下方「已知门禁缺口」。**零迁移。** |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.15.0.tar.gz`，SHA-256 `11c45ffbe531f81297edd227aa31c6763f2af91d204f41a6c04b22a80a3a9635`；`BUILD_INFO commit=50e89dfcf4dcd29ebdd374ab094a8018d3a15ced`，mode=saas。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.15.0.tar.gz`，SHA-256 `109c7564d5c930cd968ed32eb7e86dfda9ba93057596ba47e85cfac404680946`；同一提交，mode=standalone。双包通过校验和、BUILD_INFO、入口、排除项与解包冒烟。 |
+| Production | `pwestudio.online` = **v10.15.0**，镜像 `studiosaas:10.15.0`；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 17.2%；内网与公网边缘各验一次。`http -> 301`、`https -> 200 tls=0 proto=2`。公开路由实测：`/`、`/lets-paint-showcase/`、`/…/register`、`/…/showcase`、`/…/timetable`、`/…/cms`、`/assets/paper-grain.webp` 全部 200。`hero_shape` 对存量租户仍解析为 `organic`（显式值胜出，零视觉变化）。**本版改了 `tenant-template/`，四个租户工作区已重新生成，线上 `workspaces.stale=0`。** |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260903T033024Z.dump` 及同名 manifest（deploy 自动产出）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后发现并修正：门禁自己有两处配置错误
+
+公网验收时 `/lets-paint-showcase/showcase.html` 与 `…/timetable.html` 返回 404。
+不是回归 —— 公开面契约给出的地址**没有扩展名**
+（`/v1/public/<slug>/surface` 的 `href` 就是 `/lets-paint-showcase/showcase`，
+实测 200）。`ui_matrix.yaml` 里这两条路径一直写着 `.html`，也就是说
+**矩阵里四个公开页面有两个从来没被真正检查过**，而它们的失败被当成了环境噪音。
+
+同一类的第二处：报名页刻意没有站点导航（只有品牌标记），nav 契约对它不成立，
+那 9 条断言一直在失败。改用通用那组（无横向溢出 + 触控区 ≥44px）。
+
+修正后：**226 条断言 27 失败 → 406 条断言 0 失败。**
+
+> 这两处修正是 `backend/scripts/` 下的开发工具配置，**不在已部署的运行包内**
+> （构建于第 6 步，运行提交 `50e89df`），也不影响任何运行时行为。
 
 ### 本版做了什么（实测数字）
 
@@ -78,7 +90,7 @@
 
 ## 最新轮次
 
-- **2026-09-03（Claude）v10.15.0 CMS 密度与排列 + 对外材质**（**候选**）：
+- **2026-09-03（Claude）v10.15.0 CMS 密度与排列 + 对外材质**（**已发布**）：
   轮次文件 `docs/handoff/claude/2026-09-03-cms-density-and-material.md`。
   工作台四条同类提醒条合并为一个「需要注意」区、`最近操作` 722px 改为入口
   （桌面 −43%、手机 −46%）；排课页分「今日签到 / 排课设置」（可见按钮 55→26）

@@ -21,8 +21,12 @@ Two assertion sets:
 * the nav/brand contract from public-surface.js fitNavigation() — labels are
   never clipped, the brand name only disappears when a logo replaces it, and
   the page never scrolls horizontally;
-* the CMS density contract — a page's top-level block count stays under its
-  budget, and a selected tab is never scrolled out of its own strip.
+* the generic page contract (`assert_cms`) — no horizontal scroll and no
+  visible control under 44px, plus, where they apply, a top-level block budget
+  and the rule that a selected tab is never scrolled out of its own strip. The
+  CMS is what it was written for, but the first two hold on any page, which is
+  why the registration page — deliberately without site navigation — uses this
+  set rather than the nav one.
 
 The second one exists because the 2026-09-03 density work's whole result is
 rendered NUMBERS (the dashboard from 10 top-level blocks to 7, the settings

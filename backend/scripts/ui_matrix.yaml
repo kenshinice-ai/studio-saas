@@ -30,16 +30,25 @@ pages:
     path: /lets-paint-showcase/
     assert_nav: true
 
+  # 报名页刻意没有站点导航：它只有一个品牌标记，一个注册页不该邀请人逛走。
+  # 所以 nav 契约对它不成立 —— 那组断言此前一直在这一页上失败（9 条），而
+  # 失败被当成了噪音。一个打在从未为它写过的页面上的断言，教会的是忽略门禁。
+  # 换成通用那组：无横向溢出 + 触控区 ≥44px，两条都真的适用。
   - name: showcase_register
     path: /lets-paint-showcase/register
-    assert_nav: true
+    assert_nav: false
+    assert_cms: true
 
+  # 2026-09-03: 这两条曾经写作 …/showcase.html 与 …/timetable.html，两者都是
+  # 404 —— 公开面契约给出的地址没有扩展名（/v1/public/<slug>/surface 的
+  # href 就是 `/lets-paint-showcase/showcase`）。于是矩阵里四个公开页面有两个
+  # 从来没被真正检查过：断言全数失败，而失败本身被当成了环境噪音。
   - name: showcase_showcase
-    path: /lets-paint-showcase/showcase.html
+    path: /lets-paint-showcase/showcase
     assert_nav: true
 
   - name: showcase_timetable
-    path: /lets-paint-showcase/timetable.html
+    path: /lets-paint-showcase/timetable
     assert_nav: true
 
   # Example of an action sequence (kept minimal on purpose — grow this file
