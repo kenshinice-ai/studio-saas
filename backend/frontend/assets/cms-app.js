@@ -2950,7 +2950,25 @@
   }
   function Tabs({ idBase, label, items, value, onChange, className = "" }) {
     const refs = useRef2({});
+    const stripRef = useRef2(null);
     const order = items.map((i) => i.value);
+    const alignSelected = useCallback8(() => {
+      const strip = stripRef.current, node = refs.current[value];
+      if (!strip || !node || typeof node.getBoundingClientRect !== "function") return;
+      const view = strip.getBoundingClientRect(), tab = node.getBoundingClientRect();
+      const overLeft = view.left - tab.left;
+      const overRight = tab.right - view.right;
+      if (overLeft <= 0 && overRight <= 0) return;
+      strip.scrollLeft += overLeft > 0 ? -(overLeft + 8) : overRight + 8;
+    }, [value]);
+    useEffect8(() => {
+      alignSelected();
+      const strip = stripRef.current;
+      if (!strip || typeof ResizeObserver !== "function") return;
+      const observer = new ResizeObserver(() => alignSelected());
+      observer.observe(strip);
+      return () => observer.disconnect();
+    }, [alignSelected, items.length]);
     const onKeyDown = (event) => {
       const keys = { ArrowRight: 1, ArrowLeft: -1 };
       let next = null;
@@ -2969,6 +2987,7 @@
         role: "tablist",
         "aria-label": label,
         onKeyDown,
+        ref: stripRef,
         className: `flex gap-1 overflow-x-auto border-b border-gray-200 ${className}`
       },
       items.map((item) => /* @__PURE__ */ React.createElement(

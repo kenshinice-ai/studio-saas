@@ -255,7 +255,49 @@ export function BarChart({ items, color='var(--info)', h=140, prefix='' }) {
  * that is aiming for one. */
 export function Tabs({idBase, label, items, value, onChange, className=''}) {
     const refs = useRef({});
+    const stripRef = useRef(null);
     const order = items.map(i => i.value);
+    /* The strip scrolls instead of wrapping (see above), and until now nothing
+       ever scrolled the SELECTED tab back into it. Measured on the settings
+       page at v10.14.0: seven tabs are 654px of content in a 343px strip at
+       375px wide, so the last four render with their tab outside the visible
+       box. Deep-linking to ?section=integrations on a phone therefore showed
+       the first three tabs — none of them selected — above the 集成 panel, and
+       the page read as though nothing was chosen.
+
+       It belongs here rather than at the call site: the roster and stats
+       strips are about to use the same primitive, and a fix in `Tabs` is a fix
+       they never have to remember. */
+    const alignSelected = useCallback(() => {
+        const strip = stripRef.current, node = refs.current[value];
+        if (!strip || !node || typeof node.getBoundingClientRect !== 'function') return;
+        const view = strip.getBoundingClientRect(), tab = node.getBoundingClientRect();
+        const overLeft = view.left - tab.left;        // >0: the tab starts before the view
+        const overRight = tab.right - view.right;     // >0: it ends after the view
+        if (overLeft <= 0 && overRight <= 0) return;  // already whole
+        /* 8px so the tab does not end up flush against the edge it scrolled to.
+           Rect deltas rather than offsetLeft: the tabs' offsetParent is BODY,
+           not the strip, so offsetLeft only agrees with the strip's coordinate
+           space while the strip happens to start at x≈0.
+           The jump is instant on purpose. This runs on mount for a deep link,
+           where an animated strip is a movement nobody asked for, and instant
+           needs no `prefers-reduced-motion` branch to stay honest. */
+        strip.scrollLeft += overLeft > 0 ? -(overLeft + 8) : (overRight + 8);
+    }, [value]);
+    /* Aligning once on mount is not enough, and the first attempt shipped that
+       way: measured mid-layout the strip was 158px of an eventual 343px, the
+       selected tab computed as already visible, the effect returned early and
+       — with `value` unchanged — never ran again. So watch the strip instead
+       of guessing when it has settled. This also covers rotation and window
+       resize, where the same tab can fall out of view without `value` moving. */
+    useEffect(() => {
+        alignSelected();
+        const strip = stripRef.current;
+        if (!strip || typeof ResizeObserver !== 'function') return;
+        const observer = new ResizeObserver(() => alignSelected());
+        observer.observe(strip);
+        return () => observer.disconnect();
+    }, [alignSelected, items.length]);
     const onKeyDown = (event) => {
         const keys = {ArrowRight: 1, ArrowLeft: -1};
         let next = null;
@@ -269,7 +311,7 @@ export function Tabs({idBase, label, items, value, onChange, className=''}) {
         if (node) node.focus();
     };
     return (
-        <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
+        <div role="tablist" aria-label={label} onKeyDown={onKeyDown} ref={stripRef}
             className={`flex gap-1 overflow-x-auto border-b border-gray-200 ${className}`}>
             {items.map(item => (
                 <button key={item.value} type="button" role="tab" id={`${idBase}-tab-${item.value}`}
