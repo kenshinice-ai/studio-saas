@@ -434,6 +434,41 @@ STYLE_SHAPE = {
     "custom":         {"button_style": "soft",    "font_mood": "serif"},
 }
 
+#: 首屏轮廓按视觉风格。刻意**不放进** STYLE_SHAPE：那张表的内容会被展开进
+#: 存储的 `visual_theme`，而首屏轮廓已经有一个归宿（`hero_profile.hero_shape`）。
+#: 让它同时住进主题记录，就是给一个值造了第二个来源 —— 这一版要消除的正是
+#: 「配色一条线、形状另一条线」。这里只作查表用，谁也不写进记录。
+#:
+#: 形状跟着按钮的圆度走：sharp → square、rounded → oval、soft → organic。
+#: vintage-press 由 Lee 拍板走 organic（2026-09-03）：活字印刷让人想到矩形，
+#: 但它的按钮是 soft，形状跟按钮走比跟联想走一致。
+STYLE_HERO_SHAPE = {
+    "atelier-clay":   "organic",
+    "vintage-press":  "organic",
+    "studio-ink":     "square",
+    "harbour-calm":   "oval",
+    "cedar-grove":    "organic",
+    "recital-plum":   "oval",
+    "rehearsal-rose": "oval",
+    "arcade-lime":    "square",
+    "custom":         "organic",
+}
+
+#: 首屏轮廓的合法取值。`auto` 不是一种形状，是「跟随视觉风格」。
+HERO_SHAPES = ("organic", "oval", "square")
+HERO_SHAPE_AUTO = "auto"
+
+
+def hero_shape_for_style(style_id: str | None) -> str:
+    """把 `auto` 解析成这个视觉风格该有的首屏轮廓。
+
+    永远返回一个具体形状：一个未知的 style_id 落到默认风格上，与
+    `visual_style_theme()` 对陌生 id 的处理一致 —— 存量设置绝不该渲染出空白。
+    """
+
+    resolved = resolve_style_id(style_id) or DEFAULT_STYLE_ID
+    return STYLE_HERO_SHAPE.get(resolved, STYLE_HERO_SHAPE[DEFAULT_STYLE_ID])
+
 HARMONY_LABELS: dict[str, dict[str, str]] = {
     "split-complementary": {"zh": "分裂互补", "en": "Split-complementary"},
     "analogous": {"zh": "邻近色", "en": "Analogous"},

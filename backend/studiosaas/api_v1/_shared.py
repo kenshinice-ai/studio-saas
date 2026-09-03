@@ -31,9 +31,12 @@ from ..services import entitlements as _entitlements
 from .. import video_embed
 from ..presets import (
     FREE_ACCENT_STYLE_ID,
+    HERO_SHAPES,
+    HERO_SHAPE_AUTO,
     INDUSTRY_PRESETS,
     INDUSTRY_SECTION_COPY,
     VISUAL_STYLE_PRESETS,
+    hero_shape_for_style,
     public_industry_presets,
     public_visual_style_presets,
     accent_hue_of_colour,
@@ -657,15 +660,40 @@ def _default_hero_profile(category: str, studio_name: str = "") -> dict:
         "show_student_login": True,
         "background_style": "soft",
         # The hero image's outline. Separate from background_style, which says
-        # WHAT is in the hero; this says what shape it is cut to. Organic is
-        # the default because it is the one mark that makes the page read as a
-        # studio rather than a form, but it is a strong opinion and a studio
-        # showing architectural or product work will want the rectangle.
-        "hero_shape": "organic",
+        # WHAT is in the hero; this says what shape it is cut to.
+        #
+        # `auto` follows the studio's visual style (presets.STYLE_SHAPE), the
+        # same line the button roundness and the font mood already come down.
+        # A studio on studio-ink asked for something crisp and modern; giving
+        # it a blob of a hero was the two lines not agreeing.
+        #
+        # It is the default for NEW tenants only. Every existing record stores
+        # a literal "organic" — written when that was the hardcoded default,
+        # not chosen — and rewriting those would be guessing at which of them
+        # meant it. They keep rendering exactly what they render today. This is
+        # the pattern `secondary_cta_target` uses six lines below, for the same
+        # reason and in the same words: auto preserves old tenants without
+        # guessing at save time.
+        "hero_shape": "auto",
         "hero_image_url": "",
     }
 
 
+
+
+def resolve_hero_shape(hero_profile, visual_theme) -> str:
+    """把存下来的首屏轮廓解析成页面真正要用的那一个。
+
+    存储保留的是**意图**（`auto` = 跟随视觉风格），线上传的是**结果**。
+    这样公开页不需要知道 STYLE_SHAPE 是什么，Studio Admin 里那个下拉框
+    也仍然显示租户当初选的东西，而不是它今天恰好解析成的样子。
+    """
+
+    stored = str((hero_profile or {}).get("hero_shape") or "").strip().lower()
+    if stored in HERO_SHAPES:
+        return stored
+    style_id = (visual_theme or {}).get("style_id") if isinstance(visual_theme, dict) else None
+    return hero_shape_for_style(style_id)
 
 
 def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict:
@@ -685,8 +713,8 @@ def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict
     hero_shape = _first_text(
         data, "hero_shape", "heroShape", default=default["hero_shape"], limit=16,
     ).lower()
-    if hero_shape not in {"organic", "oval", "square"}:
-        raise ValueError("Hero shape must be one of: organic, oval, square.")
+    if hero_shape not in set(HERO_SHAPES) | {HERO_SHAPE_AUTO}:
+        raise ValueError("Hero shape must be one of: auto, organic, oval, square.")
     hero_image_url = _first_text(data, "hero_image_url", "heroImageUrl", limit=500)
     if hero_image_url:
         _validate_logo_url(hero_image_url)

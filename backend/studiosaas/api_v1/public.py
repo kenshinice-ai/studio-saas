@@ -75,6 +75,7 @@ from ._shared import (
     _client_ip,
     _default_faq_items,
     _default_hero_profile,
+    resolve_hero_shape,
     _default_principal_profile,
     _default_registration_profile,
     _default_visual_theme,
@@ -717,6 +718,13 @@ def public_brand(tenant_slug: str):
     row["registrationProfile"] = row["registration_profile"]
     row["copyPack"] = row["copy_pack"]
     row["localizedCopy"] = row["localized_copy"]
+    # 公开面拿到的是结果，不是意图：`auto` 在这里解析成具体轮廓，
+    # 于是 index.html 里那三行 classList.toggle 一个字都不用改，
+    # 也不需要在浏览器里再实现一遍 STYLE_SHAPE。
+    row["hero_profile"] = {
+        **row["hero_profile"],
+        "hero_shape": resolve_hero_shape(row["hero_profile"], row["visual_theme"]),
+    }
     row["heroProfile"] = row["hero_profile"]
     row["websiteProfile"] = row["website_profile"]
     row["principalProfile"] = row["principal_profile"]

@@ -2932,7 +2932,10 @@
       $('settingSecondaryCtaHref').value = hero.secondary_cta_href || hero.secondaryCtaHref || '';
       $('settingSecondaryCtaHrefGroup').hidden = $('settingSecondaryCtaTarget').value !== 'external';
       $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
-      $('settingHeroShape').value = hero.hero_shape || hero.heroShape || 'organic';
+      /* 'auto' 是新租户的默认，但存量记录里存着字面量 'organic' —— 那是当年
+         写死的默认值，不是谁选的。两者都原样显示：这个下拉框该说的是租户
+         存了什么，不是它今天恰好解析成什么。 */
+      $('settingHeroShape').value = hero.hero_shape || hero.heroShape || 'auto';
       setToggle('settingShowStudentLogin', hero.show_student_login ?? hero.showStudentLogin, true);
       setToggle('settingShowPrincipal', website.show_principal ?? website.showPrincipal, true);
       setToggle('settingShowCourses', website.show_courses ?? website.showCourses, true);

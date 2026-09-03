@@ -168,3 +168,42 @@ def test_no_font_shorthand_hides_a_size(page: str) -> None:
         "Write font-size and font-family separately, or the size is invisible "
         "to every audit that greps for font-size."
     )
+
+
+def test_following_the_style_is_offered_and_resolves_to_a_real_shape() -> None:
+    """`auto` 是第四个选项，但它不是第四种形状。
+
+    首屏轮廓在 2026-09-03 之前住在 hero_profile 里、默认写死 organic，与配色
+    各走各的线：一个选了 studio-ink 那种利落现代风的租户，首屏照样是一团有机
+    曲线。`auto` 把它并进 STYLE_SHAPE —— 按钮圆度和字体气质早就走这条线。
+
+    存量记录存的是字面量 "organic"，那是当年的默认值不是选择，所以它们照旧
+    渲染 organic；`auto` 只对新租户生效。这条断言守住两头：选项存在，且每个
+    视觉风格都解析得出一个真实形状（不会漏配一个 style 让首屏没有轮廓）。
+    """
+
+    import sys
+    backend = REPOSITORY_ROOT / "backend"
+    if str(backend) not in sys.path:
+        sys.path.insert(0, str(backend))
+    from studiosaas.presets import (
+        HERO_SHAPES, STYLE_HERO_SHAPE, STYLE_SHAPE, hero_shape_for_style,
+    )
+
+    # 两张表必须覆盖同一批风格。首屏轮廓刻意不住在 STYLE_SHAPE 里 —— 那张表
+    # 会被展开进存储的 visual_theme，而轮廓已经有 hero_profile 这个归宿；
+    # 代价是它们可以各自漂移，所以在这里锁住键。
+    assert set(STYLE_HERO_SHAPE) == set(STYLE_SHAPE), (
+        "新增一个视觉风格却没给它首屏轮廓（或反过来）"
+    )
+
+    admin = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    assert 'value="auto"' in admin, "「跟随视觉风格」没有出现在 Studio Admin 里"
+
+    for style_id in STYLE_HERO_SHAPE:
+        assert hero_shape_for_style(style_id) in HERO_SHAPES, (
+            f"{style_id} 解析不出一个真实形状"
+        )
+    assert hero_shape_for_style("a-style-that-does-not-exist") in HERO_SHAPES, (
+        "陌生的 style_id 必须落到默认风格上，而不是让首屏没有轮廓"
+    )
