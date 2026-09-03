@@ -84,6 +84,20 @@
   .view{display:none}.view.active{display:block}
   [hidden]{display:none !important}
 
+  /* 阅读进度。只改 transform（合成层），不触发布局；渐变的第二个颜色用
+     color-mix 从强调色派生，不新增 token —— 参照工作室为这一条渐变专门定义了
+     一个 --blush，这里不必。
+     它在 nav（z-index:50）之上：这是页面最顶端的一条边，被导航盖住就等于没有。 */
+  .scroll-progress{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:2px;
+    z-index:55;
+    transform:scaleX(0);
+    transform-origin:left;
+    background:linear-gradient(90deg,var(--clay),color-mix(in srgb,var(--clay) 42%,var(--panel)));
+    pointer-events:none;
+  }
   nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,box-shadow .4s,border-color .4s;border-bottom:1px solid transparent}
   nav.solid{background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(12px);border-color:var(--line)}
   /* The header is chrome, not prose, so it does not owe .wrap's 1180px reading
@@ -565,6 +579,8 @@
   @media (prefers-reduced-motion: reduce){
     .reveal{opacity:1 !important;transform:none !important;transition:none}
     html{scroll-behavior:auto}
+    /* JS 驱动的 transform —— 时长 token 归零覆盖不到它，只能单独点名。 */
+    .scroll-progress{display:none}
   }
   /* How many entries a nav has is a per-tenant fact: this studio publishes
      seven sections plus an action and a language toggle and wants 1279px; a
@@ -598,6 +614,7 @@
 <!-- P2-1: every navigation control is a real <a href>. The hash is the route,
      so Tab reaches them, screen readers announce them, "open in new tab" works,
      Back returns to the previous view, and /{slug}/#join is an ad-landable URL. -->
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 <nav id="nav">
   <div class="navrow">
     <a class="brand" href="#home">
@@ -2478,9 +2495,17 @@
   function revealAll(){ document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); }); }
   revealAll();
   var toTop=document.getElementById('toTop');
+  var progress=document.getElementById('scrollProgress');
+  /* 减弱动效下这条根本不渲染（CSS display:none），所以也不必去算它。 */
+  var wantsProgress=progress && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   addEventListener('scroll',function(){
     document.getElementById('nav').classList.toggle('solid', scrollY>40);
     if(toTop) toTop.classList.toggle('show', scrollY>640);
+    if(wantsProgress){
+      var doc=document.documentElement;
+      var travel=doc.scrollHeight-innerHeight;
+      progress.style.transform='scaleX('+(travel>0?Math.min(1,scrollY/travel):0)+')';
+    }
   });
 
   /* ── boot ── */
