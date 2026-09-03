@@ -1,4 +1,4 @@
-# PWE Studio Edition v10.14.0 · Standalone 完整部署方案
+# PWE Studio Edition v10.15.0 · Standalone 完整部署方案
 
 > 用途：客户售前说明、实施工程师部署、交付验收和后续运维交接。
 >
@@ -11,9 +11,9 @@
 | 项目 | 当前基线 |
 |---|---|
 | 产品 | PWE Studio Edition |
-| 版本 | `10.14.0` |
+| 版本 | `10.15.0` |
 | 运行模式 | `standalone` |
-| 官方包 | `PWE-Studio-Edition-10.14.0.tar.gz`（已构建并验证） |
+| 官方包 | `PWE-Studio-Edition-10.15.0.tar.gz`（已构建并验证） |
 | 包 SHA-256 | `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28` |
 | `BUILD_INFO` commit | `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2` |
 | 包构建时间 | `2026-08-24T03:40:51Z` |
@@ -158,15 +158,15 @@ SMTP 是可选项。未配置 SMTP 时，通知保持 console/log 模式，核�
 在压缩包和 `.sha256` 文件所在目录执行：
 
 ```bash
-shasum -a 256 -c PWE-Studio-Edition-10.14.0.tar.gz.sha256
-tar xzf PWE-Studio-Edition-10.14.0.tar.gz
-cd PWE-Studio-Edition-10.14.0
+shasum -a 256 -c PWE-Studio-Edition-10.15.0.tar.gz.sha256
+tar xzf PWE-Studio-Edition-10.15.0.tar.gz
+cd PWE-Studio-Edition-10.15.0
 grep -E '^(version|mode|commit|built_at)=' BUILD_INFO
 ```
 
 必须确认：
 
-- `version=10.14.0`；
+- `version=10.15.0`；
 - `mode=standalone`；
 - commit 与交付单一致；
 - 包不是从当前未提交工作区临时压缩的副本。
@@ -201,8 +201,8 @@ DNS 未生效、80 端口不可达或域名指向错误服务器时，不得进�
 ### 6.1 解包
 
 ```bash
-tar xzf PWE-Studio-Edition-10.14.0.tar.gz
-cd PWE-Studio-Edition-10.14.0
+tar xzf PWE-Studio-Edition-10.15.0.tar.gz
+cd PWE-Studio-Edition-10.15.0
 ```
 
 安装器会把稳定状态放在发布目录之外：

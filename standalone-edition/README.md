@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：v10.14.0 Edition 归档包已构建并验证（2026-08-24）。**
-> `BUILD_INFO` 为 `version=10.14.0`、`mode=standalone`、
+> **状态：v10.15.0 Edition 归档包已构建并验证（2026-08-24）。**
+> `BUILD_INFO` 为 `version=10.15.0`、`mode=standalone`、
 > `commit=ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2`。产品名：**PWE Studio Edition**。
 > 这证明交付物可验证，不证明已经存在任何客户安装或客户验收。
 
@@ -100,7 +100,7 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 除明确的 `0/false/no/off` 与 `1/true/yes/on` 外，其他值会让配置校验失败，
 不会静默猜测。
 
-## 6. v10.14.0 Edition 已验证交付基线
+## 6. v10.15.0 Edition 已验证交付基线
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量
@@ -131,7 +131,7 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 > Edition 安装中。PostgreSQL 每日备份已经闭环；媒体 Docker volume 会在
 > 应用升级中保留，但不能视为服务器故障后的可恢复副本。
 
-**正式归档：** `dist/PWE-Studio-Edition-10.14.0.tar.gz`
+**正式归档：** `dist/PWE-Studio-Edition-10.15.0.tar.gz`
 
 **SHA-256：** `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28`
 

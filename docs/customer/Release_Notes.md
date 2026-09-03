@@ -1,5 +1,10 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.15.0 — （骨架：发布前补写标题与内容）
+
+Placeholder created by release.sh bump — describe what v10.15.0 changes, its
+deployment state, and where the acceptance evidence lives, before releasing.
+
 Current product boundary: v10.14.0. Entries below are chronological and state
 what was true for that release; an older entry saying “Preview” does not
 override the current Xero Beta one-way transport described in

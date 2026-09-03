@@ -1,6 +1,6 @@
 # CMS 前台与助教手册 · Front Desk / Staff (Assistant)
 
-> 适用版本：PWE Studio v10.14.0 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
+> 适用版本：PWE Studio v10.15.0 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位

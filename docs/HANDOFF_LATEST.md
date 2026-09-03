@@ -1,4 +1,4 @@
-# PWE Studio v10.14.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.15.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,48 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.14.0，2026-08-24）
+## 当前四层身份（v10.15.0，2026-09-03）
+
+> **状态：候选。** 本节按发布手册第 3 步写在构建之前 —— Source 是候选提交，
+> Package / Production / Backup 是**期望**的门禁，不是已发生的事实。
+> 部署与公网验收之后由第 9 步的 docs-only 收口提交替换为实测值。
+
+| 层 | 精确事实 |
+|---|---|
+| Source | v10.15.0 候选：CMS 密度与排列一轮（工作台合并、排课页分标签、Tabs 原语、对话框统一）+ 对外页面材质三条 + `hero_shape` 上配色管线 + CMS 进浏览器门禁。**本机门禁读数：`2177 passed, 6 skipped`，另有 2 条 RLS 构造测试失败。** 那 2 条在**未改动的 `main`（c53d625）上以同一命令失败同样两条**，是本机数据库角色所致（`$(whoami)` 是超级用户，超级用户无条件绕过 RLS）；换 `studiosaas_app` 后这 2 条通过，但 xero 夹具改为 74 个错误 —— 本机没有任何单一配置能让整套门禁全绿。详见下方「已知门禁缺口」。 |
+| Package / SaaS | 期望 `dist/PWE-StudioSaaS-aws-10.15.0.tar.gz`，`BUILD_INFO commit` == 本地 HEAD == `origin/main`（三方守卫）。 |
+| Package / Edition | 期望 `dist/PWE-Studio-Edition-10.15.0.tar.gz`，同一提交，mode=standalone。 |
+| Production | 期望 `pwestudio.online` = v10.15.0，deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`。**本版改了 `tenant-template/`，四个租户工作区已重新生成**，`workspaces.stale` 必须为 0。 |
+| Backup / migration | 部署脚本自动产出部署前 dump 与 volume 归档。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 本版做了什么（实测数字）
+
+| 面 | 结果 |
+|---|---|
+| 工作台 | 桌面 2243→**1284**（−43%）、手机 3410→**1870**（−46%）；顶层块 10→7 / 11→8。四条同类琥珀提醒条合并为一个「需要注意」区，「最近操作」722px 改为一行入口 |
+| 排课页 | 分「今日签到 / 排课设置」两个标签；面板 −83px、顶层块 5→3、**可见按钮 55→26**；新增整月展开（只存本地）与派生「未签到」 |
+| 设置页 | `Tabs` 原语补上选中项滚动：375px 下七个分区**全部可见**（原后四个被裁到视口外，深链看不出选中什么） |
+| 对话框 | CMS 最后一个裸 `window.confirm` 归零；未来日期签到与撤销签到的文案改为算术（`3 → 2 课时`） |
+| 门禁 | `ui_matrix.py` 新增会话与 CMS 断言，8 个 CMS 页面进矩阵，**226 条断言**；首次运行即抓到 8 个 <44px 触控区，并暴露出一条只列三个字面量的黑名单式断言（已改为规则） |
+| 对外页面 | `hero_shape` 新增 `auto` 跟随视觉风格（存量零变化，实测三租户）；深色带纸纹 soft-light `.14`（实测 6 色阶，带对照组）；课程分类水印；2px 阅读进度条 |
+
+### 已知门禁缺口（不是本版引入，需单独一轮）
+
+`backend/scripts/verify_local.sh` 在本机无法全绿，且与本轮改动无关：
+
+- `STUDIOSAAS_DATABASE_URL` 指向超级用户时，`test_tenant_isolation_by_construction`
+  的两条构造测试失败 —— 它们要求应用以受限角色连库，而超级用户绕过 RLS。
+- 换成 `studiosaas_app` 后这两条通过，但 `test_xero_transport` 等夹具因没有租户
+  上下文被 RLS 拒绝插入，变成 74 个错误。保留 `STUDIOSAAS_MIGRATION_DATABASE_URL`
+  能救夹具，但 `connect()` 会优先用它，于是 RLS 两条又回到失败 ——
+  `verify_local.sh` 的 `env -u` 正是为了防止属主 URL 泄进 pytest。
+- 另有两项本机环境失败：媒体衍生图在主 checkout（106M / 299 个租户目录），
+  这个 worktree 只有 20 个而数据库是共享的；`showcase.html` / `timetable.html`
+  在本 worktree 返回 404。
+
+**对照实验：未改动的 `main`（c53d625）以同一命令失败同样两条 RLS 测试。**
+
+## 上一版四层身份（v10.14.0，2026-08-24）
 
 | 层 | 精确事实 |
 |---|---|
@@ -23,7 +64,7 @@
 | Production | `pwestudio.online` = v10.14.0，镜像 `studiosaas:10.14.0`；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 19.1%；`http -> 301`、`https -> 200 tls=0 proto=2`。375px Canvas、1440px Three.js、英文/中文单 H1、零横向溢出、控制台无警告。线上 Three.js 文件 SHA-256 与提交逐字节相同，immutable，条件请求 304。 |
 | Backup / migration | 部署前 dump `studiosaas_studiosaas_20260824T034213Z.dump` 及 manifest；volume `pwestudio-volumes-20260824T034214Z.tar.gz`。schema 仍至 `0047_xero_transport.sql`（本版零迁移）。 |
 
-## 上一版四层身份（v10.12.3，2026-08-22）
+## 更早版本 · 四层身份（v10.12.3，2026-08-22）
 
 | 层 | 精确事实 |
 |---|---|
@@ -36,6 +77,16 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-09-03（Claude）v10.15.0 CMS 密度与排列 + 对外材质**（**候选**）：
+  轮次文件 `docs/handoff/claude/2026-09-03-cms-density-and-material.md`。
+  工作台四条同类提醒条合并为一个「需要注意」区、`最近操作` 722px 改为入口
+  （桌面 −43%、手机 −46%）；排课页分「今日签到 / 排课设置」（可见按钮 55→26）
+  并新增整月展开与派生「未签到」；`Tabs` 原语补上选中项滚动（375px 下设置页
+  后四个分区原本被裁到视口外）；CMS 最后一个裸 `window.confirm` 归零，确认文案
+  改为算术；8 个 CMS 页面进 `ui_matrix.py`（226 条断言，首跑抓到 8 个 <44px
+  触控区，并暴露一条黑名单式空断言）；`hero_shape` 新增 `auto` 跟随视觉风格
+  （存量零变化）；深色带纸纹、课程分类水印、2px 阅读进度条。零迁移。
 
 - **2026-08-24（Codex）v10.14.0 Living Studio System 品牌首页**（**已发布**）：
   `product-home.html` 以“一个系统、四个相连界面”为核心重构；语义 HTML 承担
