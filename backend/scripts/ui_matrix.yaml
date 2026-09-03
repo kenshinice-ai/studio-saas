@@ -52,3 +52,93 @@ pages:
   #   actions:
   #     - click: ".nav-menu-button"
   #     - wait: 300
+
+  # ── CMS ────────────────────────────────────────────────────────────────
+  #
+  # These sit behind a login, so they name a role; the runner signs in over
+  # HTTP with the password from ~/.studiosaas/showcase-credentials.txt (0600)
+  # and skips them, with a message, when that file is not there.
+  #
+  # `max_blocks` is the measured top-level block count with a little headroom.
+  # The 2026-09-03 density work's entire result is these numbers — the
+  # dashboard went from 10 top-level blocks to 7, the roster page from 5 to 3 —
+  # and until now nothing in the repository was watching them. Raising a budget
+  # is a decision someone should have to type; drifting past it should not be
+  # something a release can do quietly.
+  #
+  # Baselines measured at 1440x900 / 390x844 (docs/design/CMS_Density_Audit_2026-09-03.md);
+  # the widths below are the matrix's own 375/1280.
+  # assert_nav is off: these pages do not carry the public shell's .navrow.
+
+  - name: cms_dashboard
+    path: /lets-paint-showcase/cms?view=dashboard
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 8          # measured 7 desktop / 8 mobile after the merge
+
+  - name: cms_roster
+    path: /lets-paint-showcase/cms?view=roster
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 5          # measured 3 desktop / 4 mobile after the split
+
+  - name: cms_roster_plan
+    path: /lets-paint-showcase/cms?view=roster&section=plan
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 5
+
+  - name: cms_settings_workspace
+    path: /lets-paint-showcase/cms?view=settings&section=workspace
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 3          # the section furthest along the strip: guards the scroll-into-view
+
+  - name: cms_students
+    path: /lets-paint-showcase/cms?view=students
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 6
+
+  - name: cms_topup
+    path: /lets-paint-showcase/cms?view=topup
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    max_blocks: 6
+
+  - name: cms_billing
+    path: /lets-paint-showcase/cms?view=billing
+    role: owner
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375, 1280]
+    # no max_blocks: this panel does not root at .anim, so the budget would be
+    # asserting nothing. The overflow and touch-target checks still run.
+
+  - name: cms_roster_teacher
+    path: /lets-paint-showcase/cms?view=roster
+    role: teacher
+    assert_cms: true
+    assert_nav: false
+    languages: [default]
+    widths: [375]
+    max_blocks: 5          # the role the split was for: fewer controls, same shape

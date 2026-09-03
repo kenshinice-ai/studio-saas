@@ -3118,7 +3118,7 @@
         type: "button",
         onClick: onMarkAllRead,
         disabled: unreadCount === 0,
-        className: "text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[32px]"
+        className: "text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[44px]"
       },
       "全部已读"
     ), /* @__PURE__ */ React.createElement(
@@ -3127,7 +3127,7 @@
         type: "button",
         onClick: onToggle,
         "aria-label": "关闭通知",
-        className: "text-gray-400 text-xl leading-none px-1 min-h-[32px]"
+        className: "text-gray-400 text-xl leading-none px-1 min-h-[44px]"
       },
       "×"
     )), loadError && /* @__PURE__ */ React.createElement("div", { role: "status", className: "px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 border-b border-amber-100" }, loadError), /* @__PURE__ */ React.createElement("div", { className: "max-h-[min(60vh,24rem)] overflow-y-auto" }, notifications.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "px-4 py-10 text-center text-sm text-gray-400" }, "暂无通知") : notifications.map((notification) => /* @__PURE__ */ React.createElement(
@@ -4032,7 +4032,7 @@
         "button",
         {
           onClick: () => setTab("pending"),
-          className: "flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "处理 →"
       )), todoClear.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-red-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "课时已清零 · ", todoClear.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoClear))), /* @__PURE__ */ React.createElement(
@@ -4042,7 +4042,7 @@
             setFilterBy("zero");
             setTab("students");
           },
-          className: "flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "查看 →"
       )), todoLast.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-orange-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "最后 1 课时 · ", todoLast.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoLast))), /* @__PURE__ */ React.createElement(
@@ -4052,7 +4052,7 @@
             setFilterBy("low");
             setTab("students");
           },
-          className: "flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "查看 →"
       )), todoRisk.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-amber-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "流失风险 · ", todoRisk.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoRisk))), /* @__PURE__ */ React.createElement(
@@ -4062,7 +4062,7 @@
             setFilterBy("tag-risk");
             setTab("students");
           },
-          className: "flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "查看 →"
       )), todoBdayWeek.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 space-y-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-pink-600" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "本周生日 · ", todoBdayWeek.length, " 人"), /* @__PURE__ */ React.createElement(
@@ -4072,7 +4072,7 @@
             const msg = todoBdayWeek.map((s) => birthdayWish(s.name)).join("\n");
             copyText(msg, "祝福语已复制");
           },
-          className: "flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "复制祝福 →"
       )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, todoBdayWeek.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" })))))), todoBdayMonth.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 space-y-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-pink-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "本月生日 · ", todoBdayMonth.length, " 人"), /* @__PURE__ */ React.createElement(
@@ -4082,7 +4082,7 @@
             const msg = todoBdayMonth.map((s) => birthdayWish(s.name)).join("\n");
             copyText(msg, "祝福语已复制");
           },
-          className: "flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[38px]"
+          className: "flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[44px]"
         },
         "复制祝福 →"
       )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, todoBdayMonth.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" }))))))));
@@ -6087,7 +6087,7 @@
                   setPortEdit({ sid: String(selS.id), item, note: item.note || "", title: item.title || "", date: item.date || todayISO(), public: !!item.public });
                 },
                 "aria-label": "编辑",
-                className: "bg-white/90 rounded-lg p-2 shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className: "bg-white/90 rounded-lg p-2 shadow leading-none flex items-center justify-center"
               },
               /* @__PURE__ */ React.createElement(Icon, { name: "pencil", className: "w-4 h-4" })
             ), /* @__PURE__ */ React.createElement(
@@ -6098,7 +6098,7 @@
                   portfolioDoDelete(String(item.id));
                 },
                 "aria-label": "删除",
-                className: "bg-red-500 rounded-lg p-2 text-white shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className: "bg-red-500 rounded-lg p-2 text-white shadow leading-none flex items-center justify-center"
               },
               /* @__PURE__ */ React.createElement(Icon, { name: "trash", className: "w-4 h-4" })
             ))

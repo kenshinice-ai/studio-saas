@@ -436,9 +436,9 @@ export function CmsNotificationCenter({
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
                         <div className="font-bold text-sm flex-1">通知</div>
                         <button type="button" onClick={onMarkAllRead} disabled={unreadCount === 0}
-                            className="text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[32px]">全部已读</button>
+                            className="text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[44px]">全部已读</button>
                         <button type="button" onClick={onToggle} aria-label="关闭通知"
-                            className="text-gray-400 text-xl leading-none px-1 min-h-[32px]">×</button>
+                            className="text-gray-400 text-xl leading-none px-1 min-h-[44px]">×</button>
                     </div>
                     {loadError && <div role="status" className="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 border-b border-amber-100">{loadError}</div>}
                     <div className="max-h-[min(60vh,24rem)] overflow-y-auto">

@@ -151,7 +151,7 @@ export function DashboardSection(props) {
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{todoFollowUp.slice(0,4).map(item=>`${item.firstName||''} ${item.lastName||''}`.trim()).join('、')}</p>
                             </div>
                             <button onClick={()=>setTab('pending')}
-                                className="flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[38px]">处理 →</button>
+                                className="flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[44px]">处理 →</button>
                         </div>
                     )}
                     {todoClear.length > 0 && (
@@ -161,7 +161,7 @@ export function DashboardSection(props) {
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoClear)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('zero');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
                         </div>
                     )}
                     {todoLast.length > 0 && (
@@ -171,7 +171,7 @@ export function DashboardSection(props) {
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoLast)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('low');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
                         </div>
                     )}
                     {todoRisk.length > 0 && (
@@ -181,7 +181,7 @@ export function DashboardSection(props) {
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoRisk)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('tag-risk');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
                         </div>
                     )}
                     {todoBdayWeek.length > 0 && (
@@ -189,7 +189,7 @@ export function DashboardSection(props) {
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600"><Icon name="cake" className="w-4 h-4"/>本周生日 · {todoBdayWeek.length} 人</p>
                                 <button onClick={()=>{ const msg=todoBdayWeek.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
+                                    className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[44px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayWeek.map(s=>(
@@ -206,7 +206,7 @@ export function DashboardSection(props) {
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-400"><Icon name="cake" className="w-4 h-4"/>本月生日 · {todoBdayMonth.length} 人</p>
                                 <button onClick={()=>{ const msg=todoBdayMonth.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
+                                    className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[44px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayMonth.map(s=>(

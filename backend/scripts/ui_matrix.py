@@ -16,9 +16,25 @@ Exit codes: 0 all assertions pass · 1 assertion failures (see assertions.json)
 · 2 Playwright/PyYAML not installed (this tool is DELIBERATELY not part of
 verify_local.sh — the release gate must never depend on a browser download).
 
-The assertions encode the nav/brand contract from public-surface.js
-fitNavigation(): labels are never clipped, the brand name only disappears
-when a logo is there to replace it, and the page never scrolls horizontally.
+Two assertion sets:
+
+* the nav/brand contract from public-surface.js fitNavigation() — labels are
+  never clipped, the brand name only disappears when a logo replaces it, and
+  the page never scrolls horizontally;
+* the CMS density contract — a page's top-level block count stays under its
+  budget, and a selected tab is never scrolled out of its own strip.
+
+The second one exists because the 2026-09-03 density work's whole result is
+rendered NUMBERS (the dashboard from 10 top-level blocks to 7, the settings
+strip's selected tab from cut off to visible), and nothing in the repository
+was watching them. A regression there is invisible to every other gate.
+
+CMS pages sit behind a login, so they name a `role` and the runner signs in
+over HTTP first. The password is read from the same 0600 file
+capture_manual_shots.py uses — never a flag, never an environment variable.
+Without that file the CMS pages are SKIPPED with a message, and the public
+pages still run.
+
 This is "measure the rendered page, not the code" made repeatable.
 """
 
@@ -44,6 +60,78 @@ Install into the project venv, once:
 
 Then start the app (default base URL http://127.0.0.1:8100) and re-run.
 """
+
+# The CMS contract. Same shape as the nav one: a list of
+# {assertion, target, ok, detail}.
+CMS_ASSERTIONS_JS = """
+(options) => {
+  const results = [];
+  const push = (assertion, target, ok, detail) =>
+    results.push({ assertion, target, ok, detail });
+  const visible = (el) => {
+    const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+    return r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+  };
+
+  const doc = document.documentElement;
+  push('no-horizontal-scroll', 'documentElement',
+       doc.scrollWidth <= window.innerWidth + 1,
+       `scrollWidth=${doc.scrollWidth} innerWidth=${window.innerWidth}`);
+
+  // Every CMS panel roots at `.anim` — the product's own anchor. Counting its
+  // direct children is what turned "the dashboard feels cluttered" into a
+  // number, so it is the number worth guarding.
+  // Most CMS panels root at `.anim` — the product's own anchor. Counting its
+  // direct children is what turned "the dashboard feels cluttered" into a
+  // number, so it is the number worth guarding. Two pages (billing, finance)
+  // root elsewhere; there the block budget simply does not apply, and the
+  // remaining assertions still do. A missing panel is not a failure — an
+  // assertion that fires on a page it was never written for teaches people to
+  // ignore the gate.
+  const panel = document.querySelector('.anim');
+  if (panel && options.maxBlocks) {
+    const blocks = [...panel.children].filter(visible);
+    push('top-level-blocks', '.anim',
+         blocks.length <= options.maxBlocks,
+         `${blocks.length} blocks, budget ${options.maxBlocks}`);
+  }
+
+  // Exactly one panel showing, and it is the one the selected tab controls.
+  const tabs = [...document.querySelectorAll('[role="tab"]')].filter(visible);
+  if (tabs.length) {
+    const panels = [...document.querySelectorAll('[role="tabpanel"]')].filter(visible);
+    push('one-panel-visible', '[role="tabpanel"]', panels.length === 1,
+         `${panels.length} visible tabpanels`);
+
+    const selected = tabs.filter(t => t.getAttribute('aria-selected') === 'true');
+    push('one-tab-selected', '[role="tab"]', selected.length === 1,
+         `${selected.length} selected tabs`);
+
+    // A strip that scrolls must scroll to the tab you picked; otherwise a deep
+    // link lands on a page where nothing looks chosen.
+    if (selected.length === 1) {
+      const strip = selected[0].parentElement;
+      const view = strip.getBoundingClientRect(), tab = selected[0].getBoundingClientRect();
+      push('selected-tab-in-view', selected[0].textContent.trim(),
+           tab.left >= view.left - 1 && tab.right <= view.right + 1,
+           `tab [${Math.round(tab.left)}, ${Math.round(tab.right)}] ` +
+           `strip [${Math.round(view.left)}, ${Math.round(view.right)}]`);
+    }
+  }
+
+  // Anything a thumb is meant to hit has to be hittable.
+  const small = [...document.querySelectorAll('button, [role="tab"], a[role="button"]')]
+    .filter(visible)
+    .filter(el => { const r = el.getBoundingClientRect(); return r.height < 44 - 0.5; })
+    .map(el => `${(el.textContent || '').trim().slice(0, 14) || el.getAttribute('aria-label') || '?'}` +
+               `@${Math.round(el.getBoundingClientRect().height)}px`);
+  push('touch-target-44px', 'button', small.length === 0,
+       small.length ? small.slice(0, 6).join(', ') : 'all >= 44px');
+
+  return results;
+}
+"""
+
 
 # One evaluate() per page: returns a list of {assertion, target, ok, detail}.
 NAV_BRAND_ASSERTIONS_JS = """
@@ -152,6 +240,32 @@ def main() -> int:
 
     config = load_config(args.config)
     defaults = config.get("defaults") or {}
+
+    # Sign in once per role that any page asks for. Reusing
+    # capture_manual_shots' helpers keeps one implementation of "read the 0600
+    # file, POST /v1/auth/login, keep the cookie" rather than a second copy
+    # that drifts. A missing credentials file is not a crash: the CMS pages are
+    # skipped and the public ones still run, so this stays useful on a machine
+    # that has never seeded the showcase.
+    roles = {spec.get("role") for spec in config["pages"] if spec.get("role")}
+    sessions: dict[str, str] = {}
+    skipped_roles: dict[str, str] = {}
+    if roles:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        try:
+            from capture_manual_shots import ROLE_EMAIL, login, read_demo_password
+            password = read_demo_password()
+            for role in sorted(roles):
+                try:
+                    sessions[role] = login(args.base, ROLE_EMAIL[role], password)
+                except Exception as exc:            # noqa: BLE001 — reported, not raised
+                    skipped_roles[role] = str(exc)
+            del password
+        except SystemExit as exc:
+            for role in roles:
+                skipped_roles[role] = str(exc)
+        for role, why in skipped_roles.items():
+            print(f"SKIP pages needing role {role!r}: {why}", file=sys.stderr)
     default_widths = defaults.get("widths") or [375, 768, 1280]
     default_langs = defaults.get("languages") or ["default"]
     height = int(defaults.get("height") or 900)
@@ -175,6 +289,9 @@ def main() -> int:
         browser = pw.chromium.launch()
         for spec in pages:
             name = spec.get("name") or spec["path"].strip("/").replace("/", "_")
+            role = spec.get("role")
+            if role and role not in sessions:
+                continue                            # 已在上面报告过原因
             widths = spec.get("widths") or default_widths
             languages = spec.get("languages") or default_langs
             selectors = {**default_selectors, **(spec.get("selectors") or {})}
@@ -185,6 +302,10 @@ def main() -> int:
                         url += ("&" if "?" in url else "?") + f"lang={lang}"
                     context = browser.new_context(
                         viewport={"width": int(width), "height": height})
+                    if role:
+                        host = args.base.split("//", 1)[-1].split(":")[0].split("/")[0]
+                        context.add_cookies([{"name": "session", "value": sessions[role],
+                                              "domain": host, "path": "/"}])
                     page = context.new_page()
                     combo = {"page": name, "width": int(width), "language": lang, "url": url}
                     try:
@@ -195,6 +316,18 @@ def main() -> int:
                         run_actions(page, spec.get("actions"))
                         shot = shots_dir / f"{name}__w{width}__{lang}.png"
                         page.screenshot(path=str(shot), full_page=True)
+                        if spec.get("assert_cms"):
+                            # The CMS mounts React after load; give it the same
+                            # beat the panels need before the first paint.
+                            page.wait_for_timeout(2200)
+                            options = {"maxBlocks": int(spec.get("max_blocks", 8))}
+                            for entry in page.evaluate(CMS_ASSERTIONS_JS, options):
+                                record = {**combo, **entry}
+                                results.append(record)
+                                if not entry["ok"]:
+                                    failures += 1
+                                    print(f"FAIL {name} w{width} {lang}: "
+                                          f"{entry['assertion']} [{entry['target']}] {entry['detail']}")
                         if spec.get("assert_nav", True):
                             for entry in page.evaluate(NAV_BRAND_ASSERTIONS_JS, selectors):
                                 record = {**combo, **entry}

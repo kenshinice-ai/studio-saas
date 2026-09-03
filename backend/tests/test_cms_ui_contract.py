@@ -30,12 +30,38 @@ def test_shared_tokens_define_golden_spacing_and_touch_floor() -> None:
 
 
 def test_cms_has_no_sub_44px_declared_touch_target() -> None:
-    """Button utilities must describe the same 44px floor enforced by CSS."""
+    """Button utilities must describe the same 44px floor enforced by CSS.
 
-    source = cms_source_text()
-    assert "min-h-[36px]" not in source
-    assert "min-h-[40px]" not in source
-    assert "min-w-[40px]" not in source
+    This used to be a denylist of three literals, which is to say a list of the
+    values that happened to exist when someone last looked. Six 38px targets
+    were sitting on the dashboard and two more at 32px, and the assertion had
+    nothing to say about any of them — the browser matrix found them instead.
+
+    So it reads every arbitrary min-height utility in the CMS source and holds
+    them all to the floor. Below 44px is not merely a smaller button: a
+    Tailwind class (0,1,0) outranks the shell's bare
+    ``button { min-height: … }`` (0,0,1), so it silently overrides the very
+    rule the shell exists to enforce.
+
+    Height only. ``min-w`` under 44px is legitimate on the count badges — 9px
+    text in an absolutely positioned span is not a tap target — and icon-only
+    buttons get their width from the shell's ``[aria-label]`` selector rather
+    than from a utility.
+    """
+
+    import re
+
+    floor = 44
+    # Comments discuss these values; only real class attributes count.
+    source = re.sub(r"/\*.*?\*/", "", cms_source_text(), flags=re.S)
+    offenders = sorted({
+        match.group(0) for match in re.finditer(r"min-h-\[(\d+)px\]", source)
+        if int(match.group(1)) < floor
+    })
+    assert not offenders, (
+        f"touch targets below {floor}px: {offenders}. "
+        "A utility class outranks the shell rule, so this is an override, not a hint."
+    )
 
 
 def test_cms_shell_preserves_touch_and_button_state_selectors() -> None:

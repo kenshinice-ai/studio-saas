@@ -363,14 +363,18 @@ export function StudentProfileModal(props) {
                                                         </span>
                                                     )}
                                                     {/* B1: port-actions = hidden on mouse devices (hover:flex), always visible on touch (CSS override) */}
-                                                    {/* Icon stays compact; the shared aria-label rule expands its hit box to 44px. */}
+                                                    {/* Icon stays compact; the shared aria-label rule expands its hit box
+                                                        to 44px. It only actually did so once the min-h-[32px] utility
+                                                        came off — a Tailwind class (0,1,0) outranks the shell's bare
+                                                        `button { min-height: … }` (0,0,1), so the class was quietly
+                                                        overriding the floor this comment claimed it relied on. */}
                                                     <div className="port-actions absolute top-0.5 right-0.5 hidden group-hover:flex gap-1 z-10">
                                                         <button
                                                             onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO(),public:!!item.public});}}
-                                                            aria-label="编辑" className="bg-white/90 rounded-lg p-2 shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"><Icon name="pencil" className="w-4 h-4"/></button>
+                                                            aria-label="编辑" className="bg-white/90 rounded-lg p-2 shadow leading-none flex items-center justify-center"><Icon name="pencil" className="w-4 h-4"/></button>
                                                         <button
                                                             onClick={e=>{e.stopPropagation();portfolioDoDelete(String(item.id));}}
-                                                            aria-label="删除" className="bg-red-500 rounded-lg p-2 text-white shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
+                                                            aria-label="删除" className="bg-red-500 rounded-lg p-2 text-white shadow leading-none flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
                                                     </div>
                                                 </div>
                                             ))}
