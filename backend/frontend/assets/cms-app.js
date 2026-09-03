@@ -3924,7 +3924,7 @@
         className: "min-h-[56px] rounded-xl bg-emerald-700 px-2 py-2 text-[11px] font-bold text-white"
       },
       "3 · 上传作品"
-    ))), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), /* @__PURE__ */ React.createElement("div", { className: TENANT_SLUG ? "cms-dashboard-lead" : "" }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "cms-command-card bg-gradient-to-br from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-lg" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-200 tracking-wider" }, "TODAY · 今日指挥台"), /* @__PURE__ */ React.createElement("p", { className: "font-bold mt-0.5" }, "先处理最需要行动的事项")), /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-white/10 border border-white/20 px-2.5 py-1 rounded-full" }, fmtDate(todayISO()))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3" }, [
+    ))), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), /* @__PURE__ */ React.createElement("div", { className: TENANT_SLUG ? "cms-dashboard-lead" : "" }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "cms-command-card bg-gradient-to-br from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-lg" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-200 tracking-wider" }, "TODAY · 今日指挥台"), /* @__PURE__ */ React.createElement("p", { className: "font-bold mt-0.5" }, "先处理最需要行动的事项")), /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-white/10 border border-white/20 px-2.5 py-1 rounded-full" }, fmtDate(todayISO()))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-3" }, [
       ["应到", todayEffectiveCount, "人", () => {
         setRDate(todayISO());
         setTab("roster");
@@ -3933,7 +3933,6 @@
         setRDate(todayISO());
         setTab("roster");
       }],
-      ["待审核", pendingCount, "项", allowedTabs.includes("pending") ? () => setTab("pending") : null],
       ["低课时", analytics.lowBalance.length, "人", () => {
         setSortBy("bal-asc");
         setFilterBy("low");
@@ -3975,37 +3974,7 @@
       },
       /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l, " ", /* @__PURE__ */ React.createElement("span", { className: "text-indigo-400" }, "→")),
       /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v)
-    )))), TENANT_SLUG && (() => {
-      const students = db.students.filter((student) => !student.archived);
-      const metrics = [
-        ["专区已就绪", students.filter((s) => s.mobile && s.hasAccessCode).length, "portal-ready", "lock"],
-        ["缺少手机号", students.filter((s) => !s.mobile).length, "portal-missing-mobile", "phone"],
-        ["专区未启用", students.filter((s) => s.mobile && !s.hasAccessCode).length, "portal-disabled", "warning"],
-        ["私人内容受阻", students.filter((s) => (s.portfolio || []).length > 0 && (!s.mobile || !s.hasAccessCode)).length, "portal-content-blocked", "image"],
-        ["作品已公开", students.filter((s) => (s.portfolio || []).some((item) => item.public || item.visibility === "shared")).length, "publication-live", "image"],
-        ["公开授权有效", students.filter((s) => s.publicationConsent?.status === "confirmed").length, "publication-ready", "shield"],
-        ["有作品但缺授权", students.filter((s) => (s.portfolio || []).length > 0 && s.publicationConsent?.status !== "confirmed").length, "publication-missing-consent", "warning"]
-      ];
-      return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800" }, "学员专区与作品发布"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "点击数字直接处理对应学员")), /* @__PURE__ */ React.createElement(Icon, { name: "shield", className: "w-5 h-5 text-indigo-500" })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2" }, metrics.map(([label, value, filter, icon]) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: filter,
-          type: "button",
-          onClick: () => {
-            setFilterBy(filter);
-            setTab("students");
-          },
-          className: "min-h-[68px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left active:border-indigo-300 active:bg-indigo-50"
-        },
-        /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1.5 text-xs text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-3.5 h-3.5" }), label),
-        /* @__PURE__ */ React.createElement("span", { className: "mt-1 block text-xl font-bold text-gray-900 tabular-nums" }, value)
-      ))));
-    })(), TENANT_SLUG && bizStats && /* @__PURE__ */ React.createElement("details", { className: "bg-white rounded-2xl shadow-sm border border-emerald-100" }, /* @__PURE__ */ React.createElement("summary", { className: "inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none" }, /* @__PURE__ */ React.createElement(Icon, { name: "trend", className: "w-4 h-4" }), canViewFinancialAnalytics ? "经营真账（估算）" : "教学出勤", " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "已上课 ", bizStats.attended_total, " 人次", bizStats.avg_price !== void 0 ? ` · 加权均价 $${bizStats.avg_price}/课时` : "")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4" }, [
-      ["已上课人次", `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, "text-gray-800"],
-      ...bizStats.earned_revenue !== void 0 ? [["已赚收入(估)", `$${bizStats.earned_revenue}`, "人次 × 加权均价", "text-emerald-600"]] : [],
-      ...bizStats.prepaid_liability !== void 0 ? [["预收未耗(负债)", `$${bizStats.prepaid_liability}`, "剩余课时 × 均价", "text-amber-600"]] : [],
-      ...bizStats.cash_net !== void 0 ? [["净现金收入", `$${bizStats.cash_net}`, "充值 − 退款", "text-indigo-600"]] : []
-    ].map(([l, v, sub, c]) => /* @__PURE__ */ React.createElement("div", { key: l, className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, l), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold ${c}` }, v), /* @__PURE__ */ React.createElement("p", { className: "text-[10px] text-gray-400 mt-0.5" }, sub))))), (() => {
+    )))), (() => {
       const todoClear = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 0 && s.lastActive);
       const todoLast = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 1);
       const todoRisk = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id] || 0) === 0);
@@ -4089,74 +4058,152 @@
         },
         "复制祝福 →"
       )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, todoBdayMonth.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" }))))))));
-    })(), (db.pending || []).length > 0 && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => setTab("pending"),
-        className: "w-full bg-amber-50 border border-amber-300 rounded-2xl p-4 text-left active:bg-amber-100 transition"
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 text-2xl" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-amber-800 text-sm" }, "有待审核的注册申请"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-600 mt-0.5" }, `${(db.pending || []).length} 位学员等待审核，点击前往处理`))), /* @__PURE__ */ React.createElement("span", { className: "bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full" }, (db.pending || []).length))
-    ), analytics.inactive.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "长期未到访 — ", analytics.inactive.length, " 名学员有余额但超过 ", inactiveDays, " 天未上课"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, analytics.inactive.slice(0, 12).map((s) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: s.id,
-        onClick: () => {
+    })(), (() => {
+      const rows = [];
+      if ((db.pending || []).length > 0 && allowedTabs.includes("pending")) rows.push({
+        key: "pending",
+        icon: "clipboard",
+        text: `${(db.pending || []).length} 位学员等待审核`,
+        cta: "去审核",
+        go: () => setTab("pending")
+      });
+      if (analytics.inactive.length > 0) rows.push({
+        key: "inactive",
+        icon: "calendar",
+        text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
+        chips: analytics.inactive.slice(0, 12).map((s) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: s.id,
+            type: "button",
+            onClick: () => {
+              setTab("students");
+              setSrch(s.name);
+            },
+            className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]"
+          },
+          s.name,
+          " (",
+          s.balance,
+          "课 · ",
+          daysSince(s.lastActive) < 9999 ? `${daysSince(s.lastActive)}天前` : "从未上课",
+          ")"
+        ))
+      });
+      if (arSummary && arSummary.unpaidCount > 0) rows.push({
+        key: "ar",
+        icon: "invoice",
+        text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ""} · 应收 ${`$${(arSummary.unpaidCents / 100).toFixed(2)}`}`,
+        cta: "进账单中心",
+        go: () => setTab("billing")
+      });
+      if (analytics.lowBalance.length > 0) rows.push({
+        key: "low",
+        icon: "bolt",
+        text: `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
+        cta: "看名单",
+        go: () => {
+          setSortBy("bal-asc");
+          setFilterBy("low");
           setTab("students");
-          setSrch(s.name);
         },
-        className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-amber-800 border border-blue-200 active:bg-blue-200 min-h-[44px]"
-      },
-      s.name,
-      " (",
-      s.balance,
-      "课 · ",
-      daysSince(s.lastActive) < 9999 ? `${daysSince(s.lastActive)}天前` : "从未上课",
-      ")"
-    )))), arSummary && arSummary.unpaidCount > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-2xl p-4 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, "应收 ", `$${(arSummary.unpaidCents / 100).toFixed(2)}`), /* @__PURE__ */ React.createElement("span", { className: "text-gray-500 text-xs ml-2" }, `未付清 ${arSummary.unpaidCount} 张`, arSummary.overdueCount > 0 ? ` · 其中逾期 ${arSummary.overdueCount} 张` : "")), /* @__PURE__ */ React.createElement(
+        chips: analytics.lowBalance.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-stretch" }, /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              setTab("students");
+              setSrch(s.name);
+            },
+            className: `px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance, 10) === 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-800 border-amber-200"}`
+          },
+          s.name,
+          " (",
+          s.balance,
+          ")"
+        ), canWriteCredits && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              setTuStu(s.id);
+              setTab("topup");
+            },
+            title: "去充值",
+            "aria-label": `为 ${s.name} 充值`,
+            className: "px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
+          },
+          /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" })
+        )))
+      });
+      if (!rows.length) return null;
+      const goButton = (row) => row.go ? /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            row.go();
+          },
+          className: "shrink-0 px-2 min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800 whitespace-nowrap"
+        },
+        row.cta,
+        " →"
+      ) : null;
+      return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden", "aria-labelledby": "needs-attention-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4 text-amber-700" }), /* @__PURE__ */ React.createElement("h3", { id: "needs-attention-title", className: "text-sm font-bold text-amber-900" }, "需要注意"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 tabular-nums" }, rows.length)), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, rows.map((row) => row.chips ? /* @__PURE__ */ React.createElement("details", { key: row.key, className: "group" }, /* @__PURE__ */ React.createElement("summary", { className: "flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-amber-50" }, /* @__PURE__ */ React.createElement(Icon, { name: row.icon, className: "w-4 h-4 shrink-0 text-amber-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, row.text), goButton(row), /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-indigo-600 group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 px-4 pb-3" }, row.chips)) : /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: row.key,
+          type: "button",
+          onClick: row.go,
+          className: "flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-amber-50"
+        },
+        /* @__PURE__ */ React.createElement(Icon, { name: row.icon, className: "w-4 h-4 shrink-0 text-amber-600" }),
+        /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, row.text),
+        /* @__PURE__ */ React.createElement("span", { className: "shrink-0 px-2 text-xs font-bold text-indigo-600 whitespace-nowrap" }, row.cta, " →")
+      ))));
+    })(), TENANT_SLUG && bizStats && /* @__PURE__ */ React.createElement("details", { className: "bg-white rounded-2xl shadow-sm border border-emerald-100" }, /* @__PURE__ */ React.createElement("summary", { className: "inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none" }, /* @__PURE__ */ React.createElement(Icon, { name: "trend", className: "w-4 h-4" }), canViewFinancialAnalytics ? "经营真账（估算）" : "教学出勤", " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "已上课 ", bizStats.attended_total, " 人次", bizStats.avg_price !== void 0 ? ` · 加权均价 $${bizStats.avg_price}/课时` : "")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4" }, [
+      ["已上课人次", `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, "text-gray-800"],
+      ...bizStats.earned_revenue !== void 0 ? [["已赚收入(估)", `$${bizStats.earned_revenue}`, "人次 × 加权均价", "text-emerald-600"]] : [],
+      ...bizStats.prepaid_liability !== void 0 ? [["预收未耗(负债)", `$${bizStats.prepaid_liability}`, "剩余课时 × 均价", "text-amber-600"]] : [],
+      ...bizStats.cash_net !== void 0 ? [["净现金收入", `$${bizStats.cash_net}`, "充值 − 退款", "text-indigo-600"]] : []
+    ].map(([l, v, sub, c]) => /* @__PURE__ */ React.createElement("div", { key: l, className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, l), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold ${c}` }, v), /* @__PURE__ */ React.createElement("p", { className: "text-[10px] text-gray-400 mt-0.5" }, sub))))), TENANT_SLUG && (() => {
+      const students = db.students.filter((student) => !student.archived);
+      const metrics = [
+        ["专区已就绪", students.filter((s) => s.mobile && s.hasAccessCode).length, "portal-ready", "lock"],
+        ["缺少手机号", students.filter((s) => !s.mobile).length, "portal-missing-mobile", "phone"],
+        ["专区未启用", students.filter((s) => s.mobile && !s.hasAccessCode).length, "portal-disabled", "warning"],
+        ["私人内容受阻", students.filter((s) => (s.portfolio || []).length > 0 && (!s.mobile || !s.hasAccessCode)).length, "portal-content-blocked", "image"],
+        ["作品已公开", students.filter((s) => (s.portfolio || []).some((item) => item.public || item.visibility === "shared")).length, "publication-live", "image"],
+        ["公开授权有效", students.filter((s) => s.publicationConsent?.status === "confirmed").length, "publication-ready", "shield"],
+        ["有作品但缺授权", students.filter((s) => (s.portfolio || []).length > 0 && s.publicationConsent?.status !== "confirmed").length, "publication-missing-consent", "warning"]
+      ];
+      return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800" }, "学员专区与作品发布"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "点击数字直接处理对应学员")), /* @__PURE__ */ React.createElement(Icon, { name: "shield", className: "w-5 h-5 text-indigo-500" })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2" }, metrics.map(([label, value, filter, icon]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: filter,
+          type: "button",
+          onClick: () => {
+            setFilterBy(filter);
+            setTab("students");
+          },
+          className: "min-h-[68px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left active:border-indigo-300 active:bg-indigo-50"
+        },
+        /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1.5 text-xs text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-3.5 h-3.5" }), label),
+        /* @__PURE__ */ React.createElement("span", { className: "mt-1 block text-xl font-bold text-gray-900 tabular-nums" }, value)
+      ))));
+    })(), allowedTabs.includes("logs") && /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setTab("billing"),
-        className: "ml-auto min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold active:bg-indigo-100"
+        type: "button",
+        onClick: () => setTab("logs"),
+        className: "flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 min-h-[44px] text-left shadow-sm active:bg-gray-50"
       },
-      "进入账单中心"
-    )), analytics.lowBalance.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "课时预警 — ", analytics.lowBalance.length, " 名学员余额 ≤ 2 课时"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, analytics.lowBalance.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-stretch" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setTab("students");
-          setSrch(s.name);
-        },
-        className: `px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance, 10) === 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-800 border-amber-200"}`
-      },
-      s.name,
-      " (",
-      s.balance,
-      ")"
-    ), canWriteCredits && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setTuStu(s.id);
-          setTab("topup");
-        },
-        title: "去充值",
-        "aria-label": `为 ${s.name} 充值`,
-        className: "px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
-      },
-      /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" })
-    ))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b px-4 py-3 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-700 text-sm" }, "最近操作"), /* @__PURE__ */ React.createElement("button", { onClick: () => setTab("logs"), className: "text-indigo-500 text-xs active:text-indigo-700" }, "全部 →")), analytics.recentGroups.length === 0 && /* @__PURE__ */ React.createElement(
-      EmptyState,
-      {
-        icon: /* @__PURE__ */ React.createElement(Icon, { name: "scroll", className: "w-8 h-8" }),
-        main: "还没有账目记录",
-        sub: "签到会记一笔消课，充值会记一笔收入。今天做过其中任何一项，这里就会出现流水。",
-        action: "去今日排课",
-        onAction: () => {
-          setRDate(todayISO());
-          setTab("roster");
-        }
-      }
-    ), analytics.recentGroups.map(({ date, logs }) => /* @__PURE__ */ React.createElement("div", { key: date }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-1.5 bg-gray-50 border-b border-t border-gray-100" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-400" }, date)), logs.map((l) => /* @__PURE__ */ React.createElement("div", { key: l.id, className: "px-4 py-2.5 flex justify-between items-center border-b border-gray-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800 text-sm" }, l.studentName), /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-gray-400 text-xs" }, l.action), l.payMethod && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-blue-400 text-xs" }, l.payMethod)), /* @__PURE__ */ React.createElement("span", { className: `font-bold text-sm ${String(l.change).startsWith("-") ? "text-orange-500" : l.change === "0" || l.change === 0 ? "text-gray-400" : "text-green-500"}` }, l.change)))))));
+      /* @__PURE__ */ React.createElement(Icon, { name: "scroll", className: "w-4 h-4 shrink-0 text-gray-400" }),
+      /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, "最近操作"),
+      /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-xs font-bold text-indigo-600" }, "全部 →")
+    ));
   }
 
   // legacy-root/src/panels/scheduling.jsx

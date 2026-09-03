@@ -70,11 +70,10 @@ export function DashboardSection(props) {
             {/* E4: every command-strip number opens the exact list it counts —
                 低课时 lands on the pre-filtered student list whose cards carry
                 the one-tap 快速充值 button (student preselected). */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-3 gap-2 mb-3">
                 {[
                     ['应到',todayEffectiveCount,'人',()=>{setRDate(todayISO());setTab('roster');}],
                     ['已签到',todayCheckedCount,'人',()=>{setRDate(todayISO());setTab('roster');}],
-                    ['待审核',pendingCount,'项',allowedTabs.includes('pending')?()=>setTab('pending'):null],
                     ['低课时',analytics.lowBalance.length,'人',()=>{setSortBy('bal-asc');setFilterBy('low');setTab('students');}],
                 ].map(([label,value,unit,go])=><button key={label} type="button" onClick={go||undefined} disabled={!go}
                     className={`rounded-xl bg-white/10 border border-white/10 p-2.5 text-left ${go?'active:bg-white/20':''}`}>
@@ -105,58 +104,6 @@ export function DashboardSection(props) {
         ))}
     </div>
     </div>
-
-    {/* v9.1: readiness is operational only when every number opens the exact
-        students that need work. The same filter values are available in the
-        student list, so this is not a decorative dashboard dead-end. */}
-    {TENANT_SLUG && (()=>{
-        const students = db.students.filter(student=>!student.archived);
-        const metrics = [
-            ['专区已就绪', students.filter(s=>s.mobile&&s.hasAccessCode).length, 'portal-ready', 'lock'],
-            ['缺少手机号', students.filter(s=>!s.mobile).length, 'portal-missing-mobile', 'phone'],
-            ['专区未启用', students.filter(s=>s.mobile&&!s.hasAccessCode).length, 'portal-disabled', 'warning'],
-            ['私人内容受阻', students.filter(s=>(s.portfolio||[]).length>0&&(!s.mobile||!s.hasAccessCode)).length, 'portal-content-blocked', 'image'],
-            ['作品已公开', students.filter(s=>(s.portfolio||[]).some(item=>item.public||item.visibility==='shared')).length, 'publication-live', 'image'],
-            ['公开授权有效', students.filter(s=>s.publicationConsent?.status==='confirmed').length, 'publication-ready', 'shield'],
-            ['有作品但缺授权', students.filter(s=>(s.portfolio||[]).length>0&&s.publicationConsent?.status!=='confirmed').length, 'publication-missing-consent', 'warning'],
-        ];
-        return <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-start justify-between gap-3 mb-3">
-                <div><p className="font-bold text-sm text-gray-800">学员专区与作品发布</p><p className="text-xs text-gray-400 mt-0.5">点击数字直接处理对应学员</p></div>
-                <Icon name="shield" className="w-5 h-5 text-indigo-500"/>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
-                {metrics.map(([label,value,filter,icon])=><button key={filter} type="button" onClick={()=>{setFilterBy(filter);setTab('students');}}
-                    className="min-h-[68px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left active:border-indigo-300 active:bg-indigo-50">
-                    <span className="flex items-center gap-1.5 text-xs text-gray-500"><Icon name={icon} className="w-3.5 h-3.5"/>{label}</span>
-                    <span className="mt-1 block text-xl font-bold text-gray-900 tabular-nums">{value}</span>
-                </button>)}
-            </div>
-        </div>;
-    })()}
-
-    {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
-    {TENANT_SLUG && bizStats && (
-        <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
-            {/* D: roles without analytics:read only receive attended_total/attended_month —
-               the financial fields are absent, so render those cards only when present. */}
-            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>{canViewFinancialAnalytics ? '经营真账（估算）' : '教学出勤'} <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次{bizStats.avg_price !== undefined ? ` · 加权均价 $${bizStats.avg_price}/课时` : ''}</span></summary>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
-                {[
-                    ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
-                    ...(bizStats.earned_revenue !== undefined ? [['已赚收入(估)', `$${bizStats.earned_revenue}`, '人次 × 加权均价', 'text-emerald-600']] : []),
-                    ...(bizStats.prepaid_liability !== undefined ? [['预收未耗(负债)', `$${bizStats.prepaid_liability}`, '剩余课时 × 均价', 'text-amber-600']] : []),
-                    ...(bizStats.cash_net !== undefined ? [['净现金收入', `$${bizStats.cash_net}`, '充值 − 退款', 'text-indigo-600']] : []),
-                ].map(([l,v,sub,c]) => (
-                    <div key={l} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                        <p className="text-[11px] text-gray-400">{l}</p>
-                        <p className={`text-xl font-bold ${c}`}>{v}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
-                    </div>
-                ))}
-            </div>
-        </details>
-    )}
 
     {/* ⏰ 今日待办 */}
     {(()=>{
@@ -276,103 +223,162 @@ export function DashboardSection(props) {
         );
     })()}
 
-    {/* 待审核提醒 */}
-    {(db.pending||[]).length>0 && (
-        <button onClick={()=>setTab('pending')}
-            className="w-full bg-amber-50 border border-amber-300 rounded-2xl p-4 text-left active:bg-amber-100 transition">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5 text-2xl"><Icon name="clipboard" className="w-4 h-4"/></span>
-                    <div>
-                        <p className="font-bold text-amber-800 text-sm">有待审核的注册申请</p>
-                        <p className="text-xs text-amber-600 mt-0.5">{`${(db.pending||[]).length} 位学员等待审核，点击前往处理`}</p>
-                    </div>
-                </div>
-                <span className="bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{(db.pending||[]).length}</span>
+    {/* 需要注意 — 这四条曾经是四个独立区块，被别的内容隔开：待审核 72px、
+       长期未到访 210px（手机 698px，学员胶囊换行）、应收 78px、课时预警 106px，
+       桌面合计 466px、手机 986px。它们是 v5.3 到 v10.7 逐版本累加的，每一条
+       单看都合理，摞在一起就成了一条提醒的走廊，而工作台是落地页。
+
+       它们说的其实是同一件事——「有 N 个东西需要你看一眼」——所以合成一个区、
+       每类一行，名单默认折叠。合并的是块，不是信息：每一行仍然带着自己的
+       数据源、权限判定和去处，四行跳向四个不同的页面。
+
+       「长期未到访」没有跳转按钮，因为学员列表里没有与之对应的筛选值
+       （合法值见 students.jsx:65，最接近的 tag-risk 是另一套口径）。
+       对这一行，展开名单本身就是操作。 */}
+    {(()=>{
+        const rows = [];
+        if ((db.pending||[]).length > 0 && allowedTabs.includes('pending')) rows.push({
+            key: 'pending', icon: 'clipboard',
+            text: `${(db.pending||[]).length} 位学员等待审核`,
+            cta: '去审核', go: ()=>setTab('pending'),
+        });
+        if (analytics.inactive.length > 0) rows.push({
+            key: 'inactive', icon: 'calendar',
+            text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
+            chips: analytics.inactive.slice(0,12).map(s => (
+                <button key={s.id} type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
+                    {/* daysSince returns the 9999 sentinel for "no class on
+                        record"; printing it raw read as "9999天前". */}
+                    {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
+                </button>
+            )),
+        });
+        if (arSummary && arSummary.unpaidCount > 0) rows.push({
+            key: 'ar', icon: 'invoice',
+            text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ''} · 应收 ${`$${(arSummary.unpaidCents/100).toFixed(2)}`}`,
+            cta: '进账单中心', go: ()=>setTab('billing'),
+        });
+        if (analytics.lowBalance.length > 0) rows.push({
+            key: 'low', icon: 'bolt',
+            text: `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
+            cta: '看名单', go: ()=>{setSortBy('bal-asc');setFilterBy('low');setTab('students');},
+            chips: analytics.lowBalance.map(s => (
+                <span key={s.id} className="inline-flex items-stretch">
+                <button type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
+                    className={`px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                    {s.name} ({s.balance})
+                </button>
+                {/* E4: renewal is the point of this row — one tap lands on the
+                    top-up form with this student preselected. */}
+                {canWriteCredits && <button type="button" onClick={()=>{setTuStu(s.id);setTab('topup');}}
+                    title="去充值" aria-label={`为 ${s.name} 充值`}
+                    className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
+                    <Icon name="money" className="w-4 h-4"/>
+                </button>}
+                </span>
+            )),
+        });
+        if (!rows.length) return null;
+        const goButton = (row) => row.go ? (
+            <button type="button" onClick={e=>{e.preventDefault();e.stopPropagation();row.go();}}
+                className="shrink-0 px-2 min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800 whitespace-nowrap">
+                {row.cta} →
+            </button>
+        ) : null;
+        return <section className="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden" aria-labelledby="needs-attention-title">
+            <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-3">
+                <Icon name="warning" className="w-4 h-4 text-amber-700"/>
+                <h3 id="needs-attention-title" className="text-sm font-bold text-amber-900">需要注意</h3>
+                <span className="ml-auto rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 tabular-nums">{rows.length}</span>
             </div>
+            <div className="divide-y divide-gray-100">
+                {rows.map(row => row.chips ? (
+                    <details key={row.key} className="group">
+                        <summary className="flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-amber-50">
+                            <Icon name={row.icon} className="w-4 h-4 shrink-0 text-amber-600"/>
+                            <span className="flex-1 text-sm text-gray-700">{row.text}</span>
+                            {goButton(row)}
+                            <span className="shrink-0 text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+                        </summary>
+                        <div className="flex flex-wrap gap-2 px-4 pb-3">{row.chips}</div>
+                    </details>
+                ) : (
+                    <button key={row.key} type="button" onClick={row.go}
+                        className="flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-amber-50">
+                        <Icon name={row.icon} className="w-4 h-4 shrink-0 text-amber-600"/>
+                        <span className="flex-1 text-sm text-gray-700">{row.text}</span>
+                        <span className="shrink-0 px-2 text-xs font-bold text-indigo-600 whitespace-nowrap">{row.cta} →</span>
+                    </button>
+                ))}
+            </div>
+        </section>;
+    })()}
+
+    {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
+    {TENANT_SLUG && bizStats && (
+        <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
+            {/* D: roles without analytics:read only receive attended_total/attended_month —
+               the financial fields are absent, so render those cards only when present. */}
+            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>{canViewFinancialAnalytics ? '经营真账（估算）' : '教学出勤'} <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次{bizStats.avg_price !== undefined ? ` · 加权均价 $${bizStats.avg_price}/课时` : ''}</span></summary>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
+                {[
+                    ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
+                    ...(bizStats.earned_revenue !== undefined ? [['已赚收入(估)', `$${bizStats.earned_revenue}`, '人次 × 加权均价', 'text-emerald-600']] : []),
+                    ...(bizStats.prepaid_liability !== undefined ? [['预收未耗(负债)', `$${bizStats.prepaid_liability}`, '剩余课时 × 均价', 'text-amber-600']] : []),
+                    ...(bizStats.cash_net !== undefined ? [['净现金收入', `$${bizStats.cash_net}`, '充值 − 退款', 'text-indigo-600']] : []),
+                ].map(([l,v,sub,c]) => (
+                    <div key={l} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                        <p className="text-[11px] text-gray-400">{l}</p>
+                        <p className={`text-xl font-bold ${c}`}>{v}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                    </div>
+                ))}
+            </div>
+        </details>
+    )}
+
+    {/* v9.1: readiness is operational only when every number opens the exact
+        students that need work. The same filter values are available in the
+        student list, so this is not a decorative dashboard dead-end. */}
+    {TENANT_SLUG && (()=>{
+        const students = db.students.filter(student=>!student.archived);
+        const metrics = [
+            ['专区已就绪', students.filter(s=>s.mobile&&s.hasAccessCode).length, 'portal-ready', 'lock'],
+            ['缺少手机号', students.filter(s=>!s.mobile).length, 'portal-missing-mobile', 'phone'],
+            ['专区未启用', students.filter(s=>s.mobile&&!s.hasAccessCode).length, 'portal-disabled', 'warning'],
+            ['私人内容受阻', students.filter(s=>(s.portfolio||[]).length>0&&(!s.mobile||!s.hasAccessCode)).length, 'portal-content-blocked', 'image'],
+            ['作品已公开', students.filter(s=>(s.portfolio||[]).some(item=>item.public||item.visibility==='shared')).length, 'publication-live', 'image'],
+            ['公开授权有效', students.filter(s=>s.publicationConsent?.status==='confirmed').length, 'publication-ready', 'shield'],
+            ['有作品但缺授权', students.filter(s=>(s.portfolio||[]).length>0&&s.publicationConsent?.status!=='confirmed').length, 'publication-missing-consent', 'warning'],
+        ];
+        return <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+                <div><p className="font-bold text-sm text-gray-800">学员专区与作品发布</p><p className="text-xs text-gray-400 mt-0.5">点击数字直接处理对应学员</p></div>
+                <Icon name="shield" className="w-5 h-5 text-indigo-500"/>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
+                {metrics.map(([label,value,filter,icon])=><button key={filter} type="button" onClick={()=>{setFilterBy(filter);setTab('students');}}
+                    className="min-h-[68px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left active:border-indigo-300 active:bg-indigo-50">
+                    <span className="flex items-center gap-1.5 text-xs text-gray-500"><Icon name={icon} className="w-3.5 h-3.5"/>{label}</span>
+                    <span className="mt-1 block text-xl font-bold text-gray-900 tabular-nums">{value}</span>
+                </button>)}
+            </div>
+        </div>;
+    })()}
+
+    {/* 「最近操作」在工作台上曾经是 722px —— 落地页最高的单块，位置在
+       桌面 y=1413 / 手机 y=2630，没有人会滚到那里去读它。而「操作日志」
+       本来就是独立导航项（实测 29 行、桌面 3098px），干的是同一件事。
+       落地页只留一个入口，完整流水在它自己的页面里看。 */}
+    {allowedTabs.includes('logs') && (
+        <button type="button" onClick={()=>setTab('logs')}
+            className="flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 min-h-[44px] text-left shadow-sm active:bg-gray-50">
+            <Icon name="scroll" className="w-4 h-4 shrink-0 text-gray-400"/>
+            <span className="flex-1 text-sm text-gray-700">最近操作</span>
+            <span className="shrink-0 text-xs font-bold text-indigo-600">全部 →</span>
         </button>
     )}
-
-    {/* 长期未到访 */}
-    {analytics.inactive.length>0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm"><Icon name="calendar" className="w-4 h-4"/>长期未到访 — {analytics.inactive.length} 名学员有余额但超过 {inactiveDays} 天未上课</p>
-            <div className="flex flex-wrap gap-2">
-                {analytics.inactive.slice(0,12).map(s => (
-                    <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-amber-800 border border-blue-200 active:bg-blue-200 min-h-[44px]">
-                        {/* daysSince returns the 9999 sentinel for "no class on
-                            record"; printing it raw read as "9999天前". */}
-                        {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
-                    </button>
-                ))}
-            </div>
-        </div>
-    )}
-
-    {/* E3: 应收提醒 — 钱的待办出现在一天开始的地方 */}
-    {arSummary && arSummary.unpaidCount > 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-wrap items-center gap-3">
-            <p className="text-sm">
-                <span className="font-bold">应收 {`$${(arSummary.unpaidCents/100).toFixed(2)}`}</span>
-                <span className="text-gray-500 text-xs ml-2">{`未付清 ${arSummary.unpaidCount} 张`}{arSummary.overdueCount > 0 ? ` · 其中逾期 ${arSummary.overdueCount} 张` : ''}</span>
-            </p>
-            <button onClick={()=>setTab('billing')}
-                className="ml-auto min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold active:bg-indigo-100">进入账单中心</button>
-        </div>
-    )}
-
-    {/* 低余额预警 */}
-    {analytics.lowBalance.length>0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm"><Icon name="bolt" className="w-4 h-4"/>课时预警 — {analytics.lowBalance.length} 名学员余额 ≤ 2 课时</p>
-            <div className="flex flex-wrap gap-2">
-                {analytics.lowBalance.map(s => (
-                    <span key={s.id} className="inline-flex items-stretch">
-                    <button onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className={`px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
-                        {s.name} ({s.balance})
-                    </button>
-                    {/* E4: renewal is the point of this card — one tap lands on
-                        the top-up form with this student preselected. */}
-                    {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
-                        title="去充值" aria-label={`为 ${s.name} 充值`}
-                        className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
-                        <Icon name="money" className="w-4 h-4"/>
-                    </button>}
-                    </span>
-                ))}
-            </div>
-        </div>
-    )}
-
-    {/* Fix #11: Recent logs with date grouping */}
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center">
-            <p className="font-bold text-gray-700 text-sm">最近操作</p>
-            <button onClick={()=>setTab('logs')} className="text-indigo-500 text-xs active:text-indigo-700">全部 →</button>
-        </div>
-        {analytics.recentGroups.length===0 && <EmptyState icon={<Icon name="scroll" className="w-8 h-8"/>} main="还没有账目记录"
-                sub="签到会记一笔消课，充值会记一笔收入。今天做过其中任何一项，这里就会出现流水。"
-                action="去今日排课" onAction={()=>{setRDate(todayISO());setTab('roster');}}/>}
-        {analytics.recentGroups.map(({date, logs}) => (
-            <div key={date}>
-                <div className="px-4 py-1.5 bg-gray-50 border-b border-t border-gray-100">
-                    <span className="text-xs font-bold text-gray-400">{date}</span>
-                </div>
-                {logs.map(l => (
-                    <div key={l.id} className="px-4 py-2.5 flex justify-between items-center border-b border-gray-50 last:border-0">
-                        <div>
-                            <span className="font-bold text-gray-800 text-sm">{l.studentName}</span>
-                            <span className="ml-2 text-gray-400 text-xs">{l.action}</span>
-                            {l.payMethod && <span className="ml-1 text-blue-400 text-xs">{l.payMethod}</span>}
-                        </div>
-                        <span className={`font-bold text-sm ${String(l.change).startsWith('-')?'text-orange-500':(l.change==='0'||l.change===0)?'text-gray-400':'text-green-500'}`}>{l.change}</span>
-                    </div>
-                ))}
-            </div>
-        ))}
-    </div>
 </div>
     );
 }
