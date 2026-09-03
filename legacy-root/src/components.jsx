@@ -68,6 +68,14 @@ export const CMS_ROUTE_SECTIONS = Object.assign(Object.create(null), {
                   'integrations', 'maintenance', 'workspace'],
         fallback: 'account',
     },
+    /* 排课页的两个职能。`checkin` 是 fallback，也就是没有 `?section=` 时
+       落到的分区 —— 不按角色推导、不记忆上次选择：这一页每天被不同的人在
+       不同设备上打开，记忆会让两个人看到不同的首屏，而他们要对的是同一份
+       名单。 */
+    roster: {
+        allowed: ['checkin', 'plan'],
+        fallback: 'checkin',
+    },
 });
 export const readCmsSection = (tab, params) => {
     /* 原型链上没有东西 —— 这张表用 Object.create(null) 建。否则
@@ -92,6 +100,7 @@ export const readCmsRoute = () => {
         /* Scoped, not raw: a `section` that arrived with another tab must not
            become the settings page's state. */
         settingsSection: tab === 'settings' ? readCmsSection(tab, params) : 'account',
+        rosterSection: tab === 'roster' ? readCmsSection(tab, params) : 'checkin',
         recordId: params.get('id') || '',
     };
 };

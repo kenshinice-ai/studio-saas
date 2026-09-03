@@ -14,7 +14,7 @@ import { FilterBar } from "./panels/filter_bar.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
 
-import { AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_TABS, CmsNotificationCenter, ConfirmDialog, Icon } from "./components.jsx";
+import { AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_SECTIONS, CMS_ROUTE_TABS, CmsNotificationCenter, ConfirmDialog, Icon } from "./components.jsx";
 import { LoginScreen, MaintSection, PhotoAvatar, StudentPicker, TENANT_SLUG, Toast } from "./components.jsx";
 import { auditNote, daysSince, fmtDate, mediaSrc, nowAU, parseMonthKey } from "./components.jsx";
 import { portfolioImgSrc, portfolioSrcSet, readCmsRoute, tenantOwnedLogoUrl, tenantSlug, todayISO } from "./components.jsx";
@@ -42,6 +42,7 @@ function App() {
     const [tab, setTabState] = useState(initialCmsRoute.tab);
     const [pendingTab, setPendingTabState] = useState(initialCmsRoute.pendingTab);
     const [settingsSection, setSettingsSectionState] = useState(initialCmsRoute.settingsSection);
+    const [rosterSection, setRosterSectionState] = useState(initialCmsRoute.rosterSection);
     const [routeRecordId, setRouteRecordId] = useState(initialCmsRoute.recordId);
     const [moreOpen, setMoreOpen] = useState(false);
     const [selS, setSelS] = useState(null);
@@ -112,6 +113,7 @@ function App() {
         else if (next.tab === 'pending' && next.pendingTab === 'reports') params.set('type', 'reports');
         else params.delete('type');
         if (next.tab === 'settings' && next.settingsSection && next.settingsSection !== 'account') params.set('section', next.settingsSection);
+        else if (next.tab === 'roster' && next.rosterSection && next.rosterSection !== 'checkin') params.set('section', next.rosterSection);
         else params.delete('section');
         if (next.recordId && ['students','pending','works','billing'].includes(next.tab)) params.set('id', next.recordId);
         else params.delete('id');
@@ -124,7 +126,17 @@ function App() {
         setShowSettings(next === 'settings');
         const nextRecordId = options.recordId || '';
         setRouteRecordId(nextRecordId);
-        syncCmsRoute({tab: next, recordId: nextRecordId}, !!options.replace);
+        const patch = {tab: next, recordId: nextRecordId};
+        /* 一个「去把固定课表建起来」的入口不该先落在今日名单上。分区照样过
+           CMS_ROUTE_SECTIONS 的白名单：调用方写错了就落回 fallback，不会把
+           一个不存在的分区写进地址栏。 */
+        if (next === 'roster') {
+            const scope = CMS_ROUTE_SECTIONS.roster;
+            const section = scope.allowed.includes(options.section) ? options.section : scope.fallback;
+            setRosterSectionState(section);
+            patch.rosterSection = section;
+        }
+        syncCmsRoute(patch, !!options.replace);
     }, [syncCmsRoute]);
     const setPendingTab = useCallback((nextPendingTab) => {
         const next = ['bookings', 'reports'].includes(nextPendingTab) ? nextPendingTab : 'registrations';
@@ -139,6 +151,12 @@ function App() {
         setShowSettings(true);
         syncCmsRoute({tab:'settings', settingsSection:nextSection});
     }, [syncCmsRoute]);
+    const setRosterSection = useCallback((nextSection) => {
+        setRosterSectionState(nextSection);
+        setTabState('roster');
+        setShowSettings(false);
+        syncCmsRoute({tab:'roster', rosterSection:nextSection});
+    }, [syncCmsRoute]);
 
     useEffect(() => {
         const onPopState = () => {
@@ -146,6 +164,7 @@ function App() {
             setTabState(next.tab);
             setPendingTabState(next.pendingTab);
             setSettingsSectionState(next.settingsSection);
+            setRosterSectionState(next.rosterSection);
             setRouteRecordId(next.recordId);
             setShowSettings(next.tab === 'settings');
             setUserMenuOpen(false);
@@ -3784,7 +3803,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='courses' && <CoursesSection {...{archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab}}/>}
 
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
-{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry}}/>}
+{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry}}/>}
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {/* ═══ WORKS ══════════════════════════════════════════════════ */}

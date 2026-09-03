@@ -689,6 +689,9 @@
     ['搜付款方或发票号', 'Search payers or invoice numbers'],
     ['搜老师姓名', 'Search teacher names'],
     ['学员档案分类', 'Student record sections'], ['系统设置分区', 'Settings sections'],
+    /* 排课页的两个分区（v10.15.0 阶段二）。 */
+    ['课程安排分区', 'Scheduling sections'],
+    ['今日签到', "Today's check-in"], ['排课设置', 'Scheduling setup'],
     ['去充值', 'Top up'],
     ['如：Lucy 老师', 'e.g. Lucy'], ['如：Lucy Wang', 'e.g. Lucy Wang'],
     ['至少 8 位', 'At least 8 characters'], ['输入当前密码', 'Enter your current password'],
