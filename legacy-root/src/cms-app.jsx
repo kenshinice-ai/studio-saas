@@ -1423,9 +1423,32 @@ function App() {
         /* 服务端会拒绝窗口外的日期，但错误是一句英文原文；而「明天」它会放行，
            于是一节还没上的课被静默扣掉一个课时。在这里先拦，用中文说清楚。 */
         if (!checkInWindow.ok) { showToast(`${fmtDate(rDate)}：${checkInWindow.reason}`, 'warn'); return; }
-        if (checkInWindow.future && !window.confirm(`${fmtDate(rDate)} 是${checkInWindow.reason}。确定现在就为 ${sname} 扣 1 课时吗？`)) return;
         const student = db.students.find(s=>s.id===sid);
         if (!student||student.balance<=0) { showToast(`${sname} 课时余额不足`, 'error'); return; }
+        /* 余额检查挪到确认之前：先问一个注定会失败的问题，比不问更糟。 */
+        if (checkInWindow.future) {
+            /* 这里曾经是全仓库最后一个裸 window.confirm —— 同一个后台，两套
+               对话框：这一句由操作系统画，别的确认由 ConfirmDialog 画。
+               改走同一个 helper 之后只剩一套。
+
+               文案也换成算术。「确定现在就扣 1 课时吗？」问不出新信息——
+               对方已经按了「签到并扣 1 课时」，知道要扣。真正该给的是结果：
+               扣完还剩多少。 */
+            const before = Number(student.balance) || 0;
+            confirm(
+                `${checkInWindow.reason}（${fmtDate(rDate)}）。${sname} 的余额会从 ${before} 变成 ${Math.max(0, before - 1)} 课时。`,
+                () => runCheckIn(sid, sname, student),
+                {confirmText: `仍然签到 · ${before} → ${Math.max(0, before - 1)}`},
+            );
+            return;
+        }
+        return runCheckIn(sid, sname, student);
+    };
+
+    /* checkIn 的其余部分。拆出来只是为了让上面的未来日期确认能走回调式的
+       ConfirmDialog —— 它不像 window.confirm 那样同步返回一个布尔值。 */
+    const runCheckIn = async (sid, sname, student) => {
+        if (busy) return;
         cooldowns.current.add(sid); setTimeout(() => cooldowns.current.delete(sid), 3000);
         setBusy(true);
         try {
@@ -1467,7 +1490,10 @@ function App() {
             showToast(`未找到 ${fmtDate(rDate)} 的准确签到记录，未执行撤销`, 'warn');
             return;
         }
-        confirm(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，扣掉的课时会退回 TA 的余额。\n\n这条撤销会写进操作日志，可以随时再签一次。`, async () => {
+        /* 同一条原则：说结果，不说「确定吗」。撤销会把课时退回去，那就把
+           退回后的数字写出来。 */
+        const undoBefore = Number((db.students.find(s=>s.id===sid)||{}).balance) || 0;
+        confirm(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，扣掉的 1 课时会退回 TA 的余额：${undoBefore} → ${undoBefore + 1} 课时。\n\n这条撤销会写进操作日志，可以随时再签一次。`, async () => {
             if (busy) return; // Fix ④: guard against concurrent busy
             setBusy(true);
             try {

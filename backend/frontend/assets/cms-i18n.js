@@ -564,6 +564,11 @@
     ['剩余课时 × 均价', 'Credits remaining × average price'],
     ['人次 × 加权均价', 'Attendances × weighted average price'],
     ['课时预警 —', 'Low credits —'], ['长期未到访 —', 'Not seen for a while —'],
+    /* 工作台的「需要注意」区（v10.15.0）。四条提醒条合并成一个区块之后，
+     * 每行是一句完整的话加一个去处，所以整句走下面的规则，标题与去处按钮
+     * 是定值，进词典。 */
+    ['需要注意', 'Needs attention'],
+    ['去审核', 'Review'], ['看名单', 'See the list'], ['进账单中心', 'Open billing'],
     ['名学员余额 ≤ 2 课时', 'students have 2 credits or fewer'],
     ['名学员有余额但超过', 'students still hold credits but have not attended for'],
     ['天未上课', 'days'],
@@ -792,6 +797,15 @@
        'No invoice matches the current filters. Clear them to see all $1.'],
       [/^\((\d+)\s*张\)$/, '($1)'],
       [/^(\d+)\s*位学员等待审核，点击前往处理$/, '$1 waiting for review — tap to open'],
+      /* 合并后的四行。旧文案带着「，点击前往处理」，新的一行把去处交给
+       * 行尾的按钮，所以句子在这里结束 —— 上面那条规则不再命中它。 */
+      [/^(\d+)\s*位学员等待审核$/, '$1 waiting for review'],
+      [/^(\d+)\s*名学员有余额但超过\s*(\d+)\s*天未上课$/,
+       '$1 students hold credits but have not attended for $2 days'],
+      [/^(\d+)\s*名学员余额\s*≤\s*2\s*课时$/, '$1 students have 2 credits or fewer'],
+      [/^未付清\s*(\d+)\s*张，其中逾期\s*(\d+)\s*张\s*·\s*应收\s*(.+)$/,
+       '$1 unpaid, $2 overdue · $3 outstanding'],
+      [/^未付清\s*(\d+)\s*张\s*·\s*应收\s*(.+)$/, '$1 unpaid · $2 outstanding'],
       [/^(\d+)\s*个套餐$/, '$1 packages'],
       [/^没有匹配的老师。清除筛选可以看到全部\s*(\d+)\s*位。$/,
        'No teacher matches. Clear the filters to see all $1.'],

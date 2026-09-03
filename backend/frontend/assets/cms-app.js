@@ -7391,12 +7391,24 @@
         showToast(`${fmtDate(rDate)}：${checkInWindow.reason}`, "warn");
         return;
       }
-      if (checkInWindow.future && !window.confirm(`${fmtDate(rDate)} 是${checkInWindow.reason}。确定现在就为 ${sname} 扣 1 课时吗？`)) return;
       const student = db.students.find((s) => s.id === sid);
       if (!student || student.balance <= 0) {
         showToast(`${sname} 课时余额不足`, "error");
         return;
       }
+      if (checkInWindow.future) {
+        const before = Number(student.balance) || 0;
+        confirm2(
+          `${checkInWindow.reason}（${fmtDate(rDate)}）。${sname} 的余额会从 ${before} 变成 ${Math.max(0, before - 1)} 课时。`,
+          () => runCheckIn(sid, sname, student),
+          { confirmText: `仍然签到 · ${before} → ${Math.max(0, before - 1)}` }
+        );
+        return;
+      }
+      return runCheckIn(sid, sname, student);
+    };
+    const runCheckIn = async (sid, sname, student) => {
+      if (busy) return;
       cooldowns.current.add(sid);
       setTimeout(() => cooldowns.current.delete(sid), 3e3);
       setBusy(true);
@@ -7434,7 +7446,8 @@
         showToast(`未找到 ${fmtDate(rDate)} 的准确签到记录，未执行撤销`, "warn");
         return;
       }
-      confirm2(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，扣掉的课时会退回 TA 的余额。
+      const undoBefore = Number((db.students.find((s) => s.id === sid) || {}).balance) || 0;
+      confirm2(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，扣掉的 1 课时会退回 TA 的余额：${undoBefore} → ${undoBefore + 1} 课时。
 
 这条撤销会写进操作日志，可以随时再签一次。`, async () => {
         if (busy) return;
