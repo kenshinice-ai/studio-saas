@@ -8,6 +8,8 @@ import { BalBadge, EmptyState, Icon, PhotoAvatar, StudentPicker, Tabs, TabPanel,
 import { fmtDate, shiftDate, todayISO, v1Api } from "../components.jsx";
 import { PrivateLessonsPanel } from "./private_lessons.jsx";
 
+const { useState } = React;
+
 export function CoursesSection(props) {
     const {
         archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse,
@@ -89,6 +91,16 @@ export function RosterSection(props) {
        里没有被拆散 —— 那张卡声明了 `container: roster-planner / inline-size`
        (index.html:619)，窄屏日期栏的栅格由 `@container` 规则给；把日期导航
        挪出这张卡，那条规则会静默失效，而卡的白底正是它的视觉。 */
+    /* 月历展开态存在这台机器的浏览器里，不进数据库、也不跨设备：它是一个
+       视图偏好，不是工作室的数据。写法与 lp_inactive_days / lp_renew_threshold
+       一致。读写都包起来 —— 隐私模式下 localStorage 会直接抛。 */
+    const [monthOpen, setMonthOpen] = useState(() => {
+        try { return localStorage.getItem('lp_ui_roster_month') === '1'; } catch (e) { return false; }
+    });
+    const toggleMonth = () => setMonthOpen(open => {
+        try { localStorage.setItem('lp_ui_roster_month', open ? '0' : '1'); } catch (e) { /* 存不下就只在本次会话里生效 */ }
+        return !open;
+    });
     const rosterTabs = Boolean(TENANT_SLUG);
     /* 单店模式（根目录，TENANT_SLUG 为空）下固定课表与一对一都不渲染，
        「排课设置」会是一个空面板 —— 那时不出标签条，签到内容直接渲染。
@@ -120,31 +132,70 @@ export function RosterSection(props) {
                 </div>
             </div>
 
-    {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
-    <div className="cms-roster-week" role="group" aria-label="本周课程日期">
-        {(() => {
-            const anchor = new Date(`${rDate}T12:00:00`);
+    {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数。
+        v10.15.0 起可一键展开为整月：排课时要回答的是「这个月哪几天空着」，
+        一周一周翻是把一个空间问题变成了序列问题。人数用同一个 countFor —
+        这个仓库为「同一件事两份实现」付过两次学费。 */}
+    {(() => {
+        const countFor = (iso, weekday) => {
+            const manual = db.rosters[iso] || [];
+            const sched = schedules.filter(sc => sc.weekday === weekday).flatMap(sc => sc.students.map(st => st.id));
+            return new Set([...sched, ...manual]).size;
+        };
+        const cell = (d, {outside = false} = {}) => {
+            const iso = d.toLocaleDateString('en-CA');
+            const n = countFor(iso, d.getDay());
+            const isSel = iso === rDate, isToday = iso === todayISO();
+            return (
+                <button key={iso} type="button" onClick={()=>setRDate(iso)}
+                    aria-current={isSel?'date':undefined}
+                    aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
+                    className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''} ${outside?'is-outside':''}`}>
+                    <p className="text-[10px] opacity-70">{monthOpen ? '' : WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
+                    <p className="text-sm font-bold">{d.getDate()}</p>
+                    {/* 0 人不显示徽标。「排过又清空」的残留是真实存在的，
+                        否则整月会铺满一片没有意义的「0」。 */}
+                    <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
+                </button>
+            );
+        };
+        const anchor = new Date(`${rDate}T12:00:00`);
+        if (!monthOpen) {
             const monday = new Date(anchor); monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
-            return [0,1,2,3,4,5,6].map(i => {
-                const d = new Date(monday); d.setDate(monday.getDate() + i);
-                const iso = d.toLocaleDateString('en-CA');
-                const manual = db.rosters[iso] || [];
-                const sched = schedules.filter(sc => sc.weekday === d.getDay()).flatMap(sc => sc.students.map(st => st.id));
-                const n = new Set([...sched, ...manual]).size;
-                const isSel = iso === rDate, isToday = iso === todayISO();
-                return (
-                    <button key={iso} type="button" onClick={()=>setRDate(iso)}
-                        aria-current={isSel?'date':undefined}
-                        aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
-                        className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''}`}>
-                        <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
-                        <p className="text-sm font-bold">{d.getDate()}</p>
-                        <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
-                    </button>
-                );
-            });
-        })()}
-    </div>
+            return <div className="cms-roster-week" role="group" aria-label="本周课程日期">
+                {[0,1,2,3,4,5,6].map(i => {
+                    const d = new Date(monday); d.setDate(monday.getDate() + i); return cell(d);
+                })}
+            </div>;
+        }
+        const year = anchor.getFullYear(), month = anchor.getMonth();
+        const first = new Date(year, month, 1);
+        const lead = (first.getDay() + 6) % 7;              // 周一为一周之首
+        const start = new Date(year, month, 1 - lead);
+        const cells = Array.from({length: 42}, (_, i) => new Date(year, month, 1 - lead + i));
+        /* 末行整行属于下个月时裁掉 —— 否则一半的月份会多出一条空行。 */
+        const shown = cells.slice(35).every(d => d.getMonth() !== month) ? cells.slice(0, 35) : cells;
+        const jump = (delta) => setRDate(new Date(year, month + delta, 1).toLocaleDateString('en-CA'));
+        return <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+                <button type="button" onClick={()=>jump(-1)} aria-label="上个月"
+                    className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
+                <span className="text-sm font-bold text-gray-800">{year} 年 {month + 1} 月</span>
+                <button type="button" onClick={()=>jump(1)} aria-label="下个月"
+                    className="cms-roster-date-button"><Icon name="chevronRight" className="w-4 h-4"/></button>
+            </div>
+            <div className="cms-roster-month-head" aria-hidden="true">
+                {['一','二','三','四','五','六','日'].map(w => <span key={w}>{w}</span>)}
+            </div>
+            <div className="cms-roster-month" role="group" aria-label="本月课程日期">
+                {shown.map(d => cell(d, {outside: d.getMonth() !== month}))}
+            </div>
+        </div>;
+    })()}
+    <button type="button" onClick={toggleMonth} aria-expanded={monthOpen}
+        className="w-full min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800">
+        {monthOpen ? '收起为本周 ⌃' : '展开整月 ⌄'}
+    </button>
 
     {/* B1: 当日概览条 — 应到/已签/未签/低余额 */}
     {(() => {
@@ -156,7 +207,10 @@ export function RosterSection(props) {
             <div className="cms-roster-summary" aria-live="polite">
                 <strong>{rDate===todayISO()?'今日':fmtDate(rDate)} · {valid.length} 人</strong>
                 <span className="is-success">已签到 {done}</span>
-                <span>待上课 {valid.length-done}</span>
+                {/* 同一条推导：过去的日子里剩下的人不是「待上课」，是没被签到。 */}
+                {rDate < todayISO()
+                    ? (valid.length-done > 0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>未签到 {valid.length-done}</span>)
+                    : <span>待上课 {valid.length-done}</span>}
                 {low>0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>低余额 {low}</span>}
                 {/* 按钮灰掉了要说得出为什么。概览条是这一天唯一的说明位置。 */}
                 {checkInWindow.reason && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>{checkInWindow.reason}</span>}
@@ -243,7 +297,9 @@ export function RosterSection(props) {
                         {canWriteAttendance && dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok} title={checkInWindow.ok ? undefined : checkInWindow.reason}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
                     </div>
                 </details>}
-                <div className="cms-day-actions-desktop flex gap-2 flex-wrap">
+                {/* 导出与批量操作归为一组，与签到主操作分层：每个页面只留一个实心主
+                    操作，其余降级。手机端同一组收在上面的「当日操作」面板里。 */}
+                <div role="group" aria-label="当日导出与批量操作" className="cms-day-actions-desktop flex gap-2 flex-wrap">
                     {dayIds.length>0 && canExportData && (
                         <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
                             className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
@@ -275,7 +331,22 @@ export function RosterSection(props) {
                     const isDone = rosterDone.has(s.id);
                     const lowBal = (parseInt(s.balance,10)||0) <= renewTh && !isDone;   /* A5: 课前低余额预警（v4.5） */
                     const slot = rosterSlotFor(rDate,sid);
-                    const rosterStatus = isDone ? '已签到' : entry.status==='makeup' ? '补课' : '待上课';
+                    /* 过去的日子里,「待上课」是句假话 —— 这一天已经过完了。
+                       它是推导出来的显示态,不是存下来的字段:
+                       daily_roster_entries.status 的枚举是
+                       scheduled | makeup | cancelled,出勤维度不在里面,
+                       那是 attendance 行加课时流水的事。往枚举里加一个 absent
+                       会把「只有真实签到能宣称完成」这条靠约束保证的不变量,
+                       换成两段要靠人记得的代码。
+
+                       用词是「未签到」而不是「缺席」:数据只知道没有签到记录。
+                       学生没来是一种可能,老师忘了点也是一种,而后者恰恰是这个
+                       标签要提醒的那一种。 */
+                    const dayIsPast = rDate < todayISO();
+                    const rosterStatus = isDone ? '已签到'
+                        : entry.status === 'makeup' ? '补课'
+                        : dayIsPast ? '未签到'
+                        : '待上课';
                     return (
                         <div key={sid} className={`cms-roster-row hover-row ${lowBal?'is-low':''}`}>
                             <div className="cms-roster-info">
@@ -284,7 +355,7 @@ export function RosterSection(props) {
                                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                         <p className="font-bold text-gray-900 truncate">{s.name}</p>
                                         {entry.oneToOne && <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
-                                        <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
+                                        <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':rosterStatus==='未签到'?'bg-amber-50 border-amber-200 text-amber-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
                                     </div>
                                     <p className="text-xs text-gray-400 truncate">{[s.mobile||'未填写手机', slot, entry.note].filter(Boolean).join(' · ')}</p>
                                 </div>

@@ -677,6 +677,33 @@
             background:var(--accent-soft);
             color:var(--on-accent-soft);
         }
+        /* 整月展开态。格子复用 .cms-roster-week-day，只有栅格与补白日不同：
+           一套格子两种排法，改一次样式两边同时生效。 */
+        .cms-roster-month {
+            display:grid;
+            grid-template-columns:repeat(7,minmax(0,1fr));
+            gap:5px;
+        }
+        .cms-roster-month .cms-roster-week-day {
+            /* 设计体系要求移动端点击区不小于 44px。7 列在 375px 屏上宽度只能
+               到 40px 左右 —— 那是七列布局的物理下限，系统日历同样如此。
+               高度是能守住的那一维，就守住它。 */
+            min-height:44px;
+            padding:5px 2px;
+        }
+        .cms-roster-month-head {
+            display:grid;
+            grid-template-columns:repeat(7,minmax(0,1fr));
+            gap:5px;
+            text-align:center;
+            font-size:11px;
+            font-weight:700;
+            color:var(--muted);
+        }
+        /* 跨月补白日：留在格子里保持整齐，但淡下去说明它不属于这个月。 */
+        .cms-roster-week-day.is-outside:not(.is-selected) {
+            opacity:.42;
+        }
         .cms-roster-summary {
             display:flex;
             flex-wrap:wrap;

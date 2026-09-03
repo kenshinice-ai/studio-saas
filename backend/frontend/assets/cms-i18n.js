@@ -692,6 +692,11 @@
     /* 排课页的两个分区（v10.15.0 阶段二）。 */
     ['课程安排分区', 'Scheduling sections'],
     ['今日签到', "Today's check-in"], ['排课设置', 'Scheduling setup'],
+    /* 排课页 v10.15.0：整月展开与「未签到」推导态。 */
+    ['展开整月 ⌄', 'Show the month ⌄'], ['收起为本周 ⌃', 'Back to the week ⌃'],
+    ['未签到', 'No check-in'], ['本月课程日期', 'Class dates this month'],
+    ['上个月', 'Previous month'], ['下个月', 'Next month'],
+    ['当日导出与批量操作', "The day's exports and batch actions"],
     ['去充值', 'Top up'],
     ['如：Lucy 老师', 'e.g. Lucy'], ['如：Lucy Wang', 'e.g. Lucy Wang'],
     ['至少 8 位', 'At least 8 characters'], ['输入当前密码', 'Enter your current password'],
