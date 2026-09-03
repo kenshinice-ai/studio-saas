@@ -150,7 +150,9 @@
      linear-gradient(160deg,var(--bg2),var(--bg))}
   .hero-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
   body.hero-image .hero-art img{display:block}
-  body.hero-bold .hero{background:var(--ink);color:var(--bg)}
+  body.hero-bold .hero{background:var(--ink);color:var(--bg);position:relative;overflow:hidden}
+  body.hero-bold .hero::before{content:"";position:absolute;inset:0;background:url('/assets/paper-grain.webp') repeat;background-size:256px 256px;mix-blend-mode:soft-light;opacity:.14;pointer-events:none}
+  body.hero-bold .hero > *{position:relative}
   body.hero-bold .hero .slogan, body.hero-bold .hero-login{color:color-mix(in srgb,var(--bg) 78%,var(--ink))}
   body.hero-oval .hero-art{border-radius:50%}
   body.hero-organic .hero-art{border-radius:42% 58% 48% 52%/34% 42% 58% 66%}
@@ -348,8 +350,34 @@
      dangling right edge. Every cell now owns its left border and the grid is
      pulled 1px left so the outer edges still line up. */
   .course-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line);margin-left:-1px}
-  .course{padding:38px 26px 34px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);border-left:1px solid var(--line);transition:background .35s}
+  .course{position:relative;overflow:hidden;isolation:isolate;padding:38px 26px 34px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);border-left:1px solid var(--line);transition:background .35s}
+  /* 课程分类做成一枚巨大的浅色水印。用的是卡片上本来就有的数据，不新增内容、
+     不新增请求。6% 是刻意的：一旦可读，它就从装饰变成了噪音。
+     字号取尺度上限 68px —— 参照工作室曾用 92px，超出封闭尺度且溢出了卡片。
+     用真实的 span 而不是 ::before + attr()：伪元素的 content 会被读屏念出来，
+     而分类文字在 .cage 里已经有一份，等于同一个词读两遍。
+
+     落在右下角的留白里、整字可见。第一版放在右上角、用负偏移让它溢出卡片
+     ——那是参照站的做法，但参照站的卡片没有 overflow:hidden。这里加了，于是
+     字被上边缘齐齐切掉三分之二，看起来像渲染坏了而不是装饰。 */
+  .course .cwatermark{
+    position:absolute;
+    right:14px;
+    bottom:10px;
+    z-index:0;
+    font-family:var(--font-latin);
+    font-size:68px;
+    font-weight:500;
+    line-height:1;
+    letter-spacing:-.04em;
+    color:color-mix(in srgb,var(--clay) 6%,transparent);
+    pointer-events:none;
+    user-select:none;
+    white-space:nowrap;
+    max-width:100%;
+  }
   .course:hover{background:var(--panel)}
+  .course > *:not(.cwatermark){position:relative;z-index:1}
   .course .num{font-family:var(--font-latin);font-size:15px;color:var(--muted)}
   .course h3{font-size:20px;font-weight:500;margin:16px 0 10px}
   /* P1-5: these sit on --bg2, where even the corrected --muted is 4.2:1.
@@ -399,6 +427,8 @@
   .parent{
     background:var(--ink);
     color:var(--bg);
+    position:relative;
+    overflow:hidden;
     --ink2:color-mix(in srgb,var(--bg) 86%,var(--ink));
     --muted:color-mix(in srgb,var(--bg) 72%,var(--ink));
     --line:color-mix(in srgb,var(--bg) 22%,var(--ink));
@@ -407,7 +437,32 @@
        against the page. The band's own foreground carries the mark instead. */
     --clay:color-mix(in srgb,var(--bg) 82%,var(--ink));
   }
-  .parent .wrap{display:grid;grid-template-columns:var(--golden-columns);gap:var(--space-phi-xl);align-items:center}
+  /* 深色带上的纸纹。`soft-light` 让它跟着底色走 —— 中性灰只改明暗、不改色相，
+     所以同一张图在任何租户的配色下都成立。这是唯一一种既不违反「颜色只有一个
+     来源」又能加质感的手段：它不引入任何自己的颜色。
+
+     0.14 是量出来的，不是拍的。在这条带子上（L≈29）取一块无文字区域读像素：
+
+       关闭（对照）  标准差 0.00   极差 29–29
+       soft-light .08  0.51        28–31
+       soft-light .14  0.85        27–33   ← 取这个
+       soft-light .22  1.31        25–35
+       overlay    .10  0.55        27–30
+
+     峰峰值六个色阶：是纸的纹理，不是噪点。第一版写的 0.08 配一张标准差只有
+     2.71/255 的贴图，实测渲染结果标准差 0.000 —— 完全平坦，等于没有。
+     soft-light 在近黑底上本来就会压缩，贴图不够狠就什么都留不下。 */
+  .parent::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:url('/assets/paper-grain.webp') repeat;
+    background-size:256px 256px;
+    mix-blend-mode:soft-light;
+    opacity:.14;
+    pointer-events:none;
+  }
+  .parent .wrap{position:relative;display:grid;grid-template-columns:var(--golden-columns);gap:var(--space-phi-xl);align-items:center}
   .parent h2{font-size:clamp(26px,3vw,42px);font-weight:500;line-height:1.2}
   .parent p{color:color-mix(in srgb,var(--bg) 78%,var(--ink));margin-top:16px;font-size:15px}
   .p-actions{display:grid;gap:12px}
@@ -935,7 +990,7 @@
     <div>
       <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:20px" id="footName">Let&#x27;s Paint Studio</span></div>
       <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
-      <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data resets nightly.">演示站点：本页所有人物、内容与作品均为虚构，数据每晚重置。</p>
+      <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。</p>
     </div>
     <div class="fl">
 <!-- Same list as the header, same rule: the contract decides. `Home` and
@@ -1838,7 +1893,15 @@
       var num=document.createElement('span'); num.className='num lat'; num.textContent=(i<9?'0':'')+(i+1);
       var title=document.createElement('h3'); title.textContent=p.name||'';
       card.appendChild(num); card.appendChild(title);
-      if(p.category){ var cat=document.createElement('p'); cat.className='cage'; cat.textContent=p.category; card.appendChild(cat); }
+      if(p.category){ var cat=document.createElement('p'); cat.className='cage'; cat.textContent=p.category; card.appendChild(cat);
+        /* 水印取分类的第一个词，最多四个字。第一版按字符数放行整串，结果四张
+           卡只有一张拿到水印，而那一张（「油画 Oil」）还横向撑出了卡片——
+           68px 下中英混排的渲染宽度，字符数预测不了。
+           这是装饰不是信息：分类全文就在上面的 .cage 里，水印只要一个稳定的
+           视觉记号，所以每张卡都拿得到、也都装得下。
+           aria-hidden：同一个词读屏不该听两遍。 */
+        var mark=String(p.category).split(/[\s·/|,、]+/)[0].slice(0,4);
+        if(mark){ var wm=document.createElement('span'); wm.className='cwatermark'; wm.setAttribute('aria-hidden','true'); wm.textContent=mark; card.appendChild(wm); } }
       var desc=document.createElement('p'); desc.textContent=p.description||''; card.appendChild(desc);
       var meta=[];
       if(p.ageRange) meta.push(T('年龄 ','Ages ')+p.ageRange);
