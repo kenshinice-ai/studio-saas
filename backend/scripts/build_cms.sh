@@ -75,10 +75,28 @@ TW_OUT="$ROOT/backend/frontend/assets/cms-tailwind.css"
 if (cd "$ROOT" && npx --no-install tailwindcss --help >/dev/null 2>&1); then
   TAILWIND_CMD=(npx --no-install tailwindcss)
 else
+  # The network fallback pins the DIRECT version and nothing below it. The bytes
+  # of the sheet are decided by the whole tree, so a bundle built this way is not
+  # the reproducible one — say so, on stderr, the way the esbuild branch does.
+  # (v10.16.0 shipped with this branch silent AND with tailwindcss missing from
+  # package-lock.json, so `npm ci` failed and every build took this path.)
   TAILWIND_CMD=(npx --yes "tailwindcss@$PINNED_TAILWIND")
+  echo "WARNING: tailwindcss is not installed locally — falling back to a network" >&2
+  echo "         fetch of tailwindcss@$PINNED_TAILWIND. Its transitive dependencies are" >&2
+  echo "         NOT pinned, so do not commit a stylesheet built this way." >&2
+  echo "         Install the release toolchain first: (cd \"$ROOT\" && npm ci)" >&2
 fi
 (cd "$ROOT" && "${TAILWIND_CMD[@]}" -c tailwind.config.js -i "$TW_IN" -o "$TW_OUT" --minify) \
   || { echo "tailwind build failed" >&2; exit 1; }
 echo "built $(wc -c < "$TW_OUT" | tr -d ' ') bytes -> backend/frontend/assets/cms-tailwind.css"
+
+# The student registration page, second and separate: it uses STOCK Tailwind
+# colours, not the CMS colour map, so it needs its own config. Sharing one would
+# repaint a public page. See tailwind.register.config.js for why.
+REG_IN="$ROOT/backend/frontend/src/register-tailwind.css"
+REG_OUT="$ROOT/backend/frontend/assets/register-tailwind.css"
+(cd "$ROOT" && "${TAILWIND_CMD[@]}" -c tailwind.register.config.js -i "$REG_IN" -o "$REG_OUT" --minify) \
+  || { echo "register tailwind build failed" >&2; exit 1; }
+echo "built $(wc -c < "$REG_OUT" | tr -d ' ') bytes -> backend/frontend/assets/register-tailwind.css"
 
 python3 "$ROOT/backend/scripts/build_asset_manifest.py"
