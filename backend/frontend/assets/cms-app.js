@@ -1430,6 +1430,8 @@
     const [query, setQuery] = useState2("");
     const [selected, setSelected] = useState2(null);
     const [sheet, setSheet] = useState2(null);
+    const [sheetError, setSheetError] = useState2("");
+    const [sheetRetry, setSheetRetry] = useState2(0);
     const [loading, setLoading] = useState2(true);
     const [error, setError] = useState2("");
     useEffect2(() => {
@@ -1452,18 +1454,27 @@
     useEffect2(() => {
       if (!selected) {
         setSheet(null);
+        setSheetError("");
         return;
       }
       let cancelled = false;
+      setSheet(null);
+      setSheetError("");
       api(`/teaching/timesheet?teacherUserId=${selected}&from=${range.from}&to=${range.to}`).then((d) => {
-        if (!cancelled) setSheet(d);
+        if (!cancelled) {
+          setSheet(d);
+          setSheetError("");
+        }
       }).catch((e) => {
-        if (!cancelled) showToast(`课时明细加载失败：${e.message}`, "warn");
+        if (!cancelled) {
+          setSheetError(e.message || "加载失败");
+          showToast(`课时明细加载失败：${e.message}`, "warn");
+        }
       });
       return () => {
         cancelled = true;
       };
-    }, [selected, api, range.from, range.to]);
+    }, [selected, api, range.from, range.to, sheetRetry]);
     if (loading) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 p-4" }, "正在加载课酬…");
     if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 p-4" }, error);
     if (!teachers.length) {
@@ -1497,25 +1508,19 @@
         /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, t.full_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500" }, t.sessions, " 节 · ", Math.round((t.paid_minutes || 0) / 60), " 小时")),
         /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${eng.cls}` }, eng.label), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold tabular-nums" }, aud(t.cost_cents)))
       );
-    }))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !sheet ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择一位老师，查看本期课时明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "实际上了", value: sheet.summary.actual_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "计入课酬", value: sheet.summary.paid_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "不计课酬", value: sheet.summary.unpaid_sessions, sub: "节", tone: sheet.summary.unpaid_sessions ? "warn" : "muted" }), /* @__PURE__ */ React.createElement(Num, { label: "本期应付", value: aud(sheet.summary.amount_cents), sub: `${Math.round((sheet.summary.paid_minutes || 0) / 60)} 小时` })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, current?.full_name, " · ", range.from, " → ", range.to), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}` }, engagement.label)), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "日期"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "课程"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "时长"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "费率基准"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "金额"))), /* @__PURE__ */ React.createElement("tbody", null, (sheet.sessions || []).map((s, i) => (
+    }))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, sheetError ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-red-200 rounded-xl p-6" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-700 mb-2" }, "这位老师的课时明细没能载入：", sheetError), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setSheetRetry((n) => n + 1),
+        className: "min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-xs font-bold"
+      },
+      "重试"
+    )) : !sheet ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, selected ? "正在载入课时明细…" : "选择一位老师，查看本期课时明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "实际上了", value: sheet.summary.actual_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "计入课酬", value: sheet.summary.paid_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "不计课酬", value: sheet.summary.unpaid_sessions, sub: "节", tone: sheet.summary.unpaid_sessions ? "warn" : "muted" }), /* @__PURE__ */ React.createElement(Num, { label: "本期应付", value: aud(sheet.summary.amount_cents), sub: `${Math.round((sheet.summary.paid_minutes || 0) / 60)} 小时` })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, current?.full_name, " · ", range.from, " → ", range.to), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}` }, engagement.label)), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "日期"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "课程"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "时长"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "费率基准"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "金额"))), /* @__PURE__ */ React.createElement("tbody", null, (sheet.sessions || []).map((s, i) => (
       /* 请假但按政策计费 → warning 底；工作室取消不计 → 降透明度。
          同一张表里，钱的两种「不正常」看起来必须不一样。 */
       /* @__PURE__ */ React.createElement("tr", { key: i, className: `border-t border-gray-100 ${s.counts_for_pay ? "" : "opacity-50"}` }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, fmtApiDate(s.occurred_on)), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.course_name || "—"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, s.duration_minutes, " 分钟"), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.counts_for_pay ? RATE_BASIS_LABEL[s.rate_basis] || s.rate_basis || "未设费率" : "不计课酬"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(s.amount_cents)))
-    )), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "本期应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(sheet.summary.amount_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, engagement.canPush ? /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold"
-      },
-      "推送 Xero 应付账单"
-    ) : /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, current?.engagement === "employee" ? "雇员工资不作为应付账单推送 —— 那会绕开薪资科目。导出清单交给财务走薪资流程。" : "未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: "min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold"
-      },
-      "导出 CSV"
-    )))))));
+    )), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "本期应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(sheet.summary.amount_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, engagement.canPush ? "本版本先在这里算清应付金额；推送到 Xero 的通道还没接通，请把下面的清单交给会计，或在 Xero 里手工建应付账单。" : current?.engagement === "employee" ? "雇员工资不作为应付账单推送 —— 那会绕开薪资科目。导出清单交给财务走薪资流程。" : "未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。")))))));
   }
   function ReportsView({ api, range }) {
     const [data, setData] = useState2({});
@@ -1625,8 +1630,12 @@
           }
         }
       } catch (e) {
-        setError(e.status === 403 ? "" : `集成状态加载失败：${e.message}`);
-        setState(null);
+        if (e.status === 403) {
+          setError("");
+          setState(null);
+        } else {
+          setError(`集成状态加载失败：${e.message}`);
+        }
       }
     }, [api]);
     useEffect3(() => {
@@ -1750,18 +1759,27 @@
         setBusy(false);
       }
     };
-    const backfillNow = async () => {
+    const backfillNow = () => {
       if (busy) return;
-      setBusy(true);
-      try {
-        const r = await api("/integrations/xero/backfill", { method: "POST", body: "{}" });
-        showToast(`已排队 ${r.queued.total} 张（发票 ${r.queued.invoice} / 贷记 ${r.queued.credit_note} / 收款 ${r.queued.payment}）`, "success");
-        await load();
-      } catch (e) {
-        showToast(e.message, "warn");
-      } finally {
-        setBusy(false);
-      }
+      const org = state.connection && state.connection.orgName || "";
+      confirm2(
+        `把这个工作室**已开具的全部**发票、贷记单与收款排进推送队列，送入 Xero 组织「${org || "（未能读到组织名）"}」。
+已经推过的单据不会重复创建（按单号幂等），但推错账套需要会计手工清理。
+确认这是正确的 Xero 组织后再继续。`,
+        async () => {
+          setBusy(true);
+          try {
+            const r = await api("/integrations/xero/backfill", { method: "POST", body: "{}" });
+            showToast(`已排队 ${r.queued.total} 张（发票 ${r.queued.invoice} / 贷记 ${r.queued.credit_note} / 收款 ${r.queued.payment}）`, "success");
+            await load();
+          } catch (e) {
+            showToast(e.message, "warn");
+          } finally {
+            setBusy(false);
+          }
+        },
+        { danger: true, confirmText: "排队并推送到 " + (org || "Xero") }
+      );
     };
     const replayJob = async (jobId) => {
       if (busy) return;
@@ -1945,7 +1963,7 @@
       {
         type: "button",
         onClick: backfillNow,
-        disabled: busy,
+        disabled: busy || !state.pushEnabled,
         className: "min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50"
       },
       "排队积压单据"
@@ -1954,7 +1972,7 @@
       {
         type: "button",
         onClick: pushNow,
-        disabled: busy,
+        disabled: busy || !state.pushEnabled,
         className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50"
       },
       "立即推送"
@@ -1963,11 +1981,11 @@
       {
         type: "button",
         onClick: runReconcile,
-        disabled: busy,
+        disabled: busy || !state.connection?.connected,
         className: "min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50"
       },
       "逐张对账"
-    )), (queue?.jobs || []).filter((j) => j.status === "failed").slice(0, 8).map((j) => /* @__PURE__ */ React.createElement("div", { key: j.id, className: "rounded-lg border border-red-200 bg-red-50 p-2 mb-1.5 text-[11px] text-red-900" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, j.local_kind, " · 第 ", j.attempts, " 次尝试失败"), /* @__PURE__ */ React.createElement("p", { className: "opacity-90 break-all" }, j.last_error), canManage && /* @__PURE__ */ React.createElement(
+    ), !state.pushEnabled && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500 self-center" }, "推送开启之前，这几个动作不可用——上面的清单列出了还差什么。")), (queue?.jobs || []).filter((j) => j.status === "failed").slice(0, 8).map((j) => /* @__PURE__ */ React.createElement("div", { key: j.id, className: "rounded-lg border border-red-200 bg-red-50 p-2 mb-1.5 text-[11px] text-red-900" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, j.local_kind, " · 第 ", j.attempts, " 次尝试失败"), /* @__PURE__ */ React.createElement("p", { className: "opacity-90 break-all" }, j.last_error), canManage && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -5767,6 +5785,7 @@
   // legacy-root/src/panels/reports.jsx
   function LogsSection(props) {
     const {
+      auditScope,
       canManageOperations,
       displayNote,
       exportLogsCSV,
@@ -5788,7 +5807,7 @@
       setLStu,
       sortedAZ
     } = props;
-    return /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "scroll", className: "w-4 h-4" }), "操作日志"), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "scroll", className: "w-4 h-4" }), "操作日志"), auditScope === "failed" && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800" }, "服务端操作记录没能载入，下面只有课时流水部分。刷新页面可以重试。"), auditScope === "ledger-only" && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600" }, "你的角色只能看到课时流水部分；退款、导出等操作记录需要工作室负责人查看。"), auditScope === "truncated" && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800" }, "只载入了最近 200 条服务端操作记录。上方的日期筛选在这一批之内生效， 不会回到更早的历史。"), /* @__PURE__ */ React.createElement(
       FilterBar,
       {
         range: { start: lDateFrom, end: lDateTo },
@@ -5843,14 +5862,14 @@
         className: "px-3 py-1.5 bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold min-h-[44px]"
       },
       l
-    ))), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+    ))), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-[11px] text-gray-400" }, "导出的是全部课时流水，不随上面的筛选变化"), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: exportLogsCSV,
-        className: "inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-200 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"
+        className: "inline-flex items-center gap-1.5 bg-white border border-gray-200 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }),
-      "CSV"
+      "导出课时流水"
     ))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-left" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "border-b-2 border-gray-100 text-gray-400 text-xs" }, /* @__PURE__ */ React.createElement("th", { className: "p-3 font-bold" }, "时间"), /* @__PURE__ */ React.createElement("th", { className: "p-3 font-bold" }, "学员"), /* @__PURE__ */ React.createElement("th", { className: "p-3 font-bold" }, "操作"), /* @__PURE__ */ React.createElement("th", { className: "p-3 font-bold" }, "变动"))), /* @__PURE__ */ React.createElement("tbody", null, pagedLogs.map((l) => /* @__PURE__ */ React.createElement("tr", { key: l.id, className: "border-b border-gray-50 hover-row" }, /* @__PURE__ */ React.createElement("td", { className: "p-3 text-gray-400 text-xs font-mono whitespace-nowrap" }, l.date), /* @__PURE__ */ React.createElement("td", { className: "p-3 font-bold text-gray-800 text-sm" }, l.studentName), /* @__PURE__ */ React.createElement("td", { className: "p-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-1.5 py-0.5 rounded text-xs font-bold border ${l.action === "充值购课" ? "bg-green-100 text-green-700 border-green-200" : l.action === "上课签到" ? "bg-indigo-100 text-indigo-700 border-indigo-200" : l.action && l.action.includes("手动") ? "bg-orange-100 text-orange-700 border-orange-200" : l.action && (l.action.includes("拒绝") || l.action.includes("删除")) ? "bg-red-100 text-red-700 border-red-200" : "bg-gray-100 text-gray-700 border-gray-200"}` }, l.action), l.payMethod && /* @__PURE__ */ React.createElement("span", { className: "ml-1 bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-xs" }, l.payMethod), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 block mt-0.5" }, displayNote(l.note)), l.actorEmail && /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 block" }, "操作人：", l.actorEmail), l.feePaid > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs text-green-600 font-bold" }, "$", l.feePaid)), /* @__PURE__ */ React.createElement("td", { className: `p-3 font-bold ${String(l.change).startsWith("-") ? "text-orange-500" : l.change === "0" || l.change === 0 ? "text-gray-400" : "text-green-500"}` }, l.change))), !pagedLogs.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "4", className: "p-8 text-center text-gray-400" }, "无记录"))))), logPageCount > 1 && /* @__PURE__ */ React.createElement("div", { className: "p-3 border-t flex items-center justify-center gap-1.5" }, /* @__PURE__ */ React.createElement("button", { disabled: lPage === 1, onClick: () => setLPage(1), className: "px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]" }, "«"), /* @__PURE__ */ React.createElement("button", { disabled: lPage === 1, onClick: () => setLPage((p) => p - 1), className: "px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]" }, "‹"), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-600 px-2" }, lPage, " / ", logPageCount), /* @__PURE__ */ React.createElement("button", { disabled: lPage === logPageCount, onClick: () => setLPage((p) => p + 1), className: "px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]" }, "›"), /* @__PURE__ */ React.createElement("button", { disabled: lPage === logPageCount, onClick: () => setLPage(logPageCount), className: "px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]" }, "»"))));
   }
   function StatsSection(props) {
@@ -5884,7 +5903,7 @@
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }),
       "导出 CSV"
-    )), /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm", style: { minWidth: "480px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-xs text-gray-400 border-b" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2 px-2" }, "月份"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "营收"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "充值"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "消课"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "新学员"))), /* @__PURE__ */ React.createElement("tbody", null, bizReport.rows.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.k, className: "border-b border-gray-50" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 font-bold text-gray-700" }, r.label), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 font-bold text-indigo-700" }, "$", r.rev.toFixed(0)), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.topups, " 笔"), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.ci, " 次"), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.newStu || "—")))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 mt-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 mb-2" }, "课包销量排行（历史累计）"), bizReport.pkgRank.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "暂无充值记录"), bizReport.pkgRank.slice(0, 5).map(([name, d], i) => /* @__PURE__ */ React.createElement("div", { key: name, className: "flex items-center justify-between py-1 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-700" }, i + 1, ". ", name), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800" }, "$", d.revenue.toFixed(0), " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 font-normal" }, "/ ", d.count, " 笔"))))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 mb-2" }, "消课节奏（近 180 天）"), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, bizReport.avgGap ? bizReport.avgGap.toFixed(1) : "—", " ", /* @__PURE__ */ React.createElement("span", { className: "text-sm font-normal text-gray-500" }, "天/次")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, "规律上课学员 ", bizReport.regularStu, " 人的平均上课间隔。间隔变长 = 出勤率下降的早期信号")))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-800" }, "财务明细报表"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm", style: { minWidth: "480px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-xs text-gray-400 border-b" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2 px-2" }, "月份"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "营收"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "充值"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "消课"), /* @__PURE__ */ React.createElement("th", { className: "text-right px-2" }, "新学员"))), /* @__PURE__ */ React.createElement("tbody", null, bizReport.rows.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.k, className: "border-b border-gray-50" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 font-bold text-gray-700" }, r.label), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 font-bold text-indigo-700" }, "$", r.rev.toFixed(0)), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.topups, " 笔"), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.ci, " 次"), /* @__PURE__ */ React.createElement("td", { className: "text-right px-2 text-gray-600" }, r.newStu || "—")))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 mt-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 mb-2" }, "课包销量排行（历史累计）"), bizReport.pkgRank.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "暂无充值记录"), bizReport.pkgRank.slice(0, 5).map(([name, d], i) => /* @__PURE__ */ React.createElement("div", { key: name, className: "flex items-center justify-between py-1 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-700" }, i + 1, ". ", name), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800" }, "$", d.revenue.toFixed(0), " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 font-normal" }, "/ ", d.count, " 笔"))))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 mb-2" }, "消课节奏"), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, bizReport.avgGap ? bizReport.avgGap.toFixed(1) : "—", " ", /* @__PURE__ */ React.createElement("span", { className: "text-sm font-normal text-gray-500" }, "天/次")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, "规律上课学员 ", bizReport.regularStu, " 人的平均上课间隔。间隔变长 = 出勤率下降的早期信号"), bizReport.paceTruncated && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mt-1.5" }, "这一格基于最近 500 条记录，不是全部历史。上方的月度汇总不受此限。")))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-800" }, "财务明细报表"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: exportRevenueCSV,
@@ -6286,6 +6305,7 @@
   function App() {
     const [db, setDb] = useState10({ students: [], logs: [], rosters: {}, pending: [] });
     const [auditEvents, setAuditEvents] = useState10([]);
+    const [auditScope, setAuditScope] = useState10("full");
     const initialCmsRoute = useMemo6(() => readCmsRoute(), []);
     const [tab, setTabState] = useState10(initialCmsRoute.tab);
     const [pendingTab, setPendingTabState] = useState10(initialCmsRoute.pendingTab);
@@ -7502,48 +7522,25 @@
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
     const bizReport = useMemo6(() => {
-      const now = /* @__PURE__ */ new Date();
-      const months = Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      });
-      const rows = months.map((k) => ({
-        k,
-        label: `${k.split("-")[1]}/${k.split("-")[0].slice(2)}`,
-        rev: 0,
-        ci: 0,
-        topups: 0,
-        newStu: 0
+      const months = db.businessMonths || [];
+      const rows = months.map((m) => ({
+        k: m.month,
+        label: `${m.month.split("-")[1]}/${m.month.split("-")[0].slice(2)}`,
+        rev: Number(m.revenue) || 0,
+        ci: Number(m.checkins) || 0,
+        topups: Number(m.topups) || 0,
+        newStu: Number(m.newStudents) || 0
       }));
-      const byKey = Object.fromEntries(rows.map((r) => [r.k, r]));
-      const pkgSales = {};
-      db.logs.forEach((l) => {
-        const mk = parseMonthKey(l.date);
-        const r = mk && byKey[mk];
-        if (r) {
-          if (l.action === "上课签到") r.ci++;
-          if (l.action === "充值购课") {
-            r.topups++;
-            r.rev += parseFloat(l.feePaid) || 0;
-          }
-          if (l.action === "新生注册" || l.action === "批准注册") r.newStu++;
-        }
-        if (l.action === "充值购课") {
-          const m = String(l.note || "").match(/套餐:\s*([^|]+)/);
-          const name = m ? m[1].trim() : "自定义";
-          if (!pkgSales[name]) pkgSales[name] = { count: 0, revenue: 0 };
-          pkgSales[name].count++;
-          pkgSales[name].revenue += parseFloat(l.feePaid) || 0;
-        }
-      });
-      const cutoff = Date.now() - 180 * 24 * 3600 * 1e3;
+      const pkgRank = (db.packageSales || []).map((p) => [p.name, {
+        count: Number(p.count) || 0,
+        revenue: Number(p.revenue) || 0
+      }]);
       const perStu = {};
       db.logs.forEach((l) => {
         if (l.action !== "上课签到") return;
         const m = String(l.date).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
         if (!m) return;
         const t = (/* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}`)).getTime();
-        if (t < cutoff) return;
         const key = l.studentId || l.studentName;
         (perStu[key] = perStu[key] || []).push(t);
       });
@@ -7554,9 +7551,14 @@
         for (let i = 1; i < ts.length; i++) gaps.push((ts[i] - ts[i - 1]) / 864e5);
       });
       const avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
-      const pkgRank = Object.entries(pkgSales).sort((a, b) => b[1].revenue - a[1].revenue);
-      return { rows, pkgRank, avgGap, regularStu: Object.values(perStu).filter((t) => t.length >= 2).length };
-    }, [db.logs]);
+      return {
+        rows,
+        pkgRank,
+        avgGap,
+        regularStu: Object.values(perStu).filter((t) => t.length >= 2).length,
+        paceTruncated: Boolean(db.logsTruncated)
+      };
+    }, [db.businessMonths, db.packageSales, db.logs, db.logsTruncated]);
     const exportBizCSV = () => {
       const head = ["月份", "营收(AUD)", "充值笔数", "消课次数", "新增学员"];
       const lines = bizReport.rows.map((r) => [r.label, r.rev.toFixed(0), r.topups, r.ci, r.newStu]);
@@ -7759,8 +7761,10 @@
       try {
         const d = await v1Api("/audit-logs?limit=200");
         setAuditEvents(d.auditLogs || []);
-      } catch {
+        setAuditScope((d.auditLogs || []).length >= 200 ? "truncated" : "full");
+      } catch (e) {
         setAuditEvents([]);
+        setAuditScope(e && e.status === 403 ? "ledger-only" : "failed");
       }
     };
     const schedOverlap = (a, b) => {
@@ -9997,7 +10001,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           className: "flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
         },
         "公开网站"
-      )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-500", "aria-hidden": "true" }), "已连接")), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "日志 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSettingsSection("account"), className: `w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px] ${tab === "settings" ? "is-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置")), /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-500", "aria-hidden": "true" }), "已连接")), db.logsTruncated && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "只显示最近 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSettingsSection("account"), className: `w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px] ${tab === "settings" ? "is-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置")), /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" }),
@@ -10092,7 +10096,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           invoiceId: routeInvoiceId,
           onClearAccount: () => setTab("billing")
         }
-      ), tab === "finance" && /* @__PURE__ */ React.createElement(FinancePanel, { api: v1Api, showToast }), tab === "topup" && /* @__PURE__ */ React.createElement(TopupSection, { ...{ archivePackage, busy, canManageOperations, canRefund, canRegisterSettlementPayment, canSyncRefund, canUseSettlementBilling, db, handleRefund, handleTopUp, pkgCredits, pkgEditId, pkgName, pkgPrice, refundSourceError, refundSources, refundSourcesBusy, resetPackageEditor, rfAdjustDocuments, rfAmountTouched, rfAmt, rfCr, rfReason, rfSourceId, savePackage, setPkgCredits, setPkgEditId, setPkgName, setPkgPrice, setRfAdjustDocuments, setRfAmountTouched, setRfAmt, setRfCr, setRfReason, setRfSourceId, setSettleMode, setSettlementPayer, setSettlementPayerError, setSettlementPayerState, setTuCr, setTuCreateInvoice, setTuFee, setTuPay, setTuPaymentReceived, setTuPkg, setTuStu, settleMode, settlementAccounts, settlementPayerError, settlementPayerIntentRef, settlementPayerState, settlementResolvedAccountRef, settlementTaxCodes, sortedAZ, tuCr, tuCreateInvoice, tuFee, tuPay, tuPaymentReceived, tuPkg, tuStu } }), tab === "logs" && /* @__PURE__ */ React.createElement(LogsSection, { ...{ canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom, lDateTo, lPage, lSrch, lStu, logActions, logPageCount, pagedLogs, setLAct, setLDateFrom, setLDateTo, setLPage, setLSrch, setLStu, sortedAZ } }), tab === "stats" && /* @__PURE__ */ React.createElement(StatsSection, { ...{ analytics, bizReport, exportBizCSV, exportRevenueCSV, payBreakdown, sFrom, sPeriod, sStu, sStu2, sTo, sYear, setSFrom, setSPeriod, setSStu, setSStu2, setSTo, setSYear, sortedAZ, statsData, studentStats } })),
+      ), tab === "finance" && /* @__PURE__ */ React.createElement(FinancePanel, { api: v1Api, showToast }), tab === "topup" && /* @__PURE__ */ React.createElement(TopupSection, { ...{ archivePackage, busy, canManageOperations, canRefund, canRegisterSettlementPayment, canSyncRefund, canUseSettlementBilling, db, handleRefund, handleTopUp, pkgCredits, pkgEditId, pkgName, pkgPrice, refundSourceError, refundSources, refundSourcesBusy, resetPackageEditor, rfAdjustDocuments, rfAmountTouched, rfAmt, rfCr, rfReason, rfSourceId, savePackage, setPkgCredits, setPkgEditId, setPkgName, setPkgPrice, setRfAdjustDocuments, setRfAmountTouched, setRfAmt, setRfCr, setRfReason, setRfSourceId, setSettleMode, setSettlementPayer, setSettlementPayerError, setSettlementPayerState, setTuCr, setTuCreateInvoice, setTuFee, setTuPay, setTuPaymentReceived, setTuPkg, setTuStu, settleMode, settlementAccounts, settlementPayerError, settlementPayerIntentRef, settlementPayerState, settlementResolvedAccountRef, settlementTaxCodes, sortedAZ, tuCr, tuCreateInvoice, tuFee, tuPay, tuPaymentReceived, tuPkg, tuStu } }), tab === "logs" && /* @__PURE__ */ React.createElement(LogsSection, { ...{ auditScope, canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom, lDateTo, lPage, lSrch, lStu, logActions, logPageCount, pagedLogs, setLAct, setLDateFrom, setLDateTo, setLPage, setLSrch, setLStu, sortedAZ } }), tab === "stats" && /* @__PURE__ */ React.createElement(StatsSection, { ...{ analytics, bizReport, exportBizCSV, exportRevenueCSV, payBreakdown, sFrom, sPeriod, sStu, sStu2, sTo, sYear, setSFrom, setSPeriod, setSStu, setSStu2, setSTo, setSYear, sortedAZ, statsData, studentStats } })),
       selS && /* @__PURE__ */ React.createElement(StudentProfileModal, { ...{ accessCodeResult, archiveStudent, attHistory, busy, canPublishProgress, canUseSettlementBilling, canWriteAttendance, canWriteCredits, canWritePortfolio, canWriteProgress, canWriteStudents, consentEdit, copyText, db, editP, editPhoto, generateStudentAccessCode, handleDelete, handleUpdateStudent, isStudentScheduledOn, notify, openGrowthReport, portfolioDoDelete, preferenceProfile, preferenceRows, preferenceValue, profileDialogRef, revokeStudentAccessCode, save, savePublicationConsent, scheduleStudentToday, selS, setConsentEdit, setEditP, setEditPhoto, setPortEdit, setPortLB, setPortUpload, setSelS, setStudentProfileTab, setTab, setTuStu, showToast, studentProfileTab, tab, withdrawPublicationConsent, workNoun } }),
       showSettings && /* @__PURE__ */ React.createElement(
         "div",

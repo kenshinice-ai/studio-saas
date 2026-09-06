@@ -71,9 +71,20 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
         try { setQueue(await api('/integrations/xero/queue')); } catch { /* 队列读不动不阻塞主状态 */ }
       }
     } catch (e) {
-      /* 读路径不把设置页打挂：没开通加购只是"没买"，不是故障。 */
-      setError(e.status === 403 ? '' : `集成状态加载失败：${e.message}`);
-      setState(null);
+      /* 读路径不把设置页打挂：没开通加购只是"没买"，不是故障。
+         但 catch 分两支是不够的。403 且确实没开通 → 那张「本版本只展示接入
+         准备状态，不会向 Xero 发送任何数据」的预接入卡片是对的；其余情况把
+         state 清成 null，同一张卡片就会对一个连接正常、正在往真实账套推单据
+         的租户说同一句话——那是一句假话，而它出现的时机恰好是「后台读不到
+         状态」的时候。403 时错误提示还是空字符串，等于什么都没说。 */
+      if (e.status === 403) {
+        setError('');
+        setState(null);            // 真的没开通：预接入卡片是准确的
+      } else {
+        setError(`集成状态加载失败：${e.message}`);
+        // 保留上一次成功的 state：宁可显示一份可能过期的真状态，
+        // 也不要显示一份笃定的假状态。
+      }
     }
   }, [api]);
 
@@ -189,14 +200,28 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
     } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
   };
 
-  const backfillNow = async () => {
+  /* 这一下把这个工作室历史上所有已开具的发票、贷记单和收款排进推送队列，
+     送进客户真实的会计账套。它以前没有任何确认——而同一张卡片上可逆得多的
+     「断开连接」有两步。确认文案里的组织名来自服务端的连接信息，不是拼出来
+     的一句话：推错账套是这里唯一不可逆的后果。 */
+  const backfillNow = () => {
     if (busy) return;
-    setBusy(true);
-    try {
-      const r = await api('/integrations/xero/backfill', { method: 'POST', body: '{}' });
-      showToast(`已排队 ${r.queued.total} 张（发票 ${r.queued.invoice} / 贷记 ${r.queued.credit_note} / 收款 ${r.queued.payment}）`, 'success');
-      await load();
-    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+    const org = (state.connection && state.connection.orgName) || '';
+    confirm(
+      `把这个工作室**已开具的全部**发票、贷记单与收款排进推送队列，`
+      + `送入 Xero 组织「${org || '（未能读到组织名）'}」。\n`
+      + `已经推过的单据不会重复创建（按单号幂等），但推错账套需要会计手工清理。\n`
+      + `确认这是正确的 Xero 组织后再继续。`,
+      async () => {
+        setBusy(true);
+        try {
+          const r = await api('/integrations/xero/backfill', { method: 'POST', body: '{}' });
+          showToast(`已排队 ${r.queued.total} 张（发票 ${r.queued.invoice} / 贷记 ${r.queued.credit_note} / 收款 ${r.queued.payment}）`, 'success');
+          await load();
+        } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+      },
+      { danger: true, confirmText: '排队并推送到 ' + (org || 'Xero') },
+    );
   };
 
   const replayJob = async (jobId) => {
@@ -513,14 +538,23 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
                     待推 {queue.counts.queued ?? 0} · 失败 {queue.counts.failed ?? 0} · 已推 {queue.counts.sent ?? 0}
                   </p>
                 )}
+                {/* 实测（生产，2026-09-06）：租户「尚未连接 Xero」、页面自己写着
+                    「推送 还不能开启」并列了四条未满足前提，而这三个按钮的
+                    disabled 全是 false。一个页面同时说「不能」和「请点」，
+                    只能有一个是真的。 */}
                 {canManage && (
                   <div className="flex gap-2 flex-wrap mb-2">
-                    <button type="button" onClick={backfillNow} disabled={busy}
+                    <button type="button" onClick={backfillNow} disabled={busy || !state.pushEnabled}
                             className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50">排队积压单据</button>
-                    <button type="button" onClick={pushNow} disabled={busy}
+                    <button type="button" onClick={pushNow} disabled={busy || !state.pushEnabled}
                             className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">立即推送</button>
-                    <button type="button" onClick={runReconcile} disabled={busy}
+                    <button type="button" onClick={runReconcile} disabled={busy || !state.connection?.connected}
                             className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50">逐张对账</button>
+                    {!state.pushEnabled && (
+                      <span className="text-[11px] text-gray-500 self-center">
+                        推送开启之前，这几个动作不可用——上面的清单列出了还差什么。
+                      </span>
+                    )}
                   </div>
                 )}
                 {(queue?.jobs || []).filter(j => j.status === 'failed').slice(0, 8).map(j => (

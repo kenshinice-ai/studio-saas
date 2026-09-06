@@ -865,6 +865,76 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         """,
         (timezone_name, timezone_name, tenant_id),
     )
+    # 经营月报，在服务端算。
+    #
+    # 上面那条 logs 查询有 `LIMIT 500`，而 CMS 的 bizReport 直接遍历它算近六个月
+    # 的每月营收、签到数、新生数和套餐销量排行（cms-app.jsx:1371）。一个 300 名
+    # 学员的工作室每月产生的签到 + 充值远超 500 条，所以那份「近六个月营收」实际
+    # 只覆盖最近两三周——数字系统性偏小，界面上没有任何截断提示，报表看起来完全
+    # 正常。这是钱路径上的静默错误。
+    #
+    # 放在 bootstrap 里而不是新开一条路由，是为了不动任何权限面或套餐门：这份
+    # 数据的可见性一直由前端的 canViewFinancialAnalytics 决定，这里不改它。
+    #
+    # 撤销语义与上面的 logs 查询逐字一致：作废的签到和它的退回行都不计。
+    business_months = fetch_all(
+        conn,
+        """
+        WITH months AS (
+            SELECT to_char(d, 'YYYY-MM') AS k
+            FROM generate_series(
+                date_trunc('month', (now() AT TIME ZONE %s)) - interval '5 months',
+                date_trunc('month', (now() AT TIME ZONE %s)),
+                interval '1 month') AS d
+        ),
+        tx AS (
+            SELECT to_char((ct.occurred_at AT TIME ZONE %s), 'YYYY-MM') AS k,
+                   ct.transaction_type, ct.fee_aud_cents
+            FROM credit_transactions ct
+            LEFT JOIN attendance_sessions att
+              ON att.tenant_id = ct.tenant_id AND att.credit_transaction_id = ct.id
+            LEFT JOIN attendance_sessions rev
+              ON rev.tenant_id = ct.tenant_id AND rev.reversal_credit_transaction_id = ct.id
+            WHERE ct.tenant_id = %s
+              AND (att.id IS NULL OR att.reversed_at IS NULL)
+              AND rev.id IS NULL
+              AND ct.occurred_at >= (date_trunc('month', (now() AT TIME ZONE %s))
+                                     - interval '5 months')
+        ),
+        stu AS (
+            SELECT to_char((created_at AT TIME ZONE %s), 'YYYY-MM') AS k
+            FROM students WHERE tenant_id = %s AND status <> 'archived'
+        )
+        SELECT m.k AS month,
+               COUNT(tx.k) FILTER (WHERE tx.transaction_type = 'consume')  AS checkins,
+               COUNT(tx.k) FILTER (WHERE tx.transaction_type = 'purchase') AS topups,
+               COALESCE(SUM(tx.fee_aud_cents)
+                        FILTER (WHERE tx.transaction_type = 'purchase'), 0) AS revenue_cents,
+               (SELECT count(*) FROM stu WHERE stu.k = m.k)                 AS new_students
+        FROM months m
+        LEFT JOIN tx ON tx.k = m.k
+        GROUP BY m.k
+        ORDER BY m.k
+        """,
+        (timezone_name, timezone_name, timezone_name, tenant_id, timezone_name,
+         timezone_name, tenant_id),
+    )
+    # 套餐销量排行：与前端原来的口径一致（不限月份），但走全表而不是最近 500 条。
+    package_sales = fetch_all(
+        conn,
+        """
+        SELECT COALESCE(NULLIF(btrim(substring(ct.note from '套餐:[[:space:]]*([^|]+)')), ''),
+                        '自定义')                       AS name,
+               count(*)                                 AS count,
+               COALESCE(SUM(ct.fee_aud_cents), 0)       AS revenue_cents
+        FROM credit_transactions ct
+        WHERE ct.tenant_id = %s AND ct.transaction_type = 'purchase'
+        GROUP BY 1
+        ORDER BY count(*) DESC, 1
+        LIMIT 20
+        """,
+        (tenant_id,),
+    )
     settings_row = fetch_one(conn, "SELECT settings FROM tenants WHERE id = %s", (tenant_id,))
     tenant_settings = (settings_row["settings"] if settings_row else None) or {}
     legacy_state = tenant_settings.get("legacy_cms") or {}
@@ -971,6 +1041,26 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "actorEmail": row["actor_email"] or "",
             }
             for row in logs
+        ],
+        # 这一页只装得下最近 500 条。说出来，而不是让读的人以为这就是全部。
+        "logsTruncated": len(logs) >= 500,
+        "businessMonths": [
+            {
+                "month": row["month"],
+                "checkins": int(row["checkins"] or 0),
+                "topups": int(row["topups"] or 0),
+                "revenue": round((row["revenue_cents"] or 0) / 100, 2),
+                "newStudents": int(row["new_students"] or 0),
+            }
+            for row in business_months
+        ],
+        "packageSales": [
+            {
+                "name": row["name"],
+                "count": int(row["count"] or 0),
+                "revenue": round((row["revenue_cents"] or 0) / 100, 2),
+            }
+            for row in package_sales
         ],
         "pending": [
             {

@@ -38,6 +38,8 @@ function App() {
        and consent changes were invisible here — the CMS sent them inside
        save(), which persists students and packages and drops everything else. */
     const [auditEvents, setAuditEvents] = useState([]);
+    /* full | truncated | ledger-only（403，角色所限）| failed（真的没加载到） */
+    const [auditScope, setAuditScope] = useState('full');
     const initialCmsRoute = useMemo(() => readCmsRoute(), []);
     const [tab, setTabState] = useState(initialCmsRoute.tab);
     const [pendingTab, setPendingTabState] = useState(initialCmsRoute.pendingTab);
@@ -1363,41 +1365,40 @@ function App() {
     useEffect(() => { setLPage(1); }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
     useEffect(() => { if (lPage > logPageCount) setLPage(logPageCount); }, [logPageCount]);
 
-    /* F7: 经营月报 — 新增学员/课包销量/消课节奏（纯前端计算，零后端） */
+    /* F7: 经营月报。
+     *
+     * 「纯前端计算，零后端」是原来的设计说明，也是这块数字长期偏小的原因：
+     * db.logs 在服务端就带着 `LIMIT 500`（api_v1/tenant.py 的 logs 查询），
+     * 而这里遍历它去算近六个月的每月营收、签到、新生和套餐排行。一个 300 名
+     * 学员的工作室每月的签到 + 充值远超 500 条，所以「近六个月营收」实际只
+     * 覆盖最近两三周——报表看起来完全正常，只是数字系统性偏小。
+     *
+     * 月度汇总和套餐排行现在由服务端在全表上算（db.businessMonths /
+     * db.packageSales）。消课节奏仍然只能用手上这份流水，所以它明确按窗口
+     * 表述，不再自称「近 180 天」。
+     */
     const bizReport = useMemo(() => {
-        const now = new Date();
-        const months = Array.from({length:6}, (_,i) => {
-            const d = new Date(now.getFullYear(), now.getMonth()-5+i, 1);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-        });
-        const rows = months.map(k => ({k, label:`${k.split('-')[1]}/${k.split('-')[0].slice(2)}`,
-                                       rev:0, ci:0, topups:0, newStu:0}));
-        const byKey = Object.fromEntries(rows.map(r=>[r.k, r]));
-        const pkgSales = {};
-        db.logs.forEach(l => {
-            const mk = parseMonthKey(l.date);
-            const r  = mk && byKey[mk];
-            if (r) {
-                if (l.action==='上课签到') r.ci++;
-                if (l.action==='充值购课') { r.topups++; r.rev += parseFloat(l.feePaid)||0; }
-                if (l.action==='新生注册'||l.action==='批准注册') r.newStu++;
-            }
-            if (l.action==='充值购课') {
-                const m = String(l.note||'').match(/套餐:\s*([^|]+)/);
-                const name = m ? m[1].trim() : '自定义';
-                if (!pkgSales[name]) pkgSales[name] = {count:0, revenue:0};
-                pkgSales[name].count++; pkgSales[name].revenue += parseFloat(l.feePaid)||0;
-            }
-        });
-        // 平均消课节奏：近180天有≥2次签到的学员，平均隔几天上一次课
-        const cutoff = Date.now() - 180*24*3600*1000;
+        const months = db.businessMonths || [];
+        const rows = months.map(m => ({
+            k: m.month,
+            label: `${m.month.split('-')[1]}/${m.month.split('-')[0].slice(2)}`,
+            rev: Number(m.revenue) || 0,
+            ci: Number(m.checkins) || 0,
+            topups: Number(m.topups) || 0,
+            newStu: Number(m.newStudents) || 0,
+        }));
+        const pkgRank = (db.packageSales || []).map(p => [p.name, {
+            count: Number(p.count) || 0, revenue: Number(p.revenue) || 0,
+        }]);
+
+        /* 消课节奏走的是同一份被截断的流水，所以它的口径是「这份记录里」，
+           不是「近 180 天」。窗口触顶时下面的 note 会把这句说出来。 */
         const perStu = {};
         db.logs.forEach(l => {
             if (l.action!=='上课签到') return;
             const m = String(l.date).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
             if (!m) return;
             const t = new Date(`${m[3]}-${m[2]}-${m[1]}`).getTime();
-            if (t < cutoff) return;
             const key = l.studentId || l.studentName;
             (perStu[key] = perStu[key]||[]).push(t);
         });
@@ -1408,9 +1409,10 @@ function App() {
             for (let i=1;i<ts.length;i++) gaps.push((ts[i]-ts[i-1])/86400000);
         });
         const avgGap = gaps.length ? (gaps.reduce((a,b)=>a+b,0)/gaps.length) : 0;
-        const pkgRank = Object.entries(pkgSales).sort((a,b)=>b[1].revenue-a[1].revenue);
-        return {rows, pkgRank, avgGap, regularStu: Object.values(perStu).filter(t=>t.length>=2).length};
-    }, [db.logs]);
+        return {rows, pkgRank, avgGap,
+                regularStu: Object.values(perStu).filter(t=>t.length>=2).length,
+                paceTruncated: Boolean(db.logsTruncated)};
+    }, [db.businessMonths, db.packageSales, db.logs, db.logsTruncated]);
 
     const exportBizCSV = () => {
         const head = ['月份','营收(AUD)','充值笔数','消课次数','新增学员'];
@@ -1643,7 +1645,15 @@ function App() {
         try {
             const d = await v1Api('/audit-logs?limit=200');
             setAuditEvents(d.auditLogs || []);
-        } catch { setAuditEvents([]); }
+            setAuditScope((d.auditLogs || []).length >= 200 ? 'truncated' : 'full');
+        } catch (e) {
+            setAuditEvents([]);
+            /* `catch {}` 把两件完全不同的事变成了同一件：
+               403「你的角色只能看到流水部分」是设计如此，界面退回流水视图是对的；
+               而 500 或断网时，界面同样安静地退回流水视图，操作日志少了一半，
+               屏幕上没有任何迹象。读的人会以为那一半从来没发生过。 */
+            setAuditScope(e && e.status === 403 ? 'ledger-only' : 'failed');
+        }
     };
 
     /* B2: 判断两个班次在同一 weekday 是否时间重叠 */
@@ -3759,11 +3769,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             className="flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
                     </div>}
                     <div className="text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span>已连接</span></div>
-                    {db.logs.length > 1000 && (
-                        <div className="text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200">
-                            <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>日志 {db.logs.length} 条</span>
-                        </div>
-                    )}
+                    {/* 曾经是 `db.logs.length > 1000`——永真为假，因为同一份 db.logs 在服务端
+     就被 LIMIT 500 封死了。写它的人以为日志是全量的，而经营月报当时正基于
+     同一个误解在算营收。现在按服务端给出的截断标志显示，并且说清后果。 */}
+                        {db.logsTruncated && (
+                            <div className="text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200">
+                                <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>只显示最近 {db.logs.length} 条</span>
+                            </div>
+                        )}
                     {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
                     <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
                     <button onClick={()=>setSettingsSection('account')} className={`w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px] ${tab==='settings'?'is-active':''}`}><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>系统设置</span></button>
@@ -3879,7 +3892,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='topup' && <TopupSection {...{archivePackage, busy, canManageOperations, canRefund, canRegisterSettlementPayment, canSyncRefund, canUseSettlementBilling, db, handleRefund, handleTopUp, pkgCredits, pkgEditId, pkgName, pkgPrice, refundSourceError, refundSources, refundSourcesBusy, resetPackageEditor, rfAdjustDocuments, rfAmountTouched, rfAmt, rfCr, rfReason, rfSourceId, savePackage, setPkgCredits, setPkgEditId, setPkgName, setPkgPrice, setRfAdjustDocuments, setRfAmountTouched, setRfAmt, setRfCr, setRfReason, setRfSourceId, setSettleMode, setSettlementPayer, setSettlementPayerError, setSettlementPayerState, setTuCr, setTuCreateInvoice, setTuFee, setTuPay, setTuPaymentReceived, setTuPkg, setTuStu, settleMode, settlementAccounts, settlementPayerError, settlementPayerIntentRef, settlementPayerState, settlementResolvedAccountRef, settlementTaxCodes, sortedAZ, tuCr, tuCreateInvoice, tuFee, tuPay, tuPaymentReceived, tuPkg, tuStu}}/>}
 
 {/* ═══ LOGS ═══════════════════════════════════════════════════ */}
-{tab==='logs' && <LogsSection {...{canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom, lDateTo, lPage, lSrch, lStu, logActions, logPageCount, pagedLogs, setLAct, setLDateFrom, setLDateTo, setLPage, setLSrch, setLStu, sortedAZ}}/>}
+{tab==='logs' && <LogsSection {...{auditScope, canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom, lDateTo, lPage, lSrch, lStu, logActions, logPageCount, pagedLogs, setLAct, setLDateFrom, setLDateTo, setLPage, setLSrch, setLStu, sortedAZ}}/>}
 
 {/* ═══ STATS ══════════════════════════════════════════════════ */}
 {tab==='stats' && <StatsSection {...{analytics, bizReport, exportBizCSV, exportRevenueCSV, payBreakdown, sFrom, sPeriod, sStu, sStu2, sTo, sYear, setSFrom, setSPeriod, setSStu, setSStu2, setSTo, setSYear, sortedAZ, statsData, studentStats}}/>}

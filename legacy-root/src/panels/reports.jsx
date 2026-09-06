@@ -9,7 +9,7 @@ import { FilterBar } from "./filter_bar.jsx";
 
 export function LogsSection(props) {
     const {
-        canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom,
+        auditScope, canManageOperations, displayNote, exportLogsCSV, filteredLogs, lAct, lDateFrom,
         lDateTo, lPage, lSrch, lStu, logActions, logPageCount,
         pagedLogs, setLAct, setLDateFrom, setLDateTo, setLPage, setLSrch,
         setLStu, sortedAZ,
@@ -17,6 +17,25 @@ export function LogsSection(props) {
     return (
 <div className="anim space-y-4">
     <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="scroll" className="w-4 h-4"/>操作日志</h2>
+    {/* 服务端审计事件曾经由一个裸 catch 吞掉：加载失败和「你的角色看不到」
+        走同一条路，界面都安静地退回只有四种动作的流水视图。读的人无法分辨
+        「没有发生过」和「没加载出来」。 */}
+    {auditScope === 'failed' && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+            服务端操作记录没能载入，下面只有课时流水部分。刷新页面可以重试。
+        </div>
+    )}
+    {auditScope === 'ledger-only' && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            你的角色只能看到课时流水部分；退款、导出等操作记录需要工作室负责人查看。
+        </div>
+    )}
+    {auditScope === 'truncated' && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+            只载入了最近 200 条服务端操作记录。上方的日期筛选在这一批之内生效，
+            不会回到更早的历史。
+        </div>
+    )}
     {/* 日志页接上共享筛选栏。它原本是六页里唯一自带「清除」的一页，
         其余四页各写各的 —— 现在计数与清除由 FilterBar 统一提供，
         学员选择器和操作下拉走 extra 插槽，一样能力不丢。 */}
@@ -53,10 +72,16 @@ export function LogsSection(props) {
             ))}
         </div>
         {/* 日期范围、清除与计数都归 FilterBar 了；这里只留导出。 */}
+        {/* 这个按钮标着「CSV」，坐在操作日志的筛选栏和表格之间，下载的却是
+            另一个数据集：完整的课时流水（/export/credit-ledger.csv），无视屏幕
+            上全部筛选条件，也不含任何服务端审计事件。实测：屏幕筛到 1 行，
+            请求里零个查询参数。位置本身在暗示「导出我筛的这些」。
+            先把标签改对，再谈做对——一个名字骗人的按钮比没有这个按钮更糟。 */}
         {canManageOperations && (
-            <div className="flex">
+            <div className="flex items-center gap-2">
+                <span className="ml-auto text-[11px] text-gray-400">导出的是全部课时流水，不随上面的筛选变化</span>
                 <button onClick={exportLogsCSV}
-                    className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-200 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
+                    className="inline-flex items-center gap-1.5 bg-white border border-gray-200 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"><Icon name="download" className="w-4 h-4"/>导出课时流水</button>
             </div>
         )}
     </div>
@@ -187,9 +212,18 @@ export function StatsSection(props) {
                     </div>))}
             </div>
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                <p className="text-xs font-bold text-gray-500 mb-2">消课节奏（近 180 天）</p>
+                {/* 标题曾经写「近 180 天」，而这个数字算自一份被服务端截到
+                    500 条的流水——两者只在小工作室里碰巧相等。上面那张月度表
+                    现在走服务端全表聚合，这一格还没有，所以它按自己真实的
+                    口径说话。 */}
+                <p className="text-xs font-bold text-gray-500 mb-2">消课节奏</p>
                 <p className="text-2xl font-bold text-emerald-600">{bizReport.avgGap ? bizReport.avgGap.toFixed(1) : '—'} <span className="text-sm font-normal text-gray-500">天/次</span></p>
                 <p className="text-xs text-gray-400 mt-1">规律上课学员 {bizReport.regularStu} 人的平均上课间隔。间隔变长 = 出勤率下降的早期信号</p>
+                {bizReport.paceTruncated && (
+                    <p className="text-xs text-amber-700 mt-1.5">
+                        这一格基于最近 500 条记录，不是全部历史。上方的月度汇总不受此限。
+                    </p>
+                )}
             </div>
         </div>
     </div>

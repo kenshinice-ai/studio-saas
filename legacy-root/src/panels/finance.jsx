@@ -49,6 +49,10 @@ function PayrollView({ api, showToast, range, onRange }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [sheet, setSheet] = useState(null);
+  const [sheetError, setSheetError] = useState('');
+  /* 重试计数器。setSelected(同一个值) 不会触发 effect——React 会跳过，
+     那个「重试」按钮会是个死按钮，正是这一批要消灭的东西。 */
+  const [sheetRetry, setSheetRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -63,16 +67,23 @@ function PayrollView({ api, showToast, range, onRange }) {
   }, [api, range.from, range.to]);
 
   useEffect(() => {
-    if (!selected) { setSheet(null); return; }
+    if (!selected) { setSheet(null); setSheetError(''); return; }
     let cancelled = false;
+    /* 先清空。不清空的话，新老师的请求失败时上一位老师的明细会留在屏幕上，
+       而标题已经换成了新名字——一张写着 A 的名字、列着 B 的数据的应付清单。 */
+    setSheet(null); setSheetError('');
     api(`/teaching/timesheet?teacherUserId=${selected}&from=${range.from}&to=${range.to}`)
-      .then(d => { if (!cancelled) setSheet(d); })
-      .catch(e => { if (!cancelled) showToast(`课时明细加载失败：${e.message}`, 'warn'); });
+      .then(d => { if (!cancelled) { setSheet(d); setSheetError(''); } })
+      .catch(e => { if (!cancelled) {
+        /* 原地显示可重试的失败，不只弹一个会消失的 toast：这一栏是钱。 */
+        setSheetError(e.message || '加载失败');
+        showToast(`课时明细加载失败：${e.message}`, 'warn');
+      } });
     return () => { cancelled = true; };
     // showToast 故意不在依赖里：它每次渲染都是新引用，而它一被调用就会触发
     // 重渲染 —— 放进来会让一个失败的请求变成无限重试。同样的理由，billing
     // 面板那边也要照此办理。
-  }, [selected, api, range.from, range.to]);
+  }, [selected, api, range.from, range.to, sheetRetry]);
 
   if (loading) return <p className="text-xs text-gray-500 p-4">正在加载课酬…</p>;
   if (error) return <p className="text-xs text-red-600 p-4">{error}</p>;
@@ -128,9 +139,20 @@ function PayrollView({ api, showToast, range, onRange }) {
       </div>
 
       <div className="grid gap-3 min-w-0">
-        {!sheet ? (
+        {/* 右栏的三态要齐：未选（本来就有）、加载失败可重试、有数据。
+            少了中间那一态，一次失败的请求就会把上一位老师的明细留在屏幕上，
+            而标题已经是新名字了。 */}
+        {sheetError ? (
+          <div className="bg-white border border-red-200 rounded-xl p-6">
+            <p className="text-xs text-red-700 mb-2">这位老师的课时明细没能载入：{sheetError}</p>
+            <button type="button" onClick={() => setSheetRetry(n => n + 1)}
+                    className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-xs font-bold">
+              重试
+            </button>
+          </div>
+        ) : !sheet ? (
           <div className="bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500">
-            选择一位老师，查看本期课时明细。
+            {selected ? '正在载入课时明细…' : '选择一位老师，查看本期课时明细。'}
           </div>
         ) : (
           <>
@@ -182,23 +204,20 @@ function PayrollView({ api, showToast, range, onRange }) {
                   </tbody>
                 </table>
 
+                {/* 这两个按钮曾经没有任何 onClick。老板算完一个月的课酬，走到
+                    最后一步，按下去什么都不发生，也没有任何提示——一个按下去
+                    无反应的钱按钮，比没有这个按钮更糟。
+                    传输层还没接（见 docs 里的 X4 记录），所以这一版说实话，
+                    而不是假装能做。等 /teaching/periods/<id>/confirm 与
+                    _xero_transport 接上，再把它换成真的动作。 */}
                 <div className="flex flex-wrap gap-2 items-center mt-3">
-                  {engagement.canPush ? (
-                    <button type="button"
-                            className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold">
-                      推送 Xero 应付账单
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-gray-500">
-                      {current?.engagement === 'employee'
+                  <span className="text-[11px] text-gray-500">
+                    {engagement.canPush
+                      ? '本版本先在这里算清应付金额；推送到 Xero 的通道还没接通，请把下面的清单交给会计，或在 Xero 里手工建应付账单。'
+                      : (current?.engagement === 'employee'
                         ? '雇员工资不作为应付账单推送 —— 那会绕开薪资科目。导出清单交给财务走薪资流程。'
-                        : '未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。'}
-                    </span>
-                  )}
-                  <button type="button"
-                          className="min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold">
-                    导出 CSV
-                  </button>
+                        : '未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。')}
+                  </span>
                 </div>
               </div>
             </div>
