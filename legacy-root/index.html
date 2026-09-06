@@ -399,8 +399,8 @@
         .toast-bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
         @media (max-width: 767px) {
             .mobile-top-bar { height: calc(56px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
-            .mobile-main-top { padding-top: calc(58px + env(safe-area-inset-top, 0px)) !important; }
-            .mobile-pb { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+            .mobile-main-top { padding-top: calc(58px + env(safe-area-inset-top, 0px)); }
+            .mobile-pb { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
             .toast-bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 88px); }
         }
 
@@ -408,7 +408,7 @@
         @media (hover:none) { .hover-row:active { background:var(--bg2); } }
 
         /* ── B1: Portfolio thumbnail actions — always visible on touch screens ── */
-        @media (hover:none) { .port-actions { display:flex !important; } }
+        @media (hover:none) { .port-actions { display:flex; } }
         /* The pre-/brand palette. Every value is the default style's light mode
            (vintage-press — presets.py DEFAULT_STYLE_ID), so the CMS loads on
            the same paper an unbranded page renders instead of on the Tailwind
@@ -880,14 +880,13 @@
         @media (max-width:639px) {
             .cms-roster-week { gap:5px; }
             .cms-roster-week-day { padding-inline:2px; }
-            .cms-day-actions-desktop { display:none !important; }
+            .cms-day-actions-desktop { display:none; }
             .cms-day-actions-mobile { display:block; }
         }
         .cms-empty-state__action:focus-visible {
             outline:2px solid var(--focus-ring, var(--tenant-primary, var(--ink)));
             outline-offset:2px;
         }
-        .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
         /* A themed surface has to carry its own foreground. `text-white` is not
            a token: once --tenant-primary followed a dark theme's bright accent,
            a white label on it measured 2.08:1 (studio-ink dark). --on-accent is
@@ -920,7 +919,7 @@
            as an inherited custom property means a semantic colour dropped into
            the sidebar later cannot silently darken itself into the surface. */
         [class*="bg-indigo-8"], [class*="bg-indigo-9"], [class*="bg-gray-7"],
-        [class*="bg-gray-8"], [class*="bg-gray-9"], aside { --text-anchor:var(--bg); }
+        [class*="bg-gray-8"], [class*="bg-gray-9"] { --text-anchor:var(--bg); }
         /* One step toward the page colour, so nested pills read as inset in
            either direction rather than assuming "darker" means "deeper". */
 
@@ -1076,7 +1075,6 @@
         html[data-brand-scheme] .hover-row:hover { background:color-mix(in srgb, var(--line) 38.2%, var(--panel)) !important; }
         html[data-brand-scheme] input::placeholder,
         html[data-brand-scheme] textarea::placeholder { color:var(--muted) !important; }
-        html[data-brand-scheme]
         /* ── 5. focus rings ──
            The role map above claims bg/text/border/from/to but never ring-*,
            which Tailwind implements through its own --tw-ring-color. That was

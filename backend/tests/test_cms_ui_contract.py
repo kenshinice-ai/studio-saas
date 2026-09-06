@@ -1,6 +1,8 @@
 """Regression guards for CMS touch, modal, and shared-token contracts."""
 
+import re
 from pathlib import Path
+
 from _cms_sources import cms_source_text
 
 
@@ -103,9 +105,22 @@ def test_empty_state_uses_semantic_theme_and_touch_contracts() -> None:
         assert hue_utility not in component
 
     shell = _read("legacy-root/index.html")
-    style_start = shell.index(".cms-empty-state {")
-    style_end = shell.index(".toast {", style_start)
-    styles = shell[style_start:style_end]
+    # The region is bounded by the empty-state block's OWN last rule, not by
+    # whatever rule happened to follow it. It used to end at `.toast {` — an
+    # unrelated rule three selectors away — so deleting `.toast` (redundant
+    # once the compiled sheet landed before this <style>) made this test raise
+    # ValueError instead of reporting anything about empty states.
+    # Gather every rule whose SELECTOR is an empty-state one, wherever it sits.
+    #
+    # This used to slice from `.cms-empty-state {` to `.toast {` — a positional
+    # window bounded by an unrelated rule. Two problems, both real: the block is
+    # not contiguous (`.cms-empty-state__action` is at line 506 and its
+    # `:focus-visible` at 886, ~380 lines apart), and the end marker was a rule
+    # that could be deleted on its own merits — which it was, in v10.17.0, and
+    # this test then raised ValueError instead of reporting anything.
+    rules = re.findall(r"(\.cms-empty-state[^{}]*)\{([^}]*)\}", shell)
+    assert len(rules) >= 5, f"只找到 {len(rules)} 条 .cms-empty-state 规则，选择器变了？"
+    styles = "\n".join(body for _, body in rules)
     for contract in (
         "color:var(--ink2);",
         "color:var(--muted);",
