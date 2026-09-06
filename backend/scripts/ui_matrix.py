@@ -270,6 +270,11 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("ui_matrix_out"),
                         help="output root; a UTC-stamped run directory is created inside")
     parser.add_argument("--only", help="run only the page with this name")
+    parser.add_argument("--require-roles", action="store_true",
+                        help="exit non-zero if any page was skipped for want of a "
+                             "session. Use this when the run is evidence for a "
+                             "release: without it, a skipped page still reports "
+                             "'0 failed'.")
     args = parser.parse_args()
 
     try:
@@ -289,7 +294,15 @@ def main() -> int:
     # that drifts. A missing credentials file is not a crash: the CMS pages are
     # skipped and the public ones still run, so this stays useful on a machine
     # that has never seeded the showcase.
-    roles = {spec.get("role") for spec in config["pages"] if spec.get("role")}
+    # `--only` narrows the page list, so it must narrow the roles as well —
+    # otherwise asking for one public page still tries to sign in as owner and
+    # prints a SKIP about pages that were never going to run.
+    pages = config["pages"]
+    if args.only:
+        pages = [p for p in pages if p.get("name") == args.only]
+        if not pages:
+            sys.exit(f"no page named {args.only!r} in {args.config}")
+    roles = {spec.get("role") for spec in pages if spec.get("role")}
     sessions: dict[str, str] = {}
     skipped_roles: dict[str, str] = {}
     if roles:
@@ -313,12 +326,6 @@ def main() -> int:
     height = int(defaults.get("height") or 900)
     default_selectors = defaults.get("selectors") or {}
 
-    pages = config["pages"]
-    if args.only:
-        pages = [p for p in pages if p.get("name") == args.only]
-        if not pages:
-            sys.exit(f"no page named {args.only!r} in {args.config}")
-
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = args.out / stamp
     shots_dir = run_dir / "screenshots"
@@ -327,13 +334,19 @@ def main() -> int:
     results: list[dict] = []
     failures = 0
 
+    skipped_pages: list[tuple[str, str]] = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         for spec in pages:
             name = spec.get("name") or spec["path"].strip("/").replace("/", "_")
             role = spec.get("role")
             if role and role not in sessions:
-                continue                            # 已在上面报告过原因
+                # Recorded by NAME, not just counted. "342 assertions, 0 failed"
+                # with every CMS page silently absent reads as "everything was
+                # checked" — that exact line was quoted as evidence for the
+                # v10.16.0 release while the CMS pages had never been opened.
+                skipped_pages.append((name, role))
+                continue
             widths = spec.get("widths") or default_widths
             languages = spec.get("languages") or default_langs
             selectors = {**default_selectors, **(spec.get("selectors") or {})}
@@ -396,19 +409,33 @@ def main() -> int:
                         context.close()
         browser.close()
 
+    checked = len(pages) - len(skipped_pages)
     report = {
         "base": args.base,
         "config": str(args.config),
         "ranAt": stamp,
         "total": len(results),
         "failures": failures,
+        "pagesRequested": len(pages),
+        "pagesChecked": checked,
+        "pagesSkipped": [{"name": n, "role": r} for n, r in skipped_pages],
         "results": results,
     }
     (run_dir / "assertions.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n{len(results)} assertions, {failures} failed")
+    # The skip belongs on the summary line itself. Anything further up scrolls
+    # away, and this line is what gets pasted into a release note.
+    print(f"\n{len(results)} assertions, {failures} failed, "
+          f"{checked}/{len(pages)} pages checked, {len(skipped_pages)} skipped")
+    for name, role in skipped_pages:
+        why = skipped_roles.get(role, "no session")
+        print(f"NOT CHECKED  : {name}  (role {role!r}: {why})")
     print(f"screenshots : {shots_dir}")
     print(f"assertions  : {run_dir / 'assertions.json'}")
+    if skipped_pages and args.require_roles:
+        print("\nFAIL: --require-roles was given and these pages were never opened.",
+              file=sys.stderr)
+        return 1
     return 1 if failures else 0
 
 
