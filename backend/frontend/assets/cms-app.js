@@ -4024,16 +4024,43 @@
       "{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～",
       { student: name }
     );
-    return /* @__PURE__ */ React.createElement("div", { className: "cms-dashboard-root anim space-y-5" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "dashboard", className: "w-4 h-4" }), "工作台"), (() => {
-      const actionsByRole = {
-        owner: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
-        platform_super_admin: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
-        super_admin: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
-        manager: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["topup", "充值与退款", null, "money"], ["stats", "查看经营统计", null, "trend"]],
-        teacher: [["roster", "今日课程名单", todayEffectiveCount, "calendar"], ["students", "查找学员", analytics.totalStudents, "users"], ["works", "上传作品", null, "image"], ["logs", "查看操作记录", null, "scroll"]],
-        front_desk: [["pending", "处理报名与约课", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["new_student", "新建学员", null, "plus"], ["topup", "充值与退款", null, "money"]],
-        staff: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "查找学员", analytics.totalStudents, "users"], ["works", "管理作品", null, "image"]]
-      };
+    const actionsByRole = {
+      owner: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
+      platform_super_admin: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
+      super_admin: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "搜索学员", analytics.totalStudents, "users"], ["stats", "查看经营统计", null, "trend"]],
+      manager: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["topup", "充值与退款", null, "money"], ["stats", "查看经营统计", null, "trend"]],
+      teacher: [["roster", "今日课程名单", todayEffectiveCount, "calendar"], ["students", "查找学员", analytics.totalStudents, "users"], ["works", "上传作品", null, "image"], ["logs", "查看操作记录", null, "scroll"]],
+      front_desk: [["pending", "处理报名与约课", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["new_student", "新建学员", null, "plus"], ["topup", "充值与退款", null, "money"]],
+      staff: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", todayEffectiveCount, "calendar"], ["students", "查找学员", analytics.totalStudents, "users"], ["works", "管理作品", null, "image"]]
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: "cms-dashboard-root anim space-y-5" }, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "dashboard", className: "w-4 h-4" }), "工作台"), (db.students || []).length === 0 && /* @__PURE__ */ React.createElement("section", { className: "rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4", "aria-labelledby": "setup-checklist-title" }, /* @__PURE__ */ React.createElement("h3", { id: "setup-checklist-title", className: "text-sm font-bold text-gray-900" }, "先把工作室立起来"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5 mb-3" }, "四步走完，这张卡片会自己消失。"), /* @__PURE__ */ React.createElement("ol", { className: "space-y-1.5" }, [
+      {
+        done: (db.pending || []).length > 0,
+        label: "把报名页链接发出去，收第一条咨询",
+        go: allowedTabs.includes("pending") ? () => setTab("pending") : null,
+        cta: "看待处理"
+      },
+      { done: false, label: "建立课程与班次", go: allowedTabs.includes("courses") ? () => setTab("courses") : null, cta: "去课程目录" },
+      { done: false, label: "添加第一位学员", go: allowedTabs.includes("new_student") ? () => setTab("new_student") : null, cta: "新建学员" },
+      { done: false, label: "配好充值套餐，才能收钱", go: allowedTabs.includes("topup") ? () => setTab("topup") : null, cta: "去充值与退款" }
+    ].map(({ done, label, go, cta }, index) => /* @__PURE__ */ React.createElement("li", { key: label, className: "flex items-center gap-2.5 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: `flex-shrink-0 w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${done ? "bg-emerald-600 text-white" : "bg-white border border-indigo-200 text-indigo-600"}` }, done ? "✓" : index + 1), /* @__PURE__ */ React.createElement("span", { className: `flex-1 min-w-0 ${done ? "text-gray-400 line-through" : "text-gray-700"}` }, label), go && !done && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: go,
+        className: "flex-shrink-0 min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700"
+      },
+      cta
+    )))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-3" }, "每一步的详细图解在 ", /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        href: "/manual/",
+        target: "_blank",
+        rel: "noopener",
+        className: "font-bold text-indigo-700 underline"
+      },
+      "使用手册"
+    ), " 里。")), (() => {
       const actions = (actionsByRole[actorRole] || actionsByRole.staff).filter(([key]) => allowedTabs.includes(key));
       return /* @__PURE__ */ React.createElement("section", { className: "rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm", "aria-labelledby": "role-workbench-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { id: "role-workbench-title", className: "text-sm font-bold text-gray-900" }, "今日重点"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "按你的角色排列最常用的工作入口")), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1" }, actorRoleLabel)), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-2" }, actions.slice(0, 4).map(([key, label, count, icon]) => /* @__PURE__ */ React.createElement("button", { key, type: "button", onClick: () => setTab(key), className: "min-h-[62px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1.5 text-xs font-bold text-gray-700" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-4 h-4 text-indigo-600" }), label), count !== null && /* @__PURE__ */ React.createElement("span", { className: "block text-lg font-bold text-indigo-700 mt-1 tabular-nums" }, count)))));
     })(), actorRole === "teacher" && /* @__PURE__ */ React.createElement("div", { className: "md:hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-emerald-900 mb-2" }, "教师手机快捷流程 · 3 步完成今日工作"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2" }, /* @__PURE__ */ React.createElement(
@@ -4091,10 +4118,28 @@
       },
       /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-indigo-200" }, label, go && /* @__PURE__ */ React.createElement("span", { className: "ml-1" }, "→")),
       /* @__PURE__ */ React.createElement("p", { className: "text-xl font-bold" }, value, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal ml-1" }, unit))
-    ))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-2" }, canWriteAttendance && /* @__PURE__ */ React.createElement("button", { onClick: () => {
-      setRDate(todayISO());
-      setTab("roster");
-    }, className: "bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "今日排课")), canWriteStudents && /* @__PURE__ */ React.createElement("button", { onClick: () => setTab("new_student"), className: "bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-4 h-4" }), "新建学员")), allowedTabs.includes("pending") && /* @__PURE__ */ React.createElement("button", { onClick: () => setTab("pending"), className: "bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "审核报名")), canWriteCredits && /* @__PURE__ */ React.createElement("button", { onClick: () => setTab("topup"), className: "bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" }), "充值结算")))), /* @__PURE__ */ React.createElement("div", { className: "cms-kpi-grid" }, [
+    ))), (() => {
+      const inFocus = new Set((actionsByRole[actorRole] || actionsByRole.staff).map(([key]) => key));
+      const deck = [
+        canWriteAttendance && !inFocus.has("roster") && ["roster", "今日排课", "calendar", () => {
+          setRDate(todayISO());
+          setTab("roster");
+        }, true],
+        canWriteStudents && ["new_student", "新建学员", "plus", () => setTab("new_student"), false],
+        allowedTabs.includes("pending") && !inFocus.has("pending") && ["pending", "审核报名", "clipboard", () => setTab("pending"), false],
+        canWriteCredits && ["topup", "充值结算", "money", () => setTab("topup"), false]
+      ].filter(Boolean);
+      if (!deck.length) return null;
+      return /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-2" }, deck.map(([key, label, icon, go, light]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key,
+          onClick: go,
+          className: `${light ? "bg-white text-indigo-800" : "bg-indigo-600 border border-indigo-400"} rounded-xl py-2.5 text-xs font-bold min-h-[44px]`
+        },
+        /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-4 h-4" }), label)
+      )));
+    })()), /* @__PURE__ */ React.createElement("div", { className: "cms-kpi-grid" }, [
       { l: "学员总数", v: `${analytics.totalStudents} 人`, c: "text-gray-800", action: () => {
         setSortBy("date-desc");
         setFilterBy("all");
@@ -4105,9 +4150,11 @@
         setFilterBy("active");
         setTab("students");
       } },
-      { l: "今日排课", v: `${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`, c: "text-gray-700", action: () => setTab("roster") },
+      /* 今日排课在这一屏已经有入口了（今日重点或指挥台，二选一）。这里是
+         一个数字，不是第三扇通往同一页的门。 */
+      { l: "今日排课", v: `${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`, c: "text-gray-700", action: null },
       canViewFinancialAnalytics ? { l: "历史总营收", v: `$${analytics.totalRevenue.toFixed(0)}`, c: "text-emerald-600", action: () => setTab("stats") } : { l: "本月出勤", v: `${bizStats?.attended_month || 0} 人次`, c: "text-emerald-600", action: () => setTab("roster") }
-    ].map(({ l, v, c, action }) => /* @__PURE__ */ React.createElement(
+    ].map(({ l, v, c, action }) => action ? /* @__PURE__ */ React.createElement(
       "button",
       {
         key: l,
@@ -4116,7 +4163,7 @@
       },
       /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l, " ", /* @__PURE__ */ React.createElement("span", { className: "text-indigo-400" }, "→")),
       /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v)
-    )))), (() => {
+    ) : /* @__PURE__ */ React.createElement("div", { key: l, className: "bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 text-left w-full" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l), /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v))))), (() => {
       const todoClear = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 0 && s.lastActive);
       const todoLast = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 1);
       const todoRisk = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id] || 0) === 0);
@@ -5001,6 +5048,7 @@
   }
 
   // legacy-root/src/panels/students.jsx
+  var { useMemo: useMemo6 } = React;
   function StudentsSection(props) {
     const {
       archiveSelected,
@@ -5362,8 +5410,55 @@
       setFollowUpDates,
       setPendingTab,
       setTab,
-      showToast
+      showToast,
+      pendingBucket,
+      setPendingBucket,
+      pendingQuery,
+      setPendingQuery
     } = props;
+    const pendingToday = todayISO();
+    const dueKey = (pen) => {
+      const raw = String(pen.nextFollowUpAt || "");
+      const iso3 = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso3) return `${iso3[1]}-${iso3[2]}-${iso3[3]}`;
+      if (!raw) return "";
+      const parsed = new Date(raw);
+      if (Number.isNaN(parsed.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+    };
+    const pendingRows = useMemo6(() => {
+      const needle = (pendingQuery || "").trim().toLowerCase();
+      const normalise = (value) => String(value || "").replace(/[\s\-()]+/g, "");
+      return (db.pending || []).filter((pen) => {
+        const due = dueKey(pen);
+        if (pendingBucket === "due" && !(due && due <= pendingToday)) return false;
+        if (pendingBucket === "uncontacted" && pen.status !== "pending") return false;
+        if (pendingBucket === "trial" && pen.status !== "trial_booked") return false;
+        if (!needle) return true;
+        const name = `${pen.firstName || ""}${pen.lastName || ""}`.toLowerCase();
+        return name.includes(needle) || normalise(pen.mobile).includes(normalise(needle));
+      }).sort((a, b) => {
+        const da = dueKey(a), dbb = dueKey(b);
+        const rank = (d) => d && d <= pendingToday ? 0 : d ? 1 : 2;
+        if (rank(da) !== rank(dbb)) return rank(da) - rank(dbb);
+        if (da && dbb && da !== dbb) return da < dbb ? -1 : 1;
+        return String(b.submittedAt || "").localeCompare(String(a.submittedAt || ""));
+      });
+    }, [db.pending, pendingBucket, pendingQuery, pendingToday]);
+    const pendingBuckets = useMemo6(() => {
+      const all = db.pending || [];
+      const due = all.filter((pen) => {
+        const d = dueKey(pen);
+        return d && d <= pendingToday;
+      }).length;
+      return [
+        { key: "due", label: "今天需跟进", count: due },
+        { key: "uncontacted", label: "未联系", count: all.filter((p) => p.status === "pending").length },
+        { key: "trial", label: "已约试听", count: all.filter((p) => p.status === "trial_booked").length },
+        { key: "all", label: "全部", count: all.length }
+      ];
+    }, [db.pending, pendingToday]);
     return /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "待处理"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "新报名和约课申请共用一个收件箱，按业务类型分开处理。")), /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700" }, pendingCount, " 项等待处理")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, [
       ["registrations", "新报名", (db.pending || []).length],
       ["bookings", "约课", bookings.length],
@@ -5401,7 +5496,19 @@
         className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold min-h-[44px]"
       },
       bk.isExistingStudent ? "批准并排课" : "批准并转报名"
-    ))))), pendingTab === "registrations" && /* @__PURE__ */ React.createElement(React.Fragment, null, !(db.pending || []).length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-4xl mb-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待审核的报名"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。")), (db.pending || []).map((pen) => {
+    ))))), pendingTab === "registrations" && /* @__PURE__ */ React.createElement(React.Fragment, null, !(db.pending || []).length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-4xl mb-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待审核的报名"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。")), (db.pending || []).length > 0 && /* @__PURE__ */ React.createElement(
+      FilterBar,
+      {
+        searchPlaceholder: "搜索姓名或手机号",
+        query: pendingQuery,
+        onQuery: setPendingQuery,
+        buckets: pendingBuckets,
+        bucket: pendingBucket,
+        onBucket: setPendingBucket,
+        total: pendingRows.length,
+        totalNoun: "条申请"
+      }
+    ), (db.pending || []).length > 0 && pendingRows.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有符合筛选的申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1" }, "换一个分类，或清空搜索词。")), pendingRows.map((pen) => {
       const fullName = pen.lastName ? `${pen.firstName} ${pen.lastName}` : pen.firstName;
       const normP = (p) => (p || "").replace(/[\s\-\(\)]+/g, "");
       const penMobile = normP(pen.mobile);
@@ -5409,7 +5516,12 @@
       return /* @__PURE__ */ React.createElement("div", { key: pen.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-5 space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, pen.photo ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(pen.photo), className: "w-16 h-16 rounded-full object-cover flex-shrink-0 border-2 border-indigo-100", alt: fullName }) : /* @__PURE__ */ React.createElement("div", { className: "w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 flex-shrink-0" }, (pen.firstName || "?")[0].toUpperCase()), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-800" }, fullName, isDupPending && /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5", title: "另有一条待审核申请使用相同手机号" }, "疑似重复")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), pen.mobile || "—", pen.wechat ? ` · ${pen.wechat}` : "", pen.email ? ` · ${pen.email}` : ""), pen.birthday && /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs text-pink-500 mt-0.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), fmtDate(pen.birthday)), pen.mobile && (() => {
         const match = db.students.filter((s) => !s.archived && normP(s.mobile) === normP(pen.mobile));
         return match.length > 0 ? /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs text-blue-500 mt-0.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "device", className: "w-4 h-4" }), "此电话已有学员：", match.map((s) => s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.name || "").join("、")) : null;
-      })(), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "提交时间: ", /* @__PURE__ */ React.createElement("span", { title: pen.submittedAt || "" }, fmtDT(pen.submittedAt)), " · 来源: ", pen.source === "portal" ? "门户网站" : "快速报名", " · 状态: ", REG_STATUS_ZH[pen.status || "pending"] || pen.status))), preferenceRows(pen).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-sm" }, preferenceRows(pen).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-gray-50 rounded-2xl p-4 border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-700 text-sm" }, row.value)))), pen.message && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs text-amber-500 font-bold mb-1" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }), "留言"), /* @__PURE__ */ React.createElement("p", null, pen.message)), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 border border-blue-100 rounded-2xl p-3 flex flex-wrap items-end gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-blue-700 mb-1 block" }, "下次跟进"), /* @__PURE__ */ React.createElement(
+      })(), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "提交时间: ", /* @__PURE__ */ React.createElement("span", { title: pen.submittedAt || "" }, fmtDT(pen.submittedAt)), " · 来源: ", pen.source === "portal" ? "门户网站" : "快速报名", " · 状态: ", REG_STATUS_ZH[pen.status || "pending"] || pen.status), (() => {
+        const due = dueKey(pen);
+        if (!due) return null;
+        const overdue = due < pendingToday, today = due === pendingToday;
+        return /* @__PURE__ */ React.createElement("p", { className: `inline-flex items-center gap-1.5 text-xs mt-0.5 font-bold ${overdue ? "text-red-600" : today ? "text-amber-700" : "text-gray-400"}` }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), overdue ? `跟进已逾期 · ${fmtDate(due)}` : today ? "今天需要跟进" : `下次跟进 ${fmtDate(due)}`);
+      })())), preferenceRows(pen).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-sm" }, preferenceRows(pen).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-gray-50 rounded-2xl p-4 border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-700 text-sm" }, row.value)))), pen.message && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs text-amber-500 font-bold mb-1" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }), "留言"), /* @__PURE__ */ React.createElement("p", null, pen.message)), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 border border-blue-100 rounded-2xl p-3 flex flex-wrap items-end gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-blue-700 mb-1 block" }, "下次跟进"), /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "date",
@@ -6311,12 +6423,12 @@
   }
 
   // legacy-root/src/cms-app.jsx
-  var { useState: useState10, useEffect: useEffect9, useMemo: useMemo6, useRef: useRef3, useCallback: useCallback9 } = React;
+  var { useState: useState10, useEffect: useEffect9, useMemo: useMemo7, useRef: useRef3, useCallback: useCallback9 } = React;
   function App() {
     const [db, setDb] = useState10({ students: [], logs: [], rosters: {}, pending: [] });
     const [auditEvents, setAuditEvents] = useState10([]);
     const [auditScope, setAuditScope] = useState10("full");
-    const initialCmsRoute = useMemo6(() => readCmsRoute(), []);
+    const initialCmsRoute = useMemo7(() => readCmsRoute(), []);
     const [tab, setTabState] = useState10(initialCmsRoute.tab);
     const [pendingTab, setPendingTabState] = useState10(initialCmsRoute.pendingTab);
     const [settingsSection, setSettingsSectionState] = useState10(initialCmsRoute.settingsSection);
@@ -6551,6 +6663,8 @@
     const [dupPick, setDupPick] = useState10(null);
     const [arSummary, setArSummary] = useState10(null);
     const [followUpDates, setFollowUpDates] = useState10({});
+    const [pendingBucket, setPendingBucket] = useState10("due");
+    const [pendingQuery, setPendingQuery] = useState10("");
     const [pkgEditId, setPkgEditId] = useState10(null);
     const [pkgName, setPkgName] = useState10("");
     const [pkgCredits, setPkgCredits] = useState10("");
@@ -7194,7 +7308,7 @@
       a.download = `Studio_${todayISO()}.json`;
       a.click();
     };
-    const activityMap = useMemo6(() => {
+    const activityMap = useMemo7(() => {
       const map = {};
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1e3;
       const idsByName = /* @__PURE__ */ new Map();
@@ -7229,7 +7343,7 @@
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
-    const sortedFiltered = useMemo6(() => {
+    const sortedFiltered = useMemo7(() => {
       let list = [...db.students];
       if (filterBy === "archived") {
         list = list.filter((s) => s.archived);
@@ -7275,11 +7389,11 @@
       return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
     const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
-    const pageStudents = useMemo6(() => {
+    const pageStudents = useMemo7(() => {
       const page = Math.min(studentPage, studentPageCount);
       return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
     }, [sortedFiltered, studentPage, studentPageCount]);
-    const selectedStudents = useMemo6(
+    const selectedStudents = useMemo7(
       () => sortedFiltered.filter((s) => selectedStudentIds.includes(s.id)),
       [sortedFiltered, selectedStudentIds]
     );
@@ -7288,11 +7402,11 @@
       const ids = pageStudents.map((s) => s.id);
       return checked ? Array.from(/* @__PURE__ */ new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id));
     });
-    const sortedAZ = useMemo6(
+    const sortedAZ = useMemo7(
       () => [...db.students].filter((s) => !s.archived).sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
       [db.students]
     );
-    const portfolioEntries = useMemo6(
+    const portfolioEntries = useMemo7(
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
@@ -7304,7 +7418,7 @@
       return student.publicationConsent?.status === "confirmed" ? "shared" : "blocked";
     };
     const worksIsShared = (entry) => worksPublicState(entry) === "shared";
-    const worksBuckets = useMemo6(() => {
+    const worksBuckets = useMemo7(() => {
       const consented = ({ student }) => student.publicationConsent?.status === "confirmed";
       return [
         { key: "all", label: "全部", count: portfolioEntries.length },
@@ -7313,7 +7427,7 @@
         { key: "noconsent", label: "待授权", count: portfolioEntries.filter((e) => !consented(e)).length }
       ];
     }, [portfolioEntries]);
-    const worksVisible = useMemo6(() => {
+    const worksVisible = useMemo7(() => {
       const needle = worksQuery.trim().toLowerCase();
       return portfolioEntries.filter((entry) => {
         const { student, item } = entry;
@@ -7332,35 +7446,35 @@
         setEditP(false);
       }
     }, [tab, routeRecordId, db.students]);
-    const scheduledForDate = useMemo6(() => {
+    const scheduledForDate = useMemo7(() => {
       if (!TENANT_SLUG || !schedules.length) return [];
       const wd = (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay();
       return schedules.filter((sc) => sc.weekday === wd);
     }, [schedules, rDate]);
-    const scheduledIdSet = useMemo6(
+    const scheduledIdSet = useMemo7(
       () => new Set(scheduledForDate.flatMap((sc) => sc.students.map((st) => st.id))),
       [scheduledForDate]
     );
-    const dayIds = useMemo6(() => {
+    const dayIds = useMemo7(() => {
       const manual = db.rosters[rDate] || [];
       return [.../* @__PURE__ */ new Set([...scheduledIdSet, ...manual])];
     }, [db.rosters, rDate, scheduledIdSet]);
-    const todayEffectiveCount = useMemo6(() => {
+    const todayEffectiveCount = useMemo7(() => {
       const manual = db.rosters[todayISO()] || [];
       const wd = (/* @__PURE__ */ new Date()).getDay();
       const sched = schedules.filter((sc) => sc.weekday === wd).flatMap((sc) => sc.students.map((st) => st.id));
       return (/* @__PURE__ */ new Set([...sched, ...manual])).size;
     }, [db.rosters, schedules]);
-    const todayCheckedCount = useMemo6(() => {
+    const todayCheckedCount = useMemo7(() => {
       const d = todayISO().split("-");
       const prefix = `${d[2]}/${d[1]}/${d[0]}`;
       return new Set(db.logs.filter((l) => l.action === "上课签到" && String(l.date).startsWith(prefix)).map((l) => l.studentId || l.studentName)).size;
     }, [db.logs]);
-    const availRoster = useMemo6(
+    const availRoster = useMemo7(
       () => sortedAZ.filter((s) => !dayIds.includes(s.id)),
       [sortedAZ, dayIds]
     );
-    const analytics = useMemo6(() => {
+    const analytics = useMemo7(() => {
       const totalStudents = db.students.filter((s) => !s.archived).length;
       const totalBalance = db.students.reduce((a, b) => a + (parseInt(b.balance, 10) || 0), 0);
       const totalCheckins = db.logs.filter((l) => l.action === "上课签到").length;
@@ -7410,7 +7524,7 @@
       }
       return { totalStudents, totalBalance, totalCheckins, totalRevenue, lowBalance, inactive, todayRoster, monthlyReports, yearlyReports, availYears, chart12, recentGroups };
     }, [db, inactiveDays]);
-    const statsData = useMemo6(() => {
+    const statsData = useMemo7(() => {
       let logs = sStu ? db.logs.filter((l) => {
         const s = db.students.find((x) => x.id === sStu);
         return s && (l.studentId === s.id || !l.studentId && l.studentName === s.name);
@@ -7444,7 +7558,7 @@
       const rows = Object.keys(byP).sort().reverse().map((k) => ({ key: k, ...byP[k] }));
       return { rows, totalRev: rows.reduce((s, r) => s + r.revenue, 0), totalCI: rows.reduce((s, r) => s + r.checkins, 0) };
     }, [db, sPeriod, sYear, sFrom, sTo, sStu]);
-    const studentStats = useMemo6(() => {
+    const studentStats = useMemo7(() => {
       if (!sStu2) return null;
       const s = db.students.find((x) => x.id === sStu2);
       if (!s) return null;
@@ -7467,7 +7581,7 @@
         logs
       };
     }, [db, sStu2]);
-    const gResults = useMemo6(() => {
+    const gResults = useMemo7(() => {
       if (!gQ.trim()) return [];
       const q = gQ.trim().toLowerCase();
       return db.students.filter((s) => !s.archived && (s.name.toLowerCase().includes(q) || (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.mobile || "").includes(q) || (s.wechat || "").toLowerCase().includes(q))).slice(0, 10);
@@ -7476,7 +7590,7 @@
       const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
     };
-    const auditAsLogs = useMemo6(() => {
+    const auditAsLogs = useMemo7(() => {
       if (!TENANT_SLUG || !auditEvents.length) return [];
       const nameById = new Map(db.students.map((s) => [String(s.id), s.name]));
       return auditEvents.reduce((rows, ev) => {
@@ -7515,8 +7629,8 @@
       const t = /* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || "00"}:${m[5] || "00"}:${m[6] || "00"}`);
       return isNaN(t.getTime()) ? 0 : t.getTime();
     };
-    const allLogs = useMemo6(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
-    const filteredLogs = useMemo6(() => {
+    const allLogs = useMemo7(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
+    const filteredLogs = useMemo7(() => {
       const stuName = lStu ? (db.students.find((x) => x.id === lStu) || {}).name : null;
       return allLogs.filter((l) => {
         if (stuName && l.studentName !== stuName) return false;
@@ -7532,14 +7646,14 @@
     }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
-    const logActions = useMemo6(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
+    const logActions = useMemo7(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
     useEffect9(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
     useEffect9(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
-    const bizReport = useMemo6(() => {
+    const bizReport = useMemo7(() => {
       const months = db.businessMonths || [];
       const rows = months.map((m) => ({
         k: m.month,
@@ -7587,7 +7701,7 @@
       a.download = `Studio_经营月报_${todayISO()}.csv`;
       a.click();
     };
-    const payBreakdown = useMemo6(() => {
+    const payBreakdown = useMemo7(() => {
       const map = {};
       db.logs.filter((l) => l.action === "充值购课").forEach((l) => {
         const pm = l.payMethod || "未记录";
@@ -7719,7 +7833,7 @@
         cancelled = true;
       };
     }, [rDate]);
-    const rosterDone = useMemo6(() => {
+    const rosterDone = useMemo7(() => {
       const done = /* @__PURE__ */ new Set();
       if (rosterAttendance) {
         rosterAttendance.forEach((a) => {
@@ -7740,7 +7854,7 @@
       });
       return done;
     }, [rosterAttendance, db.logs, db.students, rDate]);
-    const checkInWindow = useMemo6(() => {
+    const checkInWindow = useMemo7(() => {
       const picked = /* @__PURE__ */ new Date(`${rDate}T00:00:00`);
       const midnight = /* @__PURE__ */ new Date();
       midnight.setHours(0, 0, 0, 0);
@@ -7859,7 +7973,7 @@
         }
       }, { danger: true, confirmText: "确认删除" });
     };
-    const teachableMembers = useMemo6(
+    const teachableMembers = useMemo7(
       () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
       [team]
     );
@@ -10065,7 +10179,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
           className: "flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
         },
         "公开网站"
-      )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-500", "aria-hidden": "true" }), "已连接")), db.logsTruncated && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "只显示最近 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSettingsSection("account"), className: `w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px] ${tab === "settings" ? "is-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置")), /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement(
+        "a",
+        {
+          href: "/manual/",
+          target: "_blank",
+          rel: "noopener",
+          className: "flex items-center justify-center gap-1.5 rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
+        },
+        /* @__PURE__ */ React.createElement(Icon, { name: "scroll", className: "w-4 h-4" }),
+        "使用手册"
+      ), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-500", "aria-hidden": "true" }), "已连接")), db.logsTruncated && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "只显示最近 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSettingsSection("account"), className: `w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px] ${tab === "settings" ? "is-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置")), /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" }),
@@ -10145,7 +10269,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         setUserMenuOpen(false);
         confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" });
       }, className: "w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50" }, "退出登录"))))),
-      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
         BillingPanel,
         {
           api: v1Api,

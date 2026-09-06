@@ -26,19 +26,69 @@ export function DashboardSection(props) {
         '{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～',
         {student: name},
     );
+    /* 一份表，两个消费者：上面的「今日重点」按角色排它，下面的指挥台
+       用它来避开重复。写两份就会漂移——这个文件的隔壁正因此有过一次。 */
+    const actionsByRole = {
+        owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
+        platform_super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
+        super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
+        manager:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['topup','充值与退款',null,'money'],['stats','查看经营统计',null,'trend']],
+        teacher:[['roster','今日课程名单',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','上传作品',null,'image'],['logs','查看操作记录',null,'scroll']],
+        front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money']],
+        staff:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','管理作品',null,'image']],
+    };
+
     return (
 <div className="cms-dashboard-root anim space-y-5">
     <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
+
+    {/* 开通清单，只有全新工作室看得见。
+     *
+     * 老板拿到账号的第一天，登录进来面对十二个空面板：要建课程、建班次、导
+     * 学员、配充值套餐、设课酬规则，再去 Studio Admin 配网站——没有任何东西
+     * 告诉他这个顺序，也没有任何东西告诉他进行到哪一步。这不是体验问题，是
+     * 留存问题。
+     *
+     * 位置是刻意的：不是常驻在工作台顶部（那会把 v10.15.0 刚砍下来的落地页
+     * 高度又加回去），而是零数据分支——完成状态从真实数据推导，做完了它自己
+     * 消失，已营业的工作室永远看不到它。
+     *
+     * 手册那一条不是凑数：产品自带一本 50 张双语截图的图解手册，章节标题就是
+     * 上手路径，而全仓库只有定价页和营销站链过去——写给已付费操作员看的东西，
+     * 只有还没买的人看得见。 */}
+    {(db.students||[]).length === 0 && (
+        <section className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4" aria-labelledby="setup-checklist-title">
+            <h3 id="setup-checklist-title" className="text-sm font-bold text-gray-900">先把工作室立起来</h3>
+            <p className="text-xs text-gray-500 mt-0.5 mb-3">四步走完，这张卡片会自己消失。</p>
+            <ol className="space-y-1.5">
+                {[
+                    {done:(db.pending||[]).length > 0, label:'把报名页链接发出去，收第一条咨询',
+                     go:allowedTabs.includes('pending') ? ()=>setTab('pending') : null, cta:'看待处理'},
+                    {done:false, label:'建立课程与班次', go:allowedTabs.includes('courses') ? ()=>setTab('courses') : null, cta:'去课程目录'},
+                    {done:false, label:'添加第一位学员', go:allowedTabs.includes('new_student') ? ()=>setTab('new_student') : null, cta:'新建学员'},
+                    {done:false, label:'配好充值套餐，才能收钱', go:allowedTabs.includes('topup') ? ()=>setTab('topup') : null, cta:'去充值与退款'},
+                ].map(({done, label, go, cta}, index) => (
+                    <li key={label} className="flex items-center gap-2.5 text-sm">
+                        <span className={`flex-shrink-0 w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${done ? 'bg-emerald-600 text-white' : 'bg-white border border-indigo-200 text-indigo-600'}`}>
+                            {done ? '✓' : index + 1}
+                        </span>
+                        <span className={`flex-1 min-w-0 ${done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{label}</span>
+                        {go && !done && (
+                            <button type="button" onClick={go}
+                                className="flex-shrink-0 min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700">
+                                {cta}
+                            </button>
+                        )}
+                    </li>
+                ))}
+            </ol>
+            <p className="text-xs text-gray-500 mt-3">
+                每一步的详细图解在 <a href="/manual/" target="_blank" rel="noopener"
+                    className="font-bold text-indigo-700 underline">使用手册</a> 里。
+            </p>
+        </section>
+    )}
     {(()=>{
-        const actionsByRole = {
-            owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-            platform_super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-            super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-            manager:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['topup','充值与退款',null,'money'],['stats','查看经营统计',null,'trend']],
-            teacher:[['roster','今日课程名单',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','上传作品',null,'image'],['logs','查看操作记录',null,'scroll']],
-            front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money']],
-            staff:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','管理作品',null,'image']],
-        };
         const actions = (actionsByRole[actorRole] || actionsByRole.staff).filter(([key])=>allowedTabs.includes(key));
         return <section className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm" aria-labelledby="role-workbench-title">
             <div className="flex items-center justify-between gap-3 mb-3"><div><h3 id="role-workbench-title" className="text-sm font-bold text-gray-900">今日重点</h3><p className="text-xs text-gray-400 mt-0.5">按你的角色排列最常用的工作入口</p></div><span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1">{actorRoleLabel}</span></div>
@@ -80,27 +130,64 @@ export function DashboardSection(props) {
                     <p className="text-[11px] text-indigo-200">{label}{go && <span className="ml-1">→</span>}</p>
                     <p className="text-xl font-bold">{value}<span className="text-xs font-normal ml-1">{unit}</span></p></button>)}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {canWriteAttendance && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>今日排课</span></button>}
-                {canWriteStudents && <button onClick={()=>setTab('new_student')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="w-4 h-4"/>新建学员</span></button>}
-                {allowedTabs.includes('pending') && <button onClick={()=>setTab('pending')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>审核报名</span></button>}
-                {canWriteCredits && <button onClick={()=>setTab('topup')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>充值结算</span></button>}
-            </div>
+            {/* 指挥台只保留「今日重点」没有的入口。
+                v10.15.0 合并的是下方四条**提醒**；上方的**入口**一直是三层：
+                今日重点四个、指挥台四个、再加下面四张统计卡。实测（生产，
+                owner）三层里有两个目的地各出现了三次——「查看今日课程」/
+                「今日排课」/统计卡「今日排课」是同一个页面，「处理待处理」/
+                「审核报名」也是。
+                删的是重复，不是能力：今日重点已经按角色排过一次，指挥台补它
+                没有的那两个（新建学员、充值结算），统计卡里的今日排课降为
+                纯数字。每个目的地在首屏出现一次。 */}
+            {(() => {
+                const inFocus = new Set((actionsByRole[actorRole] || actionsByRole.staff)
+                    .map(([key]) => key));
+                const deck = [
+                    canWriteAttendance && !inFocus.has('roster') &&
+                        ['roster', '今日排课', 'calendar', ()=>{setRDate(todayISO());setTab('roster');}, true],
+                    canWriteStudents &&
+                        ['new_student', '新建学员', 'plus', ()=>setTab('new_student'), false],
+                    allowedTabs.includes('pending') && !inFocus.has('pending') &&
+                        ['pending', '审核报名', 'clipboard', ()=>setTab('pending'), false],
+                    canWriteCredits &&
+                        ['topup', '充值结算', 'money', ()=>setTab('topup'), false],
+                ].filter(Boolean);
+                if (!deck.length) return null;
+                return (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {deck.map(([key, label, icon, go, light]) => (
+                            <button key={key} onClick={go}
+                                className={`${light ? 'bg-white text-indigo-800' : 'bg-indigo-600 border border-indigo-400'} rounded-xl py-2.5 text-xs font-bold min-h-[44px]`}>
+                                <span className="inline-flex items-center gap-1.5"><Icon name={icon} className="w-4 h-4"/>{label}</span>
+                            </button>
+                        ))}
+                    </div>
+                );
+            })()}
         </div>
     )}
     <div className="cms-kpi-grid">
         {[{l:'学员总数',      v:`${analytics.totalStudents} 人`,             c:'text-gray-800',    action:()=>{setSortBy('date-desc');setFilterBy('all');setTab('students');}},
           {l:'全部剩余课时',  v:`${analytics.totalBalance} 课时`,             c:'text-indigo-600',  action:()=>{setSortBy('bal-desc');setFilterBy('active');setTab('students');}},
-          {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:()=>setTab('roster')},
+          /* 今日排课在这一屏已经有入口了（今日重点或指挥台，二选一）。这里是
+             一个数字，不是第三扇通往同一页的门。 */
+          {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:null},
           canViewFinancialAnalytics
             ? {l:'历史总营收', v:`$${analytics.totalRevenue.toFixed(0)}`, c:'text-emerald-600', action:()=>setTab('stats')}
             : {l:'本月出勤', v:`${bizStats?.attended_month || 0} 人次`, c:'text-emerald-600', action:()=>setTab('roster')},
         ].map(({l,v,c,action})=>(
+            action ? (
             <button key={l} onClick={action}
                 className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 text-left w-full active:bg-indigo-50 transition">
                 <p className="text-gray-400 text-xs mb-1">{l} <span className="text-indigo-400">→</span></p>
                 <p className={`text-2xl font-bold ${c}`}>{v}</p>
             </button>
+            ) : (
+            <div key={l} className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 text-left w-full">
+                <p className="text-gray-400 text-xs mb-1">{l}</p>
+                <p className={`text-2xl font-bold ${c}`}>{v}</p>
+            </div>
+            )
         ))}
     </div>
     </div>

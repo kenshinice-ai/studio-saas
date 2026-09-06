@@ -7,6 +7,8 @@
 import { BalBadge, EmptyState, Icon, PhotoAvatar, PhotoUploader, REG_STATUS_ZH } from "../components.jsx";
 import { daysSince, fmtDT, fmtDate, mediaSrc, todayISO, v1Api } from "../components.jsx";
 import { FilterBar } from "./filter_bar.jsx";
+
+const { useMemo } = React;
 import { apiDateInputValue } from "./_shared.jsx";
 import { OverdueReports } from "./progress_reports.jsx";
 
@@ -278,7 +280,63 @@ export function PendingSection(props) {
         canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab,
         preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates,
         setPendingTab, setTab, showToast,
+        pendingBucket, setPendingBucket, pendingQuery, setPendingQuery,
     } = props;
+
+    /* 待处理是一个队列，不是一叠卡片。
+     *
+     * 前台每天要回答的是「今天该联系谁」，而这一页给的是「所有还没批准的申请」，
+     * 按提交时间排，一张卡完整展开。30 条申请里找出两条今天到期的，要靠滚动和
+     * 记忆——而跟进日期本来就存在服务端（见 test_registration_follow_up）。
+     *
+     * 这一版做筛选与排序，不重排卡片本身。把卡片折叠起来是一次重设计，需要先
+     * 拿低保真对比确认删掉的是重复入口而不是任务能力；而「今天到期的先出现、
+     * 能按状态筛、能按姓名电话搜」不需要等那个决定。 */
+    const pendingToday = todayISO();
+    const dueKey = (pen) => {
+        const raw = String(pen.nextFollowUpAt || '');
+        const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+        if (!raw) return '';
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${parsed.getFullYear()}-${pad(parsed.getMonth()+1)}-${pad(parsed.getDate())}`;
+    };
+    const pendingRows = useMemo(() => {
+        const needle = (pendingQuery || '').trim().toLowerCase();
+        const normalise = (value) => String(value || '').replace(/[\s\-()]+/g, '');
+        return (db.pending || [])
+            .filter(pen => {
+                const due = dueKey(pen);
+                if (pendingBucket === 'due'      && !(due && due <= pendingToday)) return false;
+                if (pendingBucket === 'uncontacted' && pen.status !== 'pending') return false;
+                if (pendingBucket === 'trial'    && pen.status !== 'trial_booked') return false;
+                if (!needle) return true;
+                const name = `${pen.firstName || ''}${pen.lastName || ''}`.toLowerCase();
+                return name.includes(needle)
+                    || normalise(pen.mobile).includes(normalise(needle));
+            })
+            /* 到期的先出现，其次是有日期的，最后是没安排跟进的。同一档内按提交
+               时间倒序，保持原来的顺序感。 */
+            .sort((a, b) => {
+                const da = dueKey(a), dbb = dueKey(b);
+                const rank = (d) => (d && d <= pendingToday) ? 0 : (d ? 1 : 2);
+                if (rank(da) !== rank(dbb)) return rank(da) - rank(dbb);
+                if (da && dbb && da !== dbb) return da < dbb ? -1 : 1;
+                return String(b.submittedAt || '').localeCompare(String(a.submittedAt || ''));
+            });
+    }, [db.pending, pendingBucket, pendingQuery, pendingToday]);
+    const pendingBuckets = useMemo(() => {
+        const all = db.pending || [];
+        const due = all.filter(pen => { const d = dueKey(pen); return d && d <= pendingToday; }).length;
+        return [
+            {key:'due',         label:'今天需跟进', count: due},
+            {key:'uncontacted', label:'未联系',     count: all.filter(p=>p.status==='pending').length},
+            {key:'trial',       label:'已约试听',   count: all.filter(p=>p.status==='trial_booked').length},
+            {key:'all',         label:'全部',       count: all.length},
+        ];
+    }, [db.pending, pendingToday]);
     return (
 <div className="anim space-y-4">
     <div className="flex items-start justify-between gap-3 flex-wrap"><div><h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待处理</h2><p className="text-sm text-gray-500 mt-1">新报名和约课申请共用一个收件箱，按业务类型分开处理。</p></div><span className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700">{pendingCount} 项等待处理</span></div>
@@ -361,7 +419,20 @@ export function PendingSection(props) {
             <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed">家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。</p>
         </div>
     )}
-    {(db.pending||[]).map(pen => {
+    {(db.pending||[]).length > 0 && (
+        <FilterBar
+            searchPlaceholder="搜索姓名或手机号"
+            query={pendingQuery} onQuery={setPendingQuery}
+            buckets={pendingBuckets} bucket={pendingBucket} onBucket={setPendingBucket}
+            total={pendingRows.length} totalNoun="条申请"/>
+    )}
+    {(db.pending||[]).length > 0 && pendingRows.length === 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <p className="font-bold text-gray-600">没有符合筛选的申请</p>
+            <p className="text-sm text-gray-400 mt-1">换一个分类，或清空搜索词。</p>
+        </div>
+    )}
+    {pendingRows.map(pen => {
         const fullName = pen.lastName ? `${pen.firstName} ${pen.lastName}` : pen.firstName;
         const normP = p => (p||'').replace(/[\s\-\(\)]+/g,'');
         /* 走查发现：同一手机号的重复待审申请（如同一家长提交两次）在列表里
@@ -386,6 +457,19 @@ export function PendingSection(props) {
                             return match.length > 0 ? <p className="inline-flex items-center gap-1.5 text-xs text-blue-500 mt-0.5"><Icon name="device" className="w-4 h-4"/>此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
                         })()}
                         <p className="text-xs text-gray-400 mt-0.5">提交时间: <span title={pen.submittedAt||''}>{fmtDT(pen.submittedAt)}</span> · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {REG_STATUS_ZH[pen.status||'pending']||pen.status}</p>
+                        {(() => {
+                            /* 到期状态摆在卡上，而不是只在筛选器里 —— 一屏里
+                               有三条时，得看得出哪条是今天的。 */
+                            const due = dueKey(pen);
+                            if (!due) return null;
+                            const overdue = due < pendingToday, today = due === pendingToday;
+                            return (
+                                <p className={`inline-flex items-center gap-1.5 text-xs mt-0.5 font-bold ${overdue ? 'text-red-600' : today ? 'text-amber-700' : 'text-gray-400'}`}>
+                                    <Icon name="clock" className="w-4 h-4"/>
+                                    {overdue ? `跟进已逾期 · ${fmtDate(due)}` : today ? '今天需要跟进' : `下次跟进 ${fmtDate(due)}`}
+                                </p>
+                            );
+                        })()}
                     </div>
                 </div>
 	                {preferenceRows(pen).length > 0 && (

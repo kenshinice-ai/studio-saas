@@ -310,7 +310,12 @@ function App() {
        dashboard is open for a role that can see billing — money must appear
        where the day starts, not only inside the invoice centre. */
     const [arSummary, setArSummary] = useState(null);
-    const [followUpDates, setFollowUpDates] = useState({}); // {registrationId: YYYY-MM-DD}
+    const [followUpDates, setFollowUpDates] = useState({});
+    /* 待处理队列的筛选状态放在 App 里，不放在面板里：处理完一条之后 load() 会
+       重建列表，面板重渲染——状态在面板内部的话，前台每处理一条就要重新筛一次
+       并滚回顶部，而这正是「队列」要解决的问题。 */
+    const [pendingBucket, setPendingBucket] = useState('due');
+    const [pendingQuery, setPendingQuery] = useState(''); // {registrationId: YYYY-MM-DD}
 
     // Package management state (settings)
     const [pkgEditId,  setPkgEditId]  = useState(null); // null=add new, number=editing id
@@ -3853,6 +3858,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
                             className="flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
                     </div>}
+                    {/* 产品自带一本 50 张双语截图的图解手册，章节标题就是上手
+                        路径（「先把官网立起来，再往里放人」「从一条咨询，到一份
+                        学员档案」），而全仓库只有定价页和营销站链过去——写给
+                        已付费操作员看的东西，只有还没买的人看得见入口。 */}
+                    <a href="/manual/" target="_blank" rel="noopener"
+                       className="flex items-center justify-center gap-1.5 rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]">
+                        <Icon name="scroll" className="w-4 h-4"/>使用手册
+                    </a>
                     <div className="text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span>已连接</span></div>
                     {/* 曾经是 `db.logs.length > 1000`——永真为假，因为同一份 db.logs 在服务端
      就被 LIMIT 500 封死了。写它的人以为日志是全量的，而经营月报当时正基于
@@ -3951,7 +3964,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='new_student' && <NewStudentSection {...{busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab}}/>}
 
 {/* ═══ PENDING ════════════════════════════════════════════════ */}
-{tab==='pending' && <PendingSection {...{advanceRegistration, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast}}/>}
+{tab==='pending' && <PendingSection {...{advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast}}/>}
 
 {/* ═══ TOPUP ══════════════════════════════════════════════════ */}
 {tab==='billing' && (
