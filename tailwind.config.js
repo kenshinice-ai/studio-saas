@@ -9,9 +9,10 @@
  * 这正是这个改动最危险的失败方式，也是 backend/tests/test_tailwind_build.py
  * 存在的理由——它把源码里出现过的每一个类名，拿去编译产物里找。
  *
- * `legacy-root/register.html` 刻意不在这里：它同样加载 Tailwind，但从不配置
- * 这份色板，用的是原版色阶加自己的 :root。把色板套上去会改变一个公开转化页的
- * 外观，那是另一次改动。它继续用 vendored 脚本。
+ * `legacy-root/register.html` 刻意不在这里，但**不再**是因为它还在用 vendored
+ * 脚本——v10.17.0 已经把它也搬到构建期了。它从不配置这份色板，用的是原版色阶
+ * 加自己的 :root，套上去会改变一个公开转化页的外观。所以它有自己的一份配置：
+ * tailwind.register.config.js，同一个构建脚本，原版色板。
  */
 const { colours } = require('./tailwind.colours.js');
 

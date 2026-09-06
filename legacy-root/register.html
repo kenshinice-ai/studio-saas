@@ -123,8 +123,6 @@
       .catch(() => {});
   })();
 </script>
-<!-- Pinned local vendor scripts: public pilot pages never execute third-party CDN fallbacks. -->
-<script src="/vendor/tailwindcss.js"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   button, input, select, textarea { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -205,6 +203,16 @@
   .port-thumb { touch-action:manipulation; cursor:pointer; }
   .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }
 </style>
+<!-- Tailwind, compiled at build time.
+     Until v10.17.0 this page loaded /vendor/tailwindcss.js — the 451KB Play CDN,
+     an in-browser JIT compiler, synchronously, on a public route a parent opens
+     on mobile data. It produced the 180 rules this file now ships as 17KB.
+
+     Position is load-bearing: the CDN appended its <style> AFTER the block above
+     (head children 13 then 14), so its utilities won every tie — which is why
+     every override up there is !important. This <link> must stay after </style>
+     for the cascade to be the one that shipped. -->
+<link rel="stylesheet" href="/assets/register-tailwind.css?v=__APP_VERSION__">
 </head>
 <body class="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen">
 

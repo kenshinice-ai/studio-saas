@@ -61,10 +61,29 @@ def _own_class_selectors() -> set[str]:
         names.update(selector.findall(path.read_text(encoding="utf-8")))
     # 外部样式表也要算：portal-theme.css / console-theme.css / ui-tokens.css 里
     # 定义的类（cms-roster-add、ui-golden-split、tenant-slogan…）同样是产品自己的。
+    #
+    # 但**任何一份 Tailwind 产物都不能算**，不只是 CMS 那一份。原来这里写的是
+    # `if sheet.name == CSS.name: continue`——一份写死的文件名。v10.17.0 给注册页
+    # 加了第二份 `register-tailwind.css`，它一落进 assets/ 就被这个 glob 收进
+    # 「产品自己的类」：豁免集从 772 涨到 933，**135 个 CMS 类名（bg-indigo-600、
+    # bg-white、flex、border、divide-y……）从此不再被检查**，而测试照常全绿。
+    # 一个瞎掉的门禁比没有门禁更糟，因为它还在发绿灯。
+    #
+    # 所以判据改成问内容：带 Tailwind preflight 指纹的表就是 Tailwind 产物，
+    # 不管它叫什么名字、将来又多出几份。
+    tailwind_fingerprint = "--tw-border-spacing-x"
+    skipped: list[str] = []
     for sheet in sorted((BACKEND_ROOT / "frontend" / "assets").glob("*.css")):
-        if sheet.name == CSS.name:
+        text = sheet.read_text(encoding="utf-8")
+        if tailwind_fingerprint in text:
+            skipped.append(sheet.name)
             continue
-        names.update(re.findall(r"\.([A-Za-z][\w-]*)", sheet.read_text(encoding="utf-8")))
+        names.update(re.findall(r"\.([A-Za-z][\w-]*)", text))
+    assert CSS.name in skipped, (
+        f"没能认出 {CSS.name} 是 Tailwind 产物（指纹 {tailwind_fingerprint!r} 没匹配上）。"
+        f"识别方式失效意味着豁免集会把整份工具类吞进去，这个门禁会静默失明。"
+        f"实际跳过的是：{skipped}"
+    )
     return names
 
 

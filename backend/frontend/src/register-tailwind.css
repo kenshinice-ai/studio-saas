@@ -1,0 +1,6 @@
+/* 与 cms-tailwind.css 同样的三层，顺序是 Tailwind 自己的规定。
+   base（preflight）必须留着：浏览器里的 Play CDN 注入的也是这三层，去掉它会让
+   注册页每一个 margin 和 list-style 悄悄变样。 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -247,7 +247,7 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | Privileged access | MFA/SSO is not implemented for privileged accounts | P0 before broader commercial scale |
 | Recovery | Backups and restore rehearsal pass, but off-instance copies and failure alerting are open | P0 before broader commercial scale |
 | Xero operations | One-way transport is live Beta; failures need operator review and must never be blindly replayed | P1 |
-| Vendor JS | Babel eliminated (CMS is esbuild-precompiled); only `/vendor/tailwindcss.js` still compiles Tailwind at runtime | P2-03 |
+| Vendor JS | Babel eliminated (CMS is esbuild-precompiled); `/vendor/tailwindcss.js` deleted in v10.17.0 — both consumers now ship a build-time sheet, so nothing compiles CSS in the browser | P2-03 |
 | Rate limiting | In-memory, per-process — resets on restart (pilot-acceptable; Redis at P3-04) | P3 |
 
 Resolved 2026-07-03 (P0 sprint): role model unification (platform admin = NULL-tenant membership), pytest infrastructure (20 tests), migration runner (`run_migrations.py`), repo hygiene (backend/ was previously untracked by git), login rate limiting + failure audits, route-protection audit (12 unauthenticated tenant GET reads fixed), enum alignment decisions. Earlier: public endpoint rate limiting, dict_row bugs, portfolio DELETE mapping, credit account ON CONFLICT key, HTML branding residue. Resolved later: `sw.js` "Let's Paint CMS" branding residue (P2-02).
