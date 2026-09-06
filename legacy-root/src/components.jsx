@@ -811,6 +811,25 @@ export function Icon({ name, className = 'w-5 h-5' }) {
     );
 }
 
+/* The printable growth report is a raw HTML string opened in a new window, so
+   React never renders it. `<Icon/>` there is an unknown element that draws
+   nothing — and, worse, HTML does not honour self-closing on unknown tags, so
+   `<Icon .../>` stayed OPEN and swallowed the label after it (measured:
+   `icon.textContent === "复制成长寄语"`). Five icons were invisible in the one
+   artefact of this product a parent ever holds.
+
+   Same Heroicon path, same table, emitted as markup an HTML parser understands:
+   hyphenated SVG attributes and an explicit pixel size, because that document
+   has no Tailwind to give `w-4 h-4` a meaning. */
+export function iconMarkup(name, size = 16) {
+    const path = ICON_PATHS[name];
+    if (!path) return '';
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none"`
+        + ` stroke="currentColor" stroke-width="1.6" stroke-linecap="round"`
+        + ` stroke-linejoin="round" style="flex-shrink:0" aria-hidden="true"`
+        + ` focusable="false"><path d="${path}"/></svg>`;
+}
+
 /* ═══════════════════ PHOTO UPLOADER ══════════════════════════ */
 export function PhotoUploader({ value, onChange, notify }) {
     const [uploading, setUploading] = useState(false);

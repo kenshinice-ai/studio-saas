@@ -27,8 +27,24 @@ from _cms_sources import cms_source_files  # noqa: E402
 
 
 def _strip_comments(text: str) -> str:
+    """Remove every comment form the CMS sources actually contain.
+
+    Three, not two. The HTML form was missing, and that omission had already
+    fooled an assertion in this very file: the growth report is built as an HTML
+    string, so a `<!-- … -->` inside it survived stripping, and
+    ``assert "RT.welcome" in report`` was satisfied by a COMMENT SAYING
+    ``RT.welcome`` — while the code below it hard-coded Chinese. Reverting the
+    call site left all three assertions green.
+
+    That is the fifth time this repository has been bitten by an assertion
+    firing on prose. `//` is anchored with ``[^\S\n]*`` rather than ``\s*``
+    because ``\s`` matches newlines, so the old pattern ate the blank lines
+    around a comment and could glue two unrelated constructs together.
+    """
+
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
     text = re.sub(r"\{?/\*.*?\*/\}?", "", text, flags=re.S)
-    return re.sub(r"^\s*//.*$", "", text, flags=re.M)
+    return re.sub(r"^[^\S\n]*//.*$", "", text, flags=re.M)
 
 
 def _source(marker: str) -> str:
@@ -196,10 +212,31 @@ def test_the_growth_report_is_written_in_one_language() -> None:
     """
 
     app = _source("const RT = rlang==='en'")
-    report = app[app.index("const RT = rlang==='en'"):][:6000]
-    for key in ("welcome", "joined", "tag"):
-        assert f"RT.{key}" in report, f"RT.{key} 定义了却没有任何地方用它"
-    hero = report[report.index('<div class="sub">'):][:400]
-    assert "已在 " not in hero and "欢迎加入 " not in hero, (
-        "hero 副标题不能写死中文——它旁边的每一句都跟着报告语言走"
+    #: 边界取「这份生成文档本身」，不取一个字符数窗口。原来写的是从 RT 定义起
+    #: 往后 6000 字符——把 RT 的定义往上挪 40 行，断言就悄悄滑出了它要检查的
+    #: 区域。窗口大小是测试的实现细节，不该是它的前提。
+    #: 从语言判定开始，到把文档写进新窗口为止——报告的每一块内容都在这中间
+    #: 组装（shareMsg、portHTML 这些先算进变量，再插进模板字符串）。
+    doc = app[app.index("const rlang = "):]
+    doc = doc[:doc.index("w.document.write(html)")]
+
+    #: 字典里定义了却没人调用的键，就是「写了但没接上」——词典看起来是全的，
+    #: 英文工作室发给家长的报告却夹着中文。逐个键去文档里找它的调用点。
+    dictionary = app[app.index("const RT = rlang==='en'"):]
+    dictionary = dictionary[:dictionary.index("\n        };")]
+    import re as _re
+    defined = set(_re.findall(r"^\s{12}(\w+)\s*:", dictionary, _re.M))
+    assert len(defined) >= 10, f"没解析出 RT 的键，解析方式过时了：{defined}"
+    uncalled = sorted(k for k in defined if f"RT.{k}" not in doc)
+    assert not uncalled, (
+        f"这些 RT 键定义了、零调用：{uncalled}。"
+        "报告在新窗口里打开，cms-i18n 的 DOM 翻译层够不到它，所以它自己带一份文案；"
+        "一个没接上的键 = 英文报告里的一句中文。"
     )
+
+    #: 文档正文里不许再有裸露的中文字面量。报告的每一句都必须来自 RT。
+    body = doc[doc.index("const html = `<!doctype html"):]
+    for literal in ("已在 ", "欢迎加入 ", "暂无", "复制寄语", "打印 / 存为", "复制失败"):
+        assert literal not in body, (
+            f"生成文档里写死了中文 {literal!r}——它旁边的每一句都跟着报告语言走"
+        )

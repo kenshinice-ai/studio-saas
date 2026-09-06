@@ -3555,6 +3555,11 @@
       /* @__PURE__ */ React.createElement("path", { d: path })
     );
   }
+  function iconMarkup(name, size = 16) {
+    const path = ICON_PATHS[name];
+    if (!path) return "";
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+  }
   function PhotoUploader({ value, onChange, notify }) {
     const [uploading, setUploading] = useState8(false);
     const handleFile = async (e) => {
@@ -8497,18 +8502,6 @@ ${lines.join("\n")}`, "日报已复制到剪贴板");
       const safeReportColor = (value, fallback) => /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value) : fallback;
       const reportAccent = safeReportColor(reportBrand.primary_color || reportBrand.primaryColor, "#b08d57");
       const reportAccentDark = safeReportColor(reportBrand.secondary_color || reportBrand.secondaryColor, "#6f5b3e");
-      const isNew = checkins.length === 0;
-      const teacherNote = String(s.reportNote || s.teacherNote || "").trim();
-      const shareMsg = isNew ? `欢迎 ${s.name} 加入 ${reportStudioName}！学习旅程刚刚启程，期待记录每一份成长与快乐。` : `${s.name} 在 ${reportStudioName} 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成${workNoun} ${port.length} 份。`;
-      const portHTML = port.length ? port.map((p) => `
-            <figure class="art">
-                <img src="${portfolioImgSrc(s.id, p)}" alt="作品"/>
-                <figcaption>${esc(p.note) || "　"}<span>${esc((p.date || "").split("-").reverse().join("/"))}</span></figcaption>
-            </figure>`).join("") : `<p class="empty">暂无${workNoun}记录 · 上传后报告会更精彩</p>`;
-      const barsHTML = months.map((m) => `
-            <div class="bar"><span class="bn">${m.n || ""}</span><div class="fill" style="height:${Math.max(3, Math.round(m.n / maxM * 76))}px"></div><span class="bl">${m.l}</span></div>`).join("");
-      const photoHTML = s.photo ? `<img class="avatar" src="${mediaSrc(s.photo)}" alt=""/>` : `<div class="avatar ph">${esc((s.name || "?").slice(0, 1))}</div>`;
-      const reportJoinText = reportBrand.category === "art" ? "艺术之旅刚刚启程" : "学习旅程刚刚启程";
       const rlang = (() => {
         try {
           return localStorage.getItem("studiosaas_admin_language") === "en" ? "en" : "zh";
@@ -8529,10 +8522,14 @@ ${lines.join("\n")}`, "日报已复制到剪贴板");
         generated: (d, n) => `Report generated ${d} · ${n}`,
         joined: (n, d, days2) => `${days2} days at ${n} · joined ${d}`,
         welcome: (n) => `Welcome to ${n}`,
-        emptyWorks: "No works recorded yet",
+        emptyWorks: (w2) => `No ${w2} recorded yet — the report gets richer once you upload some`,
         print: "Print / Save as PDF",
         copy: "Copy note",
-        copied: "✓ Copied"
+        copied: "✓ Copied",
+        copyFail: "Copy failed — press and hold to select",
+        share: (n, st) => `Welcome ${n} to ${st}! The journey has just begun, and we look forward to recording every step.`,
+        shareOn: (n, st, d, c, w2, noun) => `${n} has been learning at ${st} for ${d} days: ${c} lessons attended, ${w2} ${noun} completed.`,
+        workAlt: "Student work"
       } : {
         htmlLang: "zh",
         tag: "学员成长报告",
@@ -8546,11 +8543,27 @@ ${lines.join("\n")}`, "日报已复制到剪贴板");
         generated: (d, n) => `报告生成于 ${d} · ${n}`,
         joined: (n, d, days2) => `已在 ${n} 成长陪伴 <b>${days2}</b> 天 · 入学于 ${d}`,
         welcome: (n) => `欢迎加入 ${n}`,
-        emptyWorks: "暂无作品记录",
+        emptyWorks: (w2) => `暂无${w2}记录 · 上传后报告会更精彩`,
         print: "打印 / 存为 PDF",
         copy: "复制寄语",
-        copied: "✓ 已复制寄语"
+        copied: "✓ 已复制寄语",
+        copyFail: "复制失败，请长按选择",
+        share: (n, st) => `欢迎 ${n} 加入 ${st}！学习旅程刚刚启程，期待记录每一份成长与快乐。`,
+        shareOn: (n, st, d, c, w2, noun) => `${n} 在 ${st} 已经学习了 ${d} 天，累计上课 ${c} 次，完成${noun} ${w2} 份。`,
+        workAlt: "作品"
       };
+      const isNew = checkins.length === 0;
+      const teacherNote = String(s.reportNote || s.teacherNote || "").trim();
+      const shareMsg = isNew ? RT.share(s.name, reportStudioName) : RT.shareOn(s.name, reportStudioName, days, checkins.length, port.length, workNoun);
+      const portHTML = port.length ? port.map((p) => `
+            <figure class="art">
+                <img src="${portfolioImgSrc(s.id, p)}" alt="${esc(RT.workAlt)}"/>
+                <figcaption>${esc(p.note) || "　"}<span>${esc((p.date || "").split("-").reverse().join("/"))}</span></figcaption>
+            </figure>`).join("") : `<p class="empty">${esc(RT.emptyWorks(workNoun))}</p>`;
+      const barsHTML = months.map((m) => `
+            <div class="bar"><span class="bn">${m.n || ""}</span><div class="fill" style="height:${Math.max(3, Math.round(m.n / maxM * 76))}px"></div><span class="bl">${m.l}</span></div>`).join("");
+      const photoHTML = s.photo ? `<img class="avatar" src="${mediaSrc(s.photo)}" alt=""/>` : `<div class="avatar ph">${esc((s.name || "?").slice(0, 1))}</div>`;
+      const reportJoinText = reportBrand.category === "art" ? "艺术之旅刚刚启程" : "学习旅程刚刚启程";
       const html = `<!doctype html><html lang="${RT.htmlLang}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${esc(s.name)} · ${RT.tag} · ${esc(reportStudioName)}</title>
@@ -8591,7 +8604,7 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 .foot{text-align:center;padding:22px;color:#aba89f;font-size:12px}
 .foot .fslogan{font-family:'Snell Roundhand','Savoye LET','Brush Script MT',cursive;font-size:16px;color:var(--accent);margin-bottom:4px}
 .toolbar{max-width:760px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end}
-.toolbar button{border:0;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
+.toolbar button{border:0;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .b1{background:var(--accent-dark);color:#fff}.b2{background:#fffdf9;color:var(--accent-dark);border:1px solid #ddd0bb}
 /* The report is opened into a blank window, so the browser's own print header
    and footer stamped about:blank and a timestamp across a document a parent
@@ -8610,8 +8623,8 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.gallery{grid-template-columns:repeat(2,1fr)}.hero{padding:6px 22px 22px}.sec{padding:20px 22px}}
 </style></head><body>
 <div class="toolbar">
-  <button class="b2" id="copybtn" className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>复制成长寄语</button>
-  <button class="b1" onclick="window.print()" className="inline-flex items-center gap-1.5"><Icon name="printer" className="w-4 h-4"/>保存为 PDF / 打印</button>
+  <button class="b2" id="copybtn">${iconMarkup("clipboard")}<span id="copylabel">${esc(RT.copy)}</span></button>
+  <button class="b1" onclick="window.print()">${iconMarkup("printer")}<span>${esc(RT.print)}</span></button>
 </div>
 <div class="sheet">
   <div class="brandbar">
@@ -8623,9 +8636,6 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div>
       <span class="tag">${RT.tag}</span>
       <h1>${esc(s.name)}</h1>
-	      <!-- RT.welcome 和 RT.joined 上面定义好了，这一行却把中文写死了：英文
-	           工作室发给家长的报告，标题和统计栏是英文，独独这句副标题是中文。
-	           两个函数定义了、零调用——「写了但没接上」比没写更难被发现。 -->
 	      <div class="sub">${isNew ? `${esc(reportJoinText)} · ${RT.welcome(esc(reportStudioName))}` : RT.joined(esc(reportStudioName), fmtD(joinDate), days)}</div>
     </div>
   </div>
@@ -8636,15 +8646,15 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div class="stat"><div class="v">${isNew ? "—" : days}</div><div class="l">${RT.days}</div></div>
   </div>
   <div class="sec">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="trend" className="w-4 h-4"/>${RT.footprint(monthSpan)}</h2>
+    <h2>${iconMarkup("trend")}${RT.footprint(monthSpan)}</h2>
     <div class="chart">${barsHTML}</div>
   </div>
   <div class="sec gal">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/>${RT.gallery(port.length)}</h2>
+    <h2>${iconMarkup("image")}${RT.gallery(port.length)}</h2>
     <div class="gallery">${portHTML}</div>
   </div>
   ${teacherNote ? `<div class="sec">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="heart" className="w-4 h-4"/>${RT.note}</h2>
+    <h2>${iconMarkup("heart")}${RT.note}</h2>
     <div class="msg">${esc(teacherNote)}</div>
   </div>` : ""}
   <div class="foot">
@@ -8655,9 +8665,13 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 <script>
 /* C1+C2: 安全嵌入文本（不再用引号嵌套的内联 onclick）+ http 环境降级复制 */
 var MSG = ${JSON.stringify(shareMsg)};
+var COPIED = ${JSON.stringify(RT.copied)};
+var COPY_FAIL = ${JSON.stringify(RT.copyFail)};
 document.getElementById('copybtn').addEventListener('click', function(){
-  var btn = this;
-  var ok = function(){ btn.textContent = '✓ 已复制寄语'; };
+  /* Write to the label span, never to the button: setting the button's
+     textContent replaces its whole subtree and deletes the icon with it. */
+  var lbl = document.getElementById('copylabel');
+  var ok = function(){ lbl.textContent = COPIED; };
   var fallback = function(){
     try {
       var ta = document.createElement('textarea');
@@ -8665,8 +8679,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
       document.body.appendChild(ta); ta.focus(); ta.select();
       var done = document.execCommand('copy');
       document.body.removeChild(ta);
-      done ? ok() : (btn.textContent = '复制失败，请长按选择');
-    } catch(e) { btn.textContent = '复制失败，请长按选择'; }
+      done ? ok() : (lbl.textContent = COPY_FAIL);
+    } catch(e) { lbl.textContent = COPY_FAIL; }
   };
   if (navigator.clipboard && window.isSecureContext)
     navigator.clipboard.writeText(MSG).then(ok).catch(fallback);
