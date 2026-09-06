@@ -50,11 +50,20 @@
 3. `workspaces.stale` 只比租户名，看不见模板漂移。已补一条测试：模板里定义的每个
    函数都必须出现在每个租户产物里；用旧产物验证过它会红。
 
-### 已知门禁缺口（承自 v10.15.0，未修）
+### 已知门禁缺口 —— 已在 v10.17.0 修掉
 
-本机 `verify_local.sh` 在任何单一数据库配置下都无法全绿：超级用户 URL 让两条 RLS
-构造测试失败（它们要求受限角色）；换 `studiosaas_app` 则 xero 夹具大量失败。
-**对照实验确认未改动的 `main` 失败同样两条。** 这是既有缺口，需要单独一轮。
+（这一段保留原文所指的问题，结论已改。）本机 `verify_local.sh` 曾在任何单一数据库
+配置下都无法全绿。原因不在被测代码里：**应用侧的检查是以超级用户连库的**，而超级
+用户绕过 RLS，所以那两条隔离测试永远不可能通过。
+
+正确配置是生产用的那一套（属主 / 应用两个角色）：
+
+    STUDIOSAAS_DATABASE_URL=postgresql://studiosaas_app@localhost:5432/studiosaas_local_test
+    STUDIOSAAS_OWNER_DATABASE_URL=postgresql://$USER@localhost:5432/studiosaas_local_test
+
+`verify_local.sh` 现在自己发现受限角色，并且**拒绝退回 $USER**。实测
+`STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh` →
+`All checks passed`，`2394 passed, 41 skipped`。
 
 
 ### 部署后验收（生产实测，2026-09-06，经带审计的支持会话）
@@ -88,6 +97,59 @@
 本版新增的 `assert_width`（手机 Studio Admin 编辑区）因此**没有在生产上跑过**，
 它的证据来自本机对同一份样式表的 A/B 测量（375px：`34px 320px` → `375px`）。
 要在生产上跑，需要一份生产 showcase 的凭据，那属于另一次决定。
+
+## 上一版四层身份（v10.15.0，2026-09-03）
+
+| 层 | 精确事实 |
+|---|---|
+| Source | v10.15.0 运行提交 `50e89dfcf4dcd29ebdd374ab094a8018d3a15ced` 已推送到 `main`。CMS 密度与排列一轮（工作台合并、排课页分标签、`Tabs` 原语滚动、对话框统一）+ 对外页面材质三条 + `hero_shape` 上配色管线 + 8 个 CMS 页面进浏览器门禁。本机门禁：smoke `73 passed, 0 failed`、租户隔离 `254 passed, 0 failed`、两个控制台冒烟通过、preflight clear；pytest `2177 passed, 6 skipped` 另有 2 条 RLS 构造测试失败 —— **对照实验：未改动的 `main`（c53d625）以同一命令失败同样两条**，属本机数据库角色所致，见下方「已知门禁缺口」。**零迁移。** |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.15.0.tar.gz`，SHA-256 `11c45ffbe531f81297edd227aa31c6763f2af91d204f41a6c04b22a80a3a9635`；`BUILD_INFO commit=50e89dfcf4dcd29ebdd374ab094a8018d3a15ced`，mode=saas。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.15.0.tar.gz`，SHA-256 `109c7564d5c930cd968ed32eb7e86dfda9ba93057596ba47e85cfac404680946`；同一提交，mode=standalone。双包通过校验和、BUILD_INFO、入口、排除项与解包冒烟。 |
+| Production | `pwestudio.online` = **v10.15.0**，镜像 `studiosaas:10.15.0`；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 17.2%；内网与公网边缘各验一次。`http -> 301`、`https -> 200 tls=0 proto=2`。公开路由实测：`/`、`/lets-paint-showcase/`、`/…/register`、`/…/showcase`、`/…/timetable`、`/…/cms`、`/assets/paper-grain.webp` 全部 200。`hero_shape` 对存量租户仍解析为 `organic`（显式值胜出，零视觉变化）。**本版改了 `tenant-template/`，四个租户工作区已重新生成，线上 `workspaces.stale=0`。** |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260903T033024Z.dump` 及同名 manifest（deploy 自动产出）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后发现并修正：门禁自己有两处配置错误
+
+公网验收时 `/lets-paint-showcase/showcase.html` 与 `…/timetable.html` 返回 404。
+不是回归 —— 公开面契约给出的地址**没有扩展名**
+（`/v1/public/<slug>/surface` 的 `href` 就是 `/lets-paint-showcase/showcase`，
+实测 200）。`ui_matrix.yaml` 里这两条路径一直写着 `.html`，也就是说
+**矩阵里四个公开页面有两个从来没被真正检查过**，而它们的失败被当成了环境噪音。
+
+同一类的第二处：报名页刻意没有站点导航（只有品牌标记），nav 契约对它不成立，
+那 9 条断言一直在失败。改用通用那组（无横向溢出 + 触控区 ≥44px）。
+
+修正后：**226 条断言 27 失败 → 406 条断言 0 失败。**
+
+> 这两处修正是 `backend/scripts/` 下的开发工具配置，**不在已部署的运行包内**
+> （构建于第 6 步，运行提交 `50e89df`），也不影响任何运行时行为。
+
+### 本版做了什么（实测数字）
+
+| 面 | 结果 |
+|---|---|
+| 工作台 | 桌面 2243→**1284**（−43%）、手机 3410→**1870**（−46%）；顶层块 10→7 / 11→8。四条同类琥珀提醒条合并为一个「需要注意」区，「最近操作」722px 改为一行入口 |
+| 排课页 | 分「今日签到 / 排课设置」两个标签；面板 −83px、顶层块 5→3、**可见按钮 55→26**；新增整月展开（只存本地）与派生「未签到」 |
+| 设置页 | `Tabs` 原语补上选中项滚动：375px 下七个分区**全部可见**（原后四个被裁到视口外，深链看不出选中什么） |
+| 对话框 | CMS 最后一个裸 `window.confirm` 归零；未来日期签到与撤销签到的文案改为算术（`3 → 2 课时`） |
+| 门禁 | `ui_matrix.py` 新增会话与 CMS 断言，8 个 CMS 页面进矩阵，**226 条断言**；首次运行即抓到 8 个 <44px 触控区，并暴露出一条只列三个字面量的黑名单式断言（已改为规则） |
+| 对外页面 | `hero_shape` 新增 `auto` 跟随视觉风格（存量零变化，实测三租户）；深色带纸纹 soft-light `.14`（实测 6 色阶，带对照组）；课程分类水印；2px 阅读进度条 |
+
+### 已知门禁缺口（v10.16.0 时的记录 —— 三条里有两条是错的，已在 v10.17.0 修掉）
+
+原文说：换成 `studiosaas_app` 后 xero 夹具会产生 74 个错误，而且
+`connect()` 会优先用 `STUDIOSAAS_MIGRATION_DATABASE_URL`。**两条今天都不成立。**
+夹具早已改走 `_cms_sources.owner_connection`（18 个测试模块），读的是
+`STUDIOSAAS_OWNER_DATABASE_URL`；`connect()` 只读
+`STUDIOSAAS_DATABASE_URL` / `DATABASE_URL`。`verify_local.sh` 的 `env -u` 仍要
+保留，但理由不同：六个脚本在 import 时调用 `db.use_owner_connection()`，会用迁移串
+覆盖应用串，其中四个被测试 import。
+
+媒体那条是真的，原因也不是「worktree 只有 20 个目录」：`backend/media` 是未跟踪的
+运行时数据，而**数据库是跨 checkout 共享的**，所以在 worktree 里跑等于拿一份数据库
+从没写过的目录去对账。v10.17.0 让 gate 自己解析主 checkout 的媒体根并把路径打出来。
+
+`showcase.html` / `timetable.html` 在本 worktree 404 —— 未复核，仍属未知。
 
 ## 上一版四层身份（v10.15.0，2026-09-03）
 
