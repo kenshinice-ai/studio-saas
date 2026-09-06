@@ -337,6 +337,12 @@ COLOUR_UTILITY = re.compile(
 SHELL_OVERRIDE = re.compile(r'\[class\*="([a-zA-Z0-9\\/.-]+)"\]')
 
 
+#: 色板从 legacy-root/index.html 的运行时配置搬到了这里（v10.16.0）。
+#: 断言跟着它搬，而不是被删掉：它守的三件事（中性色随模式反转、角色色不反转、
+#: white 同时是卡片和填充按钮上的文字）与放在哪里无关。
+COLOUR_MAP = REPOSITORY_ROOT / "tailwind.colours.js"
+
+
 def test_the_cms_configures_tailwind_instead_of_patching_it() -> None:
     """The CMS runs the Tailwind Play CDN, which generates utilities in the
     browser from `tailwind.config`.
@@ -349,14 +355,21 @@ def test_the_cms_configures_tailwind_instead_of_patching_it() -> None:
     """
 
     shell = _read(CMS_SHELL)
-    assert "tailwind.config = config" in shell, "the generator is not configured"
+    colour_map = _read(COLOUR_MAP)
+    # v10.16.0: the generator no longer runs in the browser. The same map now
+    # feeds a build-time compile — configured, still not patched.
+    assert "/vendor/tailwindcss.js" not in re.sub(r"<!--.*?-->", "", shell, flags=re.S), (
+        "the CMS is loading the browser-side compiler again"
+    )
+    assert "cms-tailwind.css" in shell, "the compiled stylesheet is not linked"
+    assert "module.exports" in colour_map, "the colour map has no home"
     # Every family the source renders must be mapped.
     source = cms_source_text()
     families = set(re.findall(
         r"\b(?:bg|text|border|from|to|via|ring|divide|placeholder)-"
         r"(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|"
         r"teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b", source))
-    block = shell[shell.index("const colours = {"):]
+    block = colour_map[colour_map.index("const colours = {"):]
     block = block[:block.index("};")]
     missing = [f for f in families if not re.search(rf"\b{f}:", block)]
     assert not missing, f"families the CMS renders but the config never maps: {sorted(missing)}"
@@ -376,7 +389,7 @@ def test_the_neutral_ramp_inverts_and_the_role_ramps_do_not() -> None:
     bg-indigo-700 stayed a filled 0.378 and white-on-it measured 5.49:1.
     """
 
-    shell = _read(CMS_SHELL)
+    shell = _read(COLOUR_MAP)
     neutral = shell[shell.index("const neutral = {"):]
     neutral = neutral[:neutral.index("};")]
     # It inverts for free only if it is built from --bg and --ink, which swap.
@@ -404,7 +417,7 @@ def test_white_serves_both_the_card_and_the_label_on_a_fill() -> None:
 
     from studiosaas.presets import VISUAL_STYLE_PRESETS, style_theme
 
-    assert "white: 'var(--panel)'" in _read(CMS_SHELL)
+    assert "white: 'var(--panel)'" in _read(COLOUR_MAP)
     worst = min(
         _contrast(theme["panel_color"], theme["accent_color"])
         for key, preset in VISUAL_STYLE_PRESETS.items()

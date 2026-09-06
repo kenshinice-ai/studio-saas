@@ -179,123 +179,22 @@
           .catch(() => {});
       })();
     </script>
-    <!-- Pinned local vendor scripts: public pilot pages never execute third-party CDN fallbacks. -->
-    <script src="/vendor/tailwindcss.js"></script>
-    <script>
-    /* Configure the generator instead of patching its output.
-     *
-     * This is the Tailwind Play CDN: it generates utilities in the browser from
-     * `tailwind.config`. Until v8.4.2 the CMS instead carried 68 rules of
-     * `[class*="bg-indigo-"]` overrides trying to catch what the generator had
-     * already emitted. That layer reached 84 of the 154 colour utilities this
-     * app renders; the other 70 painted fixed Tailwind values no theme could
-     * touch. It is why the CMS has looked wrong in dark since the theme system
-     * existed, and why patching never converged: every new component brings
-     * new utilities that need new rules.
-     *
-     * The distinction the patch layer never made, and could not have:
-     *
-     *   THE NEUTRAL RAMP INVERTS WITH THE MODE. THE ROLE RAMPS DO NOT.
-     *
-     * `bg-gray-50` is a surface and `text-gray-900` is ink, and those two swap
-     * in dark. But `bg-red-600` is a red button in both modes, and
-     * `bg-indigo-700` — every filled action in this app, 保存 / 刷新 / 签到 /
-     * 退出登录 — is a deep brand slab carrying light text in both. A rule that
-     * flips everything breaks the buttons; a rule that flips nothing breaks the
-     * page. Only the neutral ramp flips, and it does so for free because it is
-     * built from --bg and --ink, which already swap.
-     *
-     * Steps that have a SOLVED token land on it exactly, so the contrast the
-     * generator asserts is the contrast the browser computes.
-     *
-     * Alpha modifiers (`bg-red-500/80`) cannot apply to a var() colour: they
-     * compile to an invalid value and the fill silently disappears. The six in
-     * cms-app.jsx were rewritten rather than supported here.
-     */
-    (function () {
-      const mix = (token, weight, base) =>
-        'color-mix(in srgb, var(' + token + ') ' + weight + '%, var(' + base + '))';
-
-      /* Neutral: the page at one end, the ink at the other. */
-      const neutral = {
-        50:  'var(--bg2)',
-        100: 'var(--surface-hover)',
-        200: 'var(--line)',
-        300: 'var(--line-strong)',
-        400: 'var(--disabled-text)',
-        500: 'var(--muted)',
-        600: 'var(--muted)',
-        700: 'var(--ink2)',
-        800: 'var(--ink)',
-        900: 'var(--ink)',
-        950: 'var(--ink)',
-      };
-
-      /* A role: quiet tint, its border, the solid fill, then hover and pressed
-         — which the generator already moves in the mode-correct direction, so a
-         filled button stays a filled button in dark. */
-      const role = (base) => ({
-        50:  'var(--' + base + '-soft)',
-        100: 'var(--' + base + '-soft)',
-        200: 'var(--' + base + '-border)',
-        300: 'var(--' + base + '-border)',
-        400: mix('--' + base, 70, '--' + base + '-soft'),
-        500: 'var(--' + base + ')',
-        600: 'var(--' + base + ')',
-        700: 'var(--' + base + ')',
-        800: 'var(--' + base + '-hover, var(--' + base + '))',
-        900: 'var(--' + base + '-pressed, var(--' + base + '))',
-        950: 'var(--' + base + '-pressed, var(--' + base + '))',
-      });
-
-      /* Twelve Tailwind families, six roles. Read off what each is used FOR in
-         the source rather than by hue: purple marks media and permissions
-         (info), pink and rose mark birthdays (the support colour), orange marks
-         churn risk and top-ups (warning). */
-      const accent = role('accent');
-      const colours = {
-        /* A card, and the label on a filled button. --panel clears 4.5:1 on
-           every accent across all 16 theme-modes (worst 5.10, arcade-lime
-           dark), so one value serves both and 183 -white utilities need no
-           source change. */
-        white: 'var(--panel)',
-        black: 'var(--ink)',
-        gray: neutral, slate: neutral, zinc: neutral,
-        neutral: neutral, stone: neutral,
-        indigo: accent, violet: accent, fuchsia: accent,
-        red: role('danger'),
-        rose: role('accent-2'), pink: role('accent-2'),
-        amber: role('warning'), orange: role('warning'), yellow: role('warning'),
-        green: role('success'), emerald: role('success'),
-        teal: role('success'), lime: role('success'),
-        blue: role('info'), sky: role('info'), cyan: role('info'),
-        purple: role('info'),
-      };
-
-      /* Apply once the generator is really there.
-         Two earlier attempts failed, and both are worth recording because the
-         documented Play CDN pattern does not hold for this vendored build:
-           1. `<script src>` then `tailwind.config = ...` — the build installs
-              window.tailwind AFTER the tag returns, so the assignment landed on
-              a placeholder that was replaced; config read back {}.
-           2. Defining window.tailwind through a getter/setter first — the build
-              installs its own descriptor, discarding ours.
-         Assigning once the object exists does work: measured in the browser,
-         bg-indigo-700 went from stock #4338CA to var(--accent) and the JIT
-         regenerated every affected rule. apply() runs synchronously first, so
-         the common case costs nothing. */
-      const config = { theme: { extend: { colors: colours } } };
-      const apply = function () {
-        if (!window.tailwind) return false;
-        window.tailwind.config = config;
-        return !!(window.tailwind.config && window.tailwind.config.theme);
-      };
-      if (!apply()) {
-        const timer = setInterval(function () { if (apply()) clearInterval(timer); }, 8);
-        setTimeout(function () { clearInterval(timer); }, 5000);
-      }
-    })();
-    </script>
+    <!-- Tailwind, compiled at build time.
+         Until v10.16.0 this was `<script src="/vendor/tailwindcss.js">` — the
+         Tailwind Play CDN, a 451KB CSS compiler that ran in the browser,
+         synchronously, ahead of React. A teacher opening the CMS on 4G in a
+         doorway downloaded it, waited for it to turn class names into CSS, and
+         only then did React begin to mount. The compiled sheet is 35KB.
+         The colour map that points every utility at a theme token moved to
+         tailwind.colours.js unchanged, and is read by tailwind.config.js.
+         Measured class by class against the old runtime output before the
+         swap: every utility resolves identically, except the thirteen carrying
+         an opacity modifier — which had never resolved to anything at all,
+         including the `bg-black/50` behind every dialog in this console.
+         `legacy-root/register.html` still loads the vendored script: it uses
+         stock Tailwind colours and never configured this map, so moving it is
+         a separate change to a public conversion page. -->
+    <link rel="stylesheet" href="/assets/cms-tailwind.css?v=__APP_VERSION__">
     <script src="/vendor/react.production.min.js"></script>
     <script src="/vendor/react-dom.production.min.js"></script>
     <!-- A3: JSX is precompiled at build time (backend/scripts/build_cms.sh); no in-browser Babel. -->

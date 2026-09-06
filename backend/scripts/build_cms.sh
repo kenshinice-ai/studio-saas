@@ -58,4 +58,27 @@ run_esbuild "$SRC" \
   --outfile="$OUT"
 
 echo "built $(wc -l < "$OUT" | tr -d ' ') lines -> ${OUT#$ROOT/}"
+
+# ── Tailwind, at build time ──────────────────────────────────────────────
+# The CMS used to ship the Play CDN: a 451KB compiler that turned class names
+# into CSS in the browser, synchronously, ahead of React. This produces the same
+# rules as a 35KB file.
+#
+# The version is pinned to the one the vendored compiler was (3.4.16) so the
+# output is the same generator's, not a newer one's. `--content` lives in
+# tailwind.config.js; missing a path there does not fail, it silently drops the
+# classes only that path uses — which is what backend/tests/test_tailwind_build.py
+# is for.
+PINNED_TAILWIND="3.4.16"
+TW_IN="$ROOT/backend/frontend/src/cms-tailwind.css"
+TW_OUT="$ROOT/backend/frontend/assets/cms-tailwind.css"
+if (cd "$ROOT" && npx --no-install tailwindcss --help >/dev/null 2>&1); then
+  TAILWIND_CMD=(npx --no-install tailwindcss)
+else
+  TAILWIND_CMD=(npx --yes "tailwindcss@$PINNED_TAILWIND")
+fi
+(cd "$ROOT" && "${TAILWIND_CMD[@]}" -c tailwind.config.js -i "$TW_IN" -o "$TW_OUT" --minify) \
+  || { echo "tailwind build failed" >&2; exit 1; }
+echo "built $(wc -c < "$TW_OUT" | tr -d ' ') bytes -> backend/frontend/assets/cms-tailwind.css"
+
 python3 "$ROOT/backend/scripts/build_asset_manifest.py"

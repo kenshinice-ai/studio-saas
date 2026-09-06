@@ -1,0 +1,6 @@
+/* Tailwind 的三层，顺序是它自己的规定。
+   Play CDN 注入的也是这三层，所以保留 base（preflight）是为了让编译期产物与
+   之前运行时的行为一致——去掉它会让每一个 margin 和 list-style 悄悄变样。 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

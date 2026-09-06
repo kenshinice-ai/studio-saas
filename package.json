@@ -2,9 +2,10 @@
   "name": "studiosaas-build-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Pinned build toolchain for StudioSaaS. esbuild produces deterministic browser bundles; Three.js powers the optional product-home spatial scene. Install with `npm ci`.",
+  "description": "Pinned build toolchain for StudioSaaS. esbuild produces deterministic browser bundles; tailwindcss compiles the CMS stylesheet that used to be generated in the browser; Three.js powers the optional product-home spatial scene. Install with `npm ci`.",
   "devDependencies": {
     "esbuild": "0.25.12",
+    "tailwindcss": "3.4.16",
     "three": "0.185.1"
   }
 }
