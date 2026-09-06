@@ -109,6 +109,11 @@
     input:focus, textarea:focus { outline:2px solid var(--focus-ring); outline-offset:2px; border-color:var(--clay); }
     textarea { resize:vertical; min-height:76px; }
     .hint { color:var(--muted); font-size:12px; margin-top:6px; }
+    /* 字段级报错。约课表单以前只有上面那条 .form-error 概括句，而同一个产品的
+       快速报名页早就会标出具体字段并聚焦第一个错的。 */
+    .field-error { margin:5px 0 0; color:var(--on-danger-soft); font-size:13px; }
+    .book-form input[aria-invalid="true"], .book-form textarea[aria-invalid="true"] { border-color:var(--danger); }
+    #bookForm input[aria-invalid="true"], #bookForm textarea[aria-invalid="true"] { border-color:var(--danger); }
     .form-error { display:none; margin-bottom:12px; padding:10px 12px; border:1px solid var(--danger-border); border-radius:var(--radius); background:var(--danger-soft); color:var(--on-danger-soft); font-size:13px; }
     .form-ok { padding:14px; border:1px solid var(--success-border); border-radius:var(--radius); background:var(--success-soft); color:var(--on-success-soft); font-size:14px; }
     .btn-quiet { min-height:var(--tap-min); padding:8px 18px; border:1px solid var(--line-strong); border-radius:var(--radius-pill); background:transparent; color:var(--ink); font:inherit; font-size:13px; cursor:pointer; }
@@ -415,6 +420,7 @@
       document.getElementById('bookFor').textContent =
         `${formatDate(data.date)} · ${data.start} · ${data.title}`;
       document.getElementById('bookError').style.display = 'none';
+      clearBookingFieldErrors();
       document.getElementById('bookDone').hidden = true;
       document.getElementById('bookFields').hidden = false;
       document.getElementById('bookSubmit').hidden = false;
@@ -429,14 +435,49 @@
     }
     document.getElementById('bookClose').addEventListener('click', closeBooking);
 
+    function clearBookingFieldErrors() {
+      document.querySelectorAll('#bookForm [aria-invalid="true"]').forEach((el) => {
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('aria-describedby');
+      });
+      document.querySelectorAll('#bookForm .field-error').forEach((el) => el.remove());
+    }
+    function failFirstBookingField(checks) {
+      let first = null;
+      checks.forEach((check) => {
+        if (!check.el || check.ok()) return;
+        check.el.setAttribute('aria-invalid', 'true');
+        const note = document.createElement('p');
+        note.className = 'field-error';
+        note.id = `${check.el.id}-err`;
+        note.textContent = check.message;
+        /* 关联到字段本身，读屏才会念出「为什么无效」，而不只是「无效」。 */
+        check.el.setAttribute('aria-describedby', note.id);
+        check.el.parentElement.appendChild(note);
+        if (!first) first = check.el;
+      });
+      if (first) first.focus();
+      return first;
+    }
+
     document.getElementById('bookForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!booking) return;
       const name = document.getElementById('bookName').value.trim();
       const phone = document.getElementById('bookPhone').value.trim();
       const error = document.getElementById('bookError');
-      if (!name || !phone) {
-        error.textContent = T('请填写学员全名和手机号码。', 'Please enter the full name and a mobile number.');
+      /* 空提交以前只写一句概括，焦点停在提交按钮上，两个输入框没有任何标记。
+         实测对照：快速报名 focus=firstName、invalid=3；这里 focus=bookSubmit、
+         invalid=0。同一个产品的两条入口，只有一条做对了。 */
+      clearBookingFieldErrors();
+      const missing = failFirstBookingField([
+        { el: document.getElementById('bookName'), ok: () => Boolean(name),
+          message: T('请填写学员全名。', 'Please enter the full name.') },
+        { el: document.getElementById('bookPhone'), ok: () => Boolean(phone),
+          message: T('请填写手机号码。', 'Please enter a mobile number.') },
+      ]);
+      if (missing) {
+        error.textContent = T('请补上标红的项目。', 'Please complete the highlighted fields.');
         error.style.display = 'block';
         return;
       }
@@ -454,7 +495,16 @@
           }),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || T('提交失败，请稍后再试。', 'Could not send the request.'));
+        /* data.error 是给程序读的机器码。它排在第一位，所以服务端返回
+           `validation_error` 时，家长屏幕上出现的就是 validation_error 这个词
+           （实测）。顺序改成：可读的 message → 当前语言的兜底句；机器码永远
+           不上屏。 */
+        if (!response.ok) {
+          const readable = (data && typeof data.message === 'string' && data.message.trim())
+            ? data.message.trim()
+            : T('提交失败，请稍后再试。', 'Could not send the request.');
+          throw new Error(readable);
+        }
 
         /* Two honest sentences rather than one reassuring one. A parent who
            can see "1 place left" and sends the fourth request deserves to know

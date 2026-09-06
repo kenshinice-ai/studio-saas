@@ -534,11 +534,23 @@
   .fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--clay)}
   .fld input:disabled,.fld textarea:disabled,.fld select:disabled{background:var(--disabled-surface);color:var(--disabled-text);cursor:not-allowed}
   .form-note{font-size:13px;color:var(--ink2);margin-top:8px}
+  .join-course{display:inline-flex;align-items:center;gap:10px;margin-top:13px;padding:8px 16px;
+               border-radius:999px;background:var(--tenant-primary-soft);color:var(--ink);font-size:15px}
+  .join-course .linklike{background:none;border:0;padding:0;font:inherit;font-size:13px;
+                         color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer;min-height:auto}
   .form-note a{color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer}
-  /* P2-2: #surfaceStatus used to render underneath the 74px fixed nav, so the
-     one message telling the visitor the page is degraded was invisible. It is
-     now a dismissible stack that clears the nav. */
-  .surface-status{position:fixed;left:0;right:0;top:74px;z-index:45;display:grid;gap:1px;pointer-events:none}
+  /* P2-2 fixed an invisible banner by making it a fixed, dismissible stack —
+     and overshot: five data sources meant five stacked notes at top:74px,
+     covering the studio's name and pushing the hero heading out of view. The
+     first thing a parent saw was five English technical errors on a page that
+     was, in fact, usable: the register button worked, all static content was
+     there.
+     v10.16.0: one note, in normal flow. It takes space under the nav instead
+     of painting over the content, which is what the public timetable's
+     degradation line has always done — the good pattern was in the product,
+     it just was not reused here. */
+  .surface-status{display:none}
+  .surface-status.is-on{display:block;position:relative;z-index:1}
   .surface-status .note{display:flex;align-items:center;gap:12px;justify-content:center;padding:10px 20px;font-size:13px;pointer-events:auto;border-radius:0;border-left:0;border-bottom:3px solid var(--warning)}
   .surface-status .note button{background:none;border:0;color:inherit;cursor:pointer;font-size:16px;line-height:1;width:32px;height:32px;flex-shrink:0}
   /* The card inverts the page: ink surface, page-background text. That pair is
@@ -821,6 +833,12 @@
         <p class="eyebrow" data-en="Enrolment Enquiry">预约体验 · 报名咨询</p>
         <h2 id="joinTitle" class="serif" data-en="Tell us a little about the student">告诉我们学员的基本情况</h2>
         <p id="joinIntro" data-en="A few details is all we need. The teacher will call you personally to work out which class and time suit the student best.">留下几行信息，老师会亲自与您联系，帮您找到最合适的班型与时间。</p>
+        <!-- 从某张课程卡点进来时，把那门课摆在最上面。措辞是「你正在咨询」而
+             不是「已为你保留」——这一步只是一条咨询，不是席位。 -->
+        <p id="joinCourse" class="join-course" style="display:none">
+          <span id="joinCourseText"></span>
+          <button type="button" id="joinCourseClear" class="linklike"></button>
+        </p>
       </div>
       <!-- P1-1: a real <form>. Without it the phone keyboard's 「前往」 key did
            nothing, `required` was decorative and there was no native validation.
@@ -1060,7 +1078,7 @@
     refreshPublicSurfaceContract();
     window.StudioSaaS.publicSurface.clearLoading();
     console.warn('Public surface contract unavailable.', error);
-    showSurfaceStatus('surface', T('导航状态暂时无法确认；页面已按当前内容安全显示。','Navigation status could not be confirmed; the page is showing only locally ready content.'));
+    showSurfaceStatus('surface', refreshPublicSurfaceContract);
   });
 
   /* ── i18n ──
@@ -1170,7 +1188,17 @@
   }
   function setLang(l){
     window.LANG = l==='en' ? 'en' : 'zh';
-    try{ var r=document.getElementById('m-result'); if(r && r.style.display!=='none'){ resetMyView(); } }catch(e){}
+    /* 这里原来调的是 resetMyView()：家长查完课时、切一次英文，结果整块消失，
+       回到查询表单。姓名和访问码还在、会话也没失效——只是界面语言变了，而这
+       一步把「换语言」当成了「退出」。现在按新语言重画同一份结果。 */
+    try{
+      var r=document.getElementById('m-result');
+      if(r && r.style.display!=='none'){
+        if(lastStudentResult) renderStudentPrivate(lastStudentResult);
+        else resetMyView();
+      }
+    }catch(e){}
+    try{ renderSelectedCourse(); }catch(e){}
     document.documentElement.lang = lang()==='en' ? 'en' : 'zh-CN';
     try{ localStorage.setItem('pwe_lang_'+SLUG, lang()); }catch(e){}
     /* Keep the address bar in step so the visitor can share what they see, and
@@ -1255,26 +1283,109 @@
     setMobileNav(open);
     if(open){ var first=menu.querySelector('a'); if(first) first.focus(); }
   }
-  /* P2-2: one shared banner meant three independent failures overwrote each
-     other, none could be dismissed, and it rendered underneath the 74px fixed
-     nav where nobody saw it. Each source now owns a dismissible note. */
-  function showSurfaceStatus(source, message){
+  /* 降级提示：一条，不是五条；而且用户什么都不用做。
+     每个数据源各挂一条可关闭的横幅，是 P2-2 为了解决「唯一那条藏在导航后面」
+     留下的做法。方向对，落点错了——五个源就是五条，叠在 top:74px 的固定层里，
+     把工作室名字划断、把 hero 标题顶出视口。而这五条里没有一条提供「重试」。
+     现在：合并成一条，退避重试三次，成功了自己消失。用户什么都不用做，才是
+     这里的正确交互。 */
+  var surfaceFailures = Object.create(null);
+  var surfaceRound = 0;
+  var surfaceTimer = null;
+  var SURFACE_BACKOFF = [1500, 4000, 9000];
+
+  try{
+    var bootCourse=new URL(window.location.href).searchParams.get('course');
+    if(bootCourse) selectedCourse=String(bootCourse);
+  }catch(e){}
+
+  function renderSurfaceStatus(){
     var box=document.getElementById('surfaceStatus'); if(!box) return;
-    var existing=box.querySelector('[data-status-source="'+source+'"]');
-    if(existing) existing.remove();
+    var pending=Object.keys(surfaceFailures);
+    while(box.firstChild) box.removeChild(box.firstChild);
+    if(!pending.length){ box.classList.remove('is-on'); return; }
+    box.classList.add('is-on');
+    var trying = surfaceRound < SURFACE_BACKOFF.length;
     var note=document.createElement('div');
     /* brand-status carries the theme's own warning colour (brand-system.css:98)
-       instead of the fixed warm yellow this band used to paint, which showed as
-       a light foreign strip across the top of every dark theme. */
-    note.className='note brand-status'; note.dataset.tone='warning'; note.dataset.statusSource=source;
-    var text=document.createElement('span'); text.textContent=message;
-    var close=document.createElement('button');
-    close.type='button'; close.textContent='×';
-    close.setAttribute('aria-label', T('关闭提示','Dismiss'));
-    close.onclick=function(){ note.remove(); };
-    note.appendChild(text); note.appendChild(close);
+       instead of a fixed warm yellow, which showed as a light foreign strip
+       across the top of every dark theme. */
+    note.className='note brand-status'; note.dataset.tone='warning';
+    var text=document.createElement('span');
+    text.textContent = trying
+      ? T('部分内容暂时无法加载，正在重试…',
+          'Some of this page did not load. Retrying…')
+      : T('部分内容暂时无法加载。这一页的其余部分可以正常使用。',
+          'Some of this page could not be loaded. Everything else works normally.');
+    note.appendChild(text);
+    if(!trying){
+      var again=document.createElement('button');
+      again.type='button'; again.textContent=T('重试','Retry');
+      again.onclick=function(){ surfaceRound=0; runSurfaceRetries(); };
+      note.appendChild(again);
+    }
     box.appendChild(note);
   }
+
+  function runSurfaceRetries(){
+    surfaceTimer=null;
+    var pending=Object.keys(surfaceFailures);
+    if(!pending.length){ renderSurfaceStatus(); return; }
+    surfaceRound++;
+    renderSurfaceStatus();
+    pending.forEach(function(source){
+      var again=surfaceFailures[source];
+      if(typeof again==='function'){ try{ again(); }catch(e){} }
+    });
+    scheduleSurfaceRetry();
+  }
+
+  function scheduleSurfaceRetry(){
+    if(surfaceTimer) return;
+    if(surfaceRound >= SURFACE_BACKOFF.length) return;
+    if(!Object.keys(surfaceFailures).length) return;
+    surfaceTimer=setTimeout(runSurfaceRetries, SURFACE_BACKOFF[surfaceRound]);
+  }
+
+  /* `retry` 是这个源自己的加载函数。它成功时会调 clearSurfaceStatus，
+     所以一条一条恢复，不需要整页刷新。 */
+  function showSurfaceStatus(source, retry){
+    surfaceFailures[source] = (typeof retry==='function') ? retry : null;
+    renderSurfaceStatus();
+    scheduleSurfaceRetry();
+  }
+
+  /* 选中的课程。存在 URL 的查询串里而不是只存内存：家长在报名页切一次语言、
+     或者点回退再点进来，页面会重绘，而「我问的是哪门课」不该因此消失。
+     刻意不改公开报名接口的形状——这一版把它写进用户看得见的咨询内容里，
+     等真需要按课程统计转化时再设计结构化字段。 */
+  var selectedCourse = '';
+  function setSelectedCourse(name){
+    selectedCourse = String(name || '');
+    try{
+      var url=new URL(window.location.href);
+      if(selectedCourse) url.searchParams.set('course', selectedCourse);
+      else url.searchParams.delete('course');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }catch(e){}
+    renderSelectedCourse();
+  }
+  function renderSelectedCourse(){
+    var row=document.getElementById('joinCourse');
+    var text=document.getElementById('joinCourseText');
+    var clear=document.getElementById('joinCourseClear');
+    if(!row||!text||!clear) return;
+    if(!selectedCourse){ row.style.display='none'; return; }
+    row.style.display='inline-flex';
+    text.textContent = T('你正在咨询：','Enquiring about: ') + selectedCourse;
+    clear.textContent = T('换一门','Change');
+    clear.onclick=function(){ setSelectedCourse(''); };
+  }
+
+  function clearSurfaceStatus(source){
+    if(source in surfaceFailures){ delete surfaceFailures[source]; renderSurfaceStatus(); }
+  }
+
   /* One implementation, in public-surface.js, because all four public pages
      load it and all four grew the same header. See the note there for why the
      row is measured rather than assigned a breakpoint. */
@@ -1803,9 +1914,10 @@
       }
       renderShowcase(state.brand);
       refreshPublicSurfaceContract();
+      clearSurfaceStatus('showcase');
       return d;
     }).catch(function(){
-      showSurfaceStatus('showcase', T('工作室作品暂时无法加载，请稍后重试。','Selected work is temporarily unavailable. Please try again later.'));
+      showSurfaceStatus('showcase', function(){ return loadShowcase(category, offset); });
     });
   }
   function tenantLogoValue(brand){
@@ -1892,6 +2004,12 @@
       var cta=document.createElement('a');
       cta.className='cbtn'; cta.href='#join';
       cta.dataset.analyticsLabel='course_card';
+      /* 每张课程卡的报名按钮以前都只是 `#join`，于是点「钢琴一对一 · 报名」
+         和点页脚的通用报名到达的是同一张空表单：URL、标题、字段里都没有他
+         刚看了两分钟的那门课。家长以为工作室知道，工作室并不知道，于是前台
+         第一句话永远是「请问您想问哪门课」。 */
+      cta.dataset.course = p.name || '';
+      cta.onclick=function(){ setSelectedCourse(p.name || ''); };
       cta.textContent=T('报名 →','Enrol →');
       card.appendChild(cta);
       grid.appendChild(card);
@@ -1961,7 +2079,8 @@
      its own copy until v8.9.0, as did the register page, and the two had
      already drifted on `accent_color`. */
   var applyVisualTheme = window.StudioSaaS.applyVisualTheme;
-  fetch(API + '/brand').then(function(r){return r.json();}).then(function(d){
+  function loadBrand(){
+  return fetch(API + '/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
     state.brand=b;
     /* On the FIRST paint, not only when the language is switched — the notice
@@ -2078,20 +2197,31 @@
     if(String(website.show_faq ?? website.showFaq ?? true) !== 'false') renderFaq(b.faqItems||b.faq_items||[]);
     renderContactRows(b);
     refreshPublicSurfaceContract();
-  }).catch(function(){ showSurfaceStatus('brand', T('品牌资料暂时无法加载，页面正使用默认内容。','Brand details are temporarily unavailable; default content is shown.')); });
+    clearSurfaceStatus('brand');
+  }).catch(function(){ showSurfaceStatus('brand', loadBrand); });
+  }
+  loadBrand();
 
   /* ── programs → course grid ── */
-  fetch(API + '/programs').then(function(r){return r.json();}).then(function(d){
-    renderPrograms((d&&d.programs)||[]);
-  }).catch(function(){ showSurfaceStatus('programs', T('课程资料暂时无法加载，请稍后重试。','Course details are temporarily unavailable. Please retry later.')); });
+  function loadPrograms(){
+    return fetch(API + '/programs').then(function(r){return r.json();}).then(function(d){
+      renderPrograms((d&&d.programs)||[]);
+      clearSurfaceStatus('programs');
+    }).catch(function(){ showSurfaceStatus('programs', loadPrograms); });
+  }
+  loadPrograms();
 
   /* ── the studio's own work (its own endpoint since v8.7.0) ── */
   loadShowcase('', 0);
 
   /* ── public gallery ── */
-  fetch(API + '/gallery').then(function(r){return r.json();}).then(function(d){
-    renderGallery((d&&d.items)||[]);
-  }).catch(function(){ showSurfaceStatus('gallery', T('公开'+state.workNoun.zh+'墙暂时无法加载。','The public gallery is temporarily unavailable.')); });
+  function loadGallery(){
+    return fetch(API + '/gallery').then(function(r){return r.json();}).then(function(d){
+      renderGallery((d&&d.items)||[]);
+      clearSurfaceStatus('gallery');
+    }).catch(function(){ showSurfaceStatus('gallery', loadGallery); });
+  }
+  loadGallery();
 
   /* ── field-level validation (P2-8) ──
      A ten-field form used to report every problem as one sentence in the middle
@@ -2181,6 +2311,8 @@
     err.style.display='none';
     var btn=el('j-btn'); btn.disabled=true; btn.textContent=T('提交中…','Submitting…');
     var msgParts=[];
+    /* 排在最前面：前台看这条留言的第一眼就该知道他问的是哪门课。 */
+    if(selectedCourse) msgParts.push(T('咨询课程: ','Course: ')+selectedCourse);
     var audience=v('j-audience');
     if(audience) msgParts.push(T('报名对象: ','For: ')+audience);
     msgParts=msgParts.concat(custom.values);
@@ -2216,6 +2348,7 @@
 
   /* ── 学员专区 → tenant-bound HttpOnly student session ── */
   function resetMy(){
+    lastStudentResult = null;   /* 明确退出才清空 */
     fetch(API + '/student/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'StudioSaaS'}}).catch(function(error){ console.warn('Student logout request failed.',error); });
     document.getElementById('m-result').style.display='none';
     document.getElementById('myForm').style.display='block';
@@ -2271,7 +2404,11 @@
     var el=document.getElementById('m-nomatch-copy');
     return el ? el.textContent : T('无法验证这些资料。','The details could not be verified.');
   }
+  var lastStudentResult = null;
   function renderStudentPrivate(res){
+    /* 记住这一次的查询结果。切换语言时要重画它，而不是把它藏起来让家长再查
+       一遍——凭据还在、会话也没过期，唯一变的只是界面语言。 */
+    if(res && res.ok && res.student) lastStudentResult = res;
     var wrap=document.getElementById('m-result');
     var nomatch=document.getElementById('m-nomatch');
     if(!res || !res.ok || !res.student){
