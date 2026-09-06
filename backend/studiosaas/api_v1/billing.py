@@ -1728,6 +1728,27 @@ def billing_invoices():
         if request.method == "GET":
             status = (request.args.get("status") or "").strip()
             account_id = (request.args.get("accountId") or "").strip()
+            # An id that is not a billing account of this tenant is a mistake,
+            # not a filter that happens to match nothing. Without this check the
+            # answer to "show me this account's invoices" and the answer to
+            # "show me this *invoice's* account's invoices" are the same empty
+            # list — and the CMS spent a release passing an invoice id here,
+            # rendering "还没有发票" over a studio with five of them.
+            #
+            # An account that genuinely has no invoices yet still returns [];
+            # this refuses unknown ids, not empty ones.
+            if account_id:
+                try:
+                    _uuid.UUID(account_id)
+                except (ValueError, AttributeError, TypeError):
+                    return _error("accountId must be a valid ID.")
+                known = fetch_one(
+                    conn,
+                    "SELECT 1 FROM billing_accounts WHERE tenant_id = %s AND id = %s",
+                    (tenant.tenant_id, account_id),
+                )
+                if not known:
+                    return _error("No billing account with that ID.", 404)
             rows = fetch_all(
                 conn,
                 """

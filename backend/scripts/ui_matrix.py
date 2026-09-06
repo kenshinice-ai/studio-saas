@@ -65,6 +65,44 @@ Install into the project venv, once:
 Then start the app (default base URL http://127.0.0.1:8100) and re-run.
 """
 
+# Named elements that must stay wide enough to work in.
+#
+# This exists because of a class of bug that every page-level assertion here is
+# structurally blind to. On a 375px phone, Studio Admin's editor column resolved
+# to 1.98px while the preview column held its 320px minimum — the section
+# heading rendered one character per line. And yet
+# `document.documentElement.scrollWidth === window.innerWidth`: the squeezed
+# panel is `overflow: visible`, so its content spilled without ever widening the
+# document. "The page does not scroll sideways" was true the whole time.
+#
+# So the assertion has to name the element and measure it, not ask the page
+# whether it feels crowded.
+WIDTH_ASSERTIONS_JS = """
+(specs) => {
+  const results = [];
+  for (const spec of specs) {
+    const el = document.querySelector(spec.selector);
+    if (!el) {
+      results.push({assertion: 'element-present', target: spec.selector, ok: false,
+                    detail: 'not found'});
+      continue;
+    }
+    const rect = el.getBoundingClientRect();
+    const width = Math.round(rect.width * 100) / 100;
+    const style = getComputedStyle(el);
+    results.push({
+      assertion: 'usable-width',
+      target: spec.selector,
+      ok: width >= Number(spec.min_width),
+      detail: `${width}px (needs >= ${spec.min_width}px)`
+                + (style.gridTemplateColumns && style.gridTemplateColumns !== 'none'
+                   ? ` · grid-template-columns: ${style.gridTemplateColumns}` : ''),
+    });
+  }
+  return results;
+}
+"""
+
 # The CMS contract. Same shape as the nav one: a list of
 # {assertion, target, ok, detail}.
 CMS_ASSERTIONS_JS = """
@@ -326,6 +364,15 @@ def main() -> int:
                             page.wait_for_timeout(2200)
                             options = {"maxBlocks": int(spec.get("max_blocks", 8))}
                             for entry in page.evaluate(CMS_ASSERTIONS_JS, options):
+                                record = {**combo, **entry}
+                                results.append(record)
+                                if not entry["ok"]:
+                                    failures += 1
+                                    print(f"FAIL {name} w{width} {lang}: "
+                                          f"{entry['assertion']} [{entry['target']}] {entry['detail']}")
+                        if spec.get("assert_width"):
+                            for entry in page.evaluate(WIDTH_ASSERTIONS_JS,
+                                                       spec["assert_width"]):
                                 record = {**combo, **entry}
                                 results.append(record)
                                 if not entry["ok"]:

@@ -125,7 +125,7 @@ export function StudentProfileModal(props) {
                             view; the collapsibles below stay as the working
                             views (report editing, per-source detail). */}
                         {TENANT_SLUG && <StudentTimeline api={v1Api} studentId={selS.id}
-                            openInvoice={canUseSettlementBilling ? (iid)=>{setSelS(null);setEditP(false);setTab('billing',{recordId:String(iid)});} : null} />}
+                            openInvoice={canUseSettlementBilling ? (iid)=>{setSelS(null);setEditP(false);setTab('billing',{invoiceId:String(iid)});} : null} />}
                         {TENANT_SLUG && <StudentProgressReports api={v1Api} studentId={selS.id}
                             studentName={selS.name} canWrite={canWriteProgress}
                             canPublish={canPublishProgress} showToast={showToast} />}

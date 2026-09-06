@@ -195,6 +195,36 @@ def test_the_phone_uses_a_non_scrolling_workbench_nav_and_pinned_publish_bar() -
     assert "env(safe-area-inset-bottom" in save_rule, "the bar sits under the home bar"
 
 
+def test_the_phone_stacks_the_editor_and_its_preview() -> None:
+    """A 375px editor column was 1.98px wide, and nothing could see it.
+
+    `.settings-shell` is declared single-column in the phone block near the top
+    of the stylesheet, then overwritten by the unconditional
+    `minmax(0, 1.618fr) minmax(320px, 1fr)` further down. The trailing phone
+    block restores `.workbench-layout` after that override — and did not
+    restore `.settings-shell`. With the preview column holding its 320px floor,
+    the editor took the remainder: 427px at 768, 159px at 500, 34px at 375 in a
+    stripped harness (1.98px on the real page, which also has padding).
+
+    The tablet block already stacks both, so the phone was the one width that
+    missed out — a dropped line, not a decision.
+
+    A page-level `scrollWidth` assertion cannot see this: `.settings-panel` is
+    `overflow: visible` on a phone, so the squeezed content spills without ever
+    widening the document. Measured both ways, before and after:
+    `documentElement.scrollWidth === window.innerWidth` throughout.
+    """
+
+    styles = re.sub(r"/\*.*?\*/", "", style_source(), flags=re.S)
+    override = styles.index(".settings-shell { grid-template-columns: minmax(0, 1.618fr)")
+    after_override = styles[override:]
+    phone = after_override.index("@media (max-width: 768px)")
+    assert ".settings-shell { grid-template-columns: 1fr; }" in after_override[phone:], (
+        "手机段必须在那条无条件双列规则**之后**重新把编辑区放平，"
+        "就像它旁边的 .workbench-layout 那样"
+    )
+
+
 def test_the_settings_panel_can_host_a_sticky_child_on_a_phone() -> None:
     """`overflow: hidden` makes an ancestor a scroll container, and a sticky
     child of one never sticks to the viewport."""
@@ -237,10 +267,19 @@ def test_v961_wide_shell_uses_available_width_before_stacking() -> None:
     shell = styles[styles.index(".header-top,\n    main {"):]
     assert "width: 100%;" in shell[:shell.index("}")]
     assert "max-width: none;" in shell[:shell.index("}")]
-    assert "grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);" in styles
+    # Comments stripped first. This assertion used to name `minmax(220px, …)`,
+    # a value that by v10.15.0 existed **only** inside a "Legacy contract
+    # marker" comment left behind so the test would keep passing after the rail
+    # moved onto the Fibonacci ladder at 233px. It would have gone green with
+    # `.workbench-layout` deleted outright. Read the rule, not the note about
+    # the rule.
+    rules = re.sub(r"/\*.*?\*/", "", styles, flags=re.S)
+    rail = re.search(r"\.workbench-layout \{\s*grid-template-columns:\s*"
+                     r"minmax\((\d+)px,\s*280px\)\s*minmax\(0,\s*1fr\);", rules)
+    assert rail, "the two-column workbench rail is gone from the live rules"
     tablet_media = "@media (min-width: 769px) and (max-width: 1180px)"
-    assert tablet_media in styles
-    assert "grid-template-columns: 1fr;" in styles[styles.index(tablet_media):]
+    assert tablet_media in rules
+    assert "grid-template-columns: 1fr;" in rules[rules.index(tablet_media):]
 
 
 def test_v961_preview_language_follows_admin_until_manually_changed() -> None:

@@ -209,7 +209,7 @@ function InvoicePrintableDocument({ document }) {
 }
 
 export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExportData, tenantSlug,
-  accountId, onClearAccount, students, studentPicker }) {
+  accountId, invoiceId, onClearAccount, students, studentPicker }) {
   const [invoices, setInvoices] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [detail, setDetail] = useState(null);
@@ -249,6 +249,15 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
   }, [api, accountId]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* 深链要打开的那张发票。
+     `accountId` 筛列表，`invoiceId` 开详情——两件事，两个入参。以前它们共用
+     一个路由槽，于是「查看发票」把发票 ID 当账户 ID 去筛，筛出 0 张，页面说
+     「还没有发票」。能力一直都在（`:297` 新建草稿后就是这样打开详情的），
+     缺的只是一个对外的 prop。 */
+  useEffect(() => {
+    if (invoiceId) setSelectedId(String(invoiceId));
+  }, [invoiceId]);
 
   useEffect(() => {
     if (!selectedId) { setDetail(null); return; }
@@ -602,7 +611,13 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
             )}
           </div>
           {invoices.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-gray-500">还没有发票。点击“新建发票”创建草稿，复核后再开具。</p>
+            /* 「这个筛选范围里没有」和「这家工作室没开过发票」是两句话。
+               说错的那一句会让一个刚结算完的老板以为账全没了。 */
+            <p className="px-4 py-6 text-xs text-gray-500">
+              {accountId
+                ? '这个账单账户名下没有发票。点上方「显示全部」看工作室的全部发票。'
+                : '还没有发票。点击“新建发票”创建草稿，复核后再开具。'}
+            </p>
           ) : visible.length === 0 ? (
             /* 「一张都没有」和「筛完没剩下」是两句话。第二句要告诉人怎么退出去。 */
             <p className="px-4 py-6 text-xs text-gray-500">{`没有符合当前筛选的发票。清除筛选可以看到全部 ${invoices.length} 张。`}</p>

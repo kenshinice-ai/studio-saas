@@ -151,3 +151,33 @@ pages:
     languages: [default]
     widths: [375]
     max_blocks: 5          # the role the split was for: fewer controls, same shape
+
+  # ── Studio Admin ────────────────────────────────────────────────────────
+  #
+  # Until v10.16.0 the matrix had no Studio Admin page at all, and the one
+  # defect that cost the most — a 375px editor column resolved to 1.98px while
+  # the preview held its 320px minimum — lived here. Nothing in the gate could
+  # have seen it: `assert_cms` measures the CMS's own block structure, and the
+  # page never scrolled sideways because the squeezed panel is
+  # `overflow: visible`.
+  #
+  # 1024 and 1440 are here on purpose. The default widths stop at 1280, and the
+  # tablet rule that stacks these columns spans 769–1180px, so 1024 sits inside
+  # it and 1440 outside; one width would have proved neither.
+  - name: studio_admin_brand
+    path: /lets-paint-showcase/studio-admin
+    role: owner
+    assert_cms: false
+    assert_nav: false
+    languages: [default, en]
+    widths: [375, 768, 1024, 1440]
+    assert_width:
+      # The column the studio types into. 300 rather than 320: on a phone it is
+      # the full content width (~343 at 375), on desktop it is the 1.618 share
+      # of the shell — both comfortably above, while the shipped bug sat at 2px.
+      - selector: ".settings-panel"
+        min_width: 300
+      # The preview is allowed to be absent (it stacks below on a phone), but
+      # when it is on screen it must not have eaten the editor.
+      - selector: ".workbench-layout"
+        min_width: 320

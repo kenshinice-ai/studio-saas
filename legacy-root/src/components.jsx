@@ -102,6 +102,12 @@ export const readCmsRoute = () => {
         settingsSection: tab === 'settings' ? readCmsSection(tab, params) : 'account',
         rosterSection: tab === 'roster' ? readCmsSection(tab, params) : 'checkin',
         recordId: params.get('id') || '',
+        /* `id` 和 `invoice` 是两个槽，不是一个。
+           v10.15.0 之前只有 `id`，而它同时被当成「筛这个账单账户」和「打开这张
+           发票」用：结算后点「查看发票」传的是发票 ID，面板拿它当 accountId 去
+           查询，返回 0 张——整页四个 KPI 全是 $0.00，底下写着「还没有发票」。
+           一个刚开完发票的工作室，看起来像从没开过。 */
+        invoiceId: tab === 'billing' ? (params.get('invoice') || '') : '',
     };
 };
 export const v1Api = async (path, options = {}) => {

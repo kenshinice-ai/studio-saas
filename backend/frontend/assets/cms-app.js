@@ -15,6 +15,15 @@
     const iso3 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     return { from: iso3(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso3(now) };
   };
+  var apiDateInputValue = (value) => {
+    if (!value) return "";
+    const iso3 = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso3) return `${iso3[1]}-${iso3[2]}-${iso3[3]}`;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+  };
 
   // legacy-root/src/panels/filter_bar.jsx
   var { useMemo } = React;
@@ -183,6 +192,7 @@
     canExportData,
     tenantSlug: tenantSlug2,
     accountId,
+    invoiceId,
     onClearAccount,
     students,
     studentPicker
@@ -220,6 +230,9 @@
     useEffect(() => {
       load();
     }, [load]);
+    useEffect(() => {
+      if (invoiceId) setSelectedId(String(invoiceId));
+    }, [invoiceId]);
     useEffect(() => {
       if (!selectedId) {
         setDetail(null);
@@ -265,11 +278,11 @@
           method: "POST",
           body: JSON.stringify(form)
         });
-        const invoiceId = draft.invoice?.id || draft.invoiceId;
+        const invoiceId2 = draft.invoice?.id || draft.invoiceId;
         showToast("草稿已建好，复核后再开具", "success");
         setCreating(false);
         await load();
-        setSelectedId(String(invoiceId));
+        setSelectedId(String(invoiceId2));
       } catch (e) {
         showToast(`新建发票失败：${e.message}`, "error");
         throw e;
@@ -579,7 +592,11 @@
       "批量发出 (",
       checkedDrafts.length,
       ")"
-    )), invoices.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "还没有发票。点击“新建发票”创建草稿，复核后再开具。") : visible.length === 0 ? (
+    )), invoices.length === 0 ? (
+      /* 「这个筛选范围里没有」和「这家工作室没开过发票」是两句话。
+         说错的那一句会让一个刚结算完的老板以为账全没了。 */
+      /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, accountId ? "这个账单账户名下没有发票。点上方「显示全部」看工作室的全部发票。" : "还没有发票。点击“新建发票”创建草稿，复核后再开具。")
+    ) : visible.length === 0 ? (
       /* 「一张都没有」和「筛完没剩下」是两句话。第二句要告诉人怎么退出去。 */
       /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, `没有符合当前筛选的发票。清除筛选可以看到全部 ${invoices.length} 张。`)
     ) : visible.map((invoice) => /* @__PURE__ */ React.createElement(
@@ -2858,7 +2875,13 @@
          become the settings page's state. */
       settingsSection: tab === "settings" ? readCmsSection(tab, params) : "account",
       rosterSection: tab === "roster" ? readCmsSection(tab, params) : "checkin",
-      recordId: params.get("id") || ""
+      recordId: params.get("id") || "",
+      /* `id` 和 `invoice` 是两个槽，不是一个。
+         v10.15.0 之前只有 `id`，而它同时被当成「筛这个账单账户」和「打开这张
+         发票」用：结算后点「查看发票」传的是发票 ID，面板拿它当 accountId 去
+         查询，返回 0 张——整页四个 KPI 全是 $0.00，底下写着「还没有发票」。
+         一个刚开完发票的工作室，看起来像从没开过。 */
+      invoiceId: tab === "billing" ? params.get("invoice") || "" : ""
     };
   };
   var v1Api = async (path, options = {}) => {
@@ -5322,7 +5345,7 @@
         "input",
         {
           type: "date",
-          value: followUpDates[pen.id] || "",
+          value: followUpDates[pen.id] ?? apiDateInputValue(pen.nextFollowUpAt),
           onChange: (e) => setFollowUpDates((p) => ({ ...p, [pen.id]: e.target.value })),
           className: "px-3 py-2 border border-blue-200 rounded-xl text-sm"
         }
@@ -5952,7 +5975,7 @@
           openInvoice: canUseSettlementBilling ? (iid) => {
             setSelS(null);
             setEditP(false);
-            setTab("billing", { recordId: String(iid) });
+            setTab("billing", { invoiceId: String(iid) });
           } : null
         }
       ), TENANT_SLUG && /* @__PURE__ */ React.createElement(
@@ -6229,6 +6252,7 @@
     const [settingsSection, setSettingsSectionState] = useState10(initialCmsRoute.settingsSection);
     const [rosterSection, setRosterSectionState] = useState10(initialCmsRoute.rosterSection);
     const [routeRecordId, setRouteRecordId] = useState10(initialCmsRoute.recordId);
+    const [routeInvoiceId, setRouteInvoiceId] = useState10(initialCmsRoute.invoiceId);
     const [moreOpen, setMoreOpen] = useState10(false);
     const [selS, setSelS] = useState10(null);
     const [editP, setEditP] = useState10(false);
@@ -6290,6 +6314,8 @@
       else params.delete("section");
       if (next.recordId && ["students", "pending", "works", "billing"].includes(next.tab)) params.set("id", next.recordId);
       else params.delete("id");
+      if (next.invoiceId && next.tab === "billing") params.set("invoice", next.invoiceId);
+      else params.delete("invoice");
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
@@ -6299,7 +6325,9 @@
       setShowSettings(next === "settings");
       const nextRecordId = options.recordId || "";
       setRouteRecordId(nextRecordId);
-      const patch = { tab: next, recordId: nextRecordId };
+      const nextInvoiceId = next === "billing" ? options.invoiceId || "" : "";
+      setRouteInvoiceId(nextInvoiceId);
+      const patch = { tab: next, recordId: nextRecordId, invoiceId: nextInvoiceId };
       if (next === "roster") {
         const scope = CMS_ROUTE_SECTIONS.roster;
         const section = scope.allowed.includes(options.section) ? options.section : scope.fallback;
@@ -6335,6 +6363,7 @@
         setSettingsSectionState(next.settingsSection);
         setRosterSectionState(next.rosterSection);
         setRouteRecordId(next.recordId);
+        setRouteInvoiceId(next.invoiceId);
         setShowSettings(next.tab === "settings");
         setUserMenuOpen(false);
       };
@@ -8676,7 +8705,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             "{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！",
             { student: s.name, credits, fee: fee ? `（实收 $${fee.toFixed(2)}）` : "", balance: newBal }
           );
-          const invoiceAction = settlement?.invoiceId ? { label: "查看发票", onClick: () => setTab("billing", { recordId: settlement.invoiceId }) } : { label: "复制充值确认（发家长）", onClick: () => copyText(cMsg, "充值确认已复制") };
+          const invoiceAction = settlement?.invoiceId ? { label: "查看发票", onClick: () => setTab("billing", { invoiceId: settlement.invoiceId }) } : { label: "复制充值确认（发家长）", onClick: () => copyText(cMsg, "充值确认已复制") };
           showToast(
             createInvoice ? `${s.name} 充值 ${credits} 课时，已${paymentReceived ? "开票并登记收款" : "开票待收款"}` : `${s.name} 充值 ${credits} 课时 / $${fee.toFixed(2)}`,
             "success",
@@ -8794,7 +8823,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           setTuStu(null);
           const newBal = (parseFloat(s.balance) || 0) - credits;
           const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），当前剩余 ${newBal} 课时。感谢您的理解与支持。`;
-          const action = result?.invoiceId ? { label: "查看原发票", onClick: () => setTab("billing", { recordId: result.invoiceId }) } : { label: "复制退款确认（发家长）", onClick: () => copyText(cMsg, "退款确认已复制") };
+          const action = result?.invoiceId ? { label: "查看原发票", onClick: () => setTab("billing", { invoiceId: result.invoiceId }) } : { label: "复制退款确认（发家长）", onClick: () => copyText(cMsg, "退款确认已复制") };
           showToast(
             rfAdjustDocuments ? `${s.name} 已退款并开具贷记单 $${(amountCents / 100).toFixed(2)}` : `${s.name} 退课 ${credits} 节 / 退款 $${(amountCents / 100).toFixed(2)}`,
             "warn",
@@ -9364,14 +9393,22 @@ document.getElementById('copybtn').addEventListener('click', function(){
       if (busy || !TENANT_SLUG) return;
       setBusy(true);
       try {
-        const nextDate = followUpDates[pid] || "";
+        const touched = Object.prototype.hasOwnProperty.call(followUpDates, pid);
+        const nextDate = touched ? followUpDates[pid] || "" : "";
+        const payload = {
+          status,
+          reviewNote: status === "contacted" ? "Studio contacted this lead." : ""
+        };
+        if (touched) payload.nextFollowUpAt = nextDate ? `${nextDate}T09:00:00` : "";
         await v1Api(`/registrations/${pid}`, {
           method: "PATCH",
-          body: JSON.stringify({
-            status,
-            nextFollowUpAt: nextDate ? `${nextDate}T09:00:00` : "",
-            reviewNote: status === "contacted" ? "Studio contacted this lead." : ""
-          })
+          body: JSON.stringify(payload)
+        });
+        setFollowUpDates((prev) => {
+          if (!Object.prototype.hasOwnProperty.call(prev, pid)) return prev;
+          const next = { ...prev };
+          delete next[pid];
+          return next;
         });
         await load();
         showToast(status === "contacted" ? "已标记联系" : status === "trial_booked" ? "已预约试听" : "已加入跟进");
@@ -10019,6 +10056,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           students: sortedAZ.filter((s) => !s.archived),
           studentPicker: StudentPicker,
           accountId: routeRecordId,
+          invoiceId: routeInvoiceId,
           onClearAccount: () => setTab("billing")
         }
       ),

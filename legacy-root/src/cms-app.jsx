@@ -44,6 +44,7 @@ function App() {
     const [settingsSection, setSettingsSectionState] = useState(initialCmsRoute.settingsSection);
     const [rosterSection, setRosterSectionState] = useState(initialCmsRoute.rosterSection);
     const [routeRecordId, setRouteRecordId] = useState(initialCmsRoute.recordId);
+    const [routeInvoiceId, setRouteInvoiceId] = useState(initialCmsRoute.invoiceId);
     const [moreOpen, setMoreOpen] = useState(false);
     const [selS, setSelS] = useState(null);
     const [editP, setEditP] = useState(false);
@@ -117,6 +118,8 @@ function App() {
         else params.delete('section');
         if (next.recordId && ['students','pending','works','billing'].includes(next.tab)) params.set('id', next.recordId);
         else params.delete('id');
+        if (next.invoiceId && next.tab === 'billing') params.set('invoice', next.invoiceId);
+        else params.delete('invoice');
         const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ''}${url.hash}`;
         window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
     }, []);
@@ -126,7 +129,9 @@ function App() {
         setShowSettings(next === 'settings');
         const nextRecordId = options.recordId || '';
         setRouteRecordId(nextRecordId);
-        const patch = {tab: next, recordId: nextRecordId};
+        const nextInvoiceId = next === 'billing' ? (options.invoiceId || '') : '';
+        setRouteInvoiceId(nextInvoiceId);
+        const patch = {tab: next, recordId: nextRecordId, invoiceId: nextInvoiceId};
         /* 一个「去把固定课表建起来」的入口不该先落在今日名单上。分区照样过
            CMS_ROUTE_SECTIONS 的白名单：调用方写错了就落回 fallback，不会把
            一个不存在的分区写进地址栏。 */
@@ -166,6 +171,7 @@ function App() {
             setSettingsSectionState(next.settingsSection);
             setRosterSectionState(next.rosterSection);
             setRouteRecordId(next.recordId);
+            setRouteInvoiceId(next.invoiceId);
             setShowSettings(next.tab === 'settings');
             setUserMenuOpen(false);
         };
@@ -2579,7 +2585,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     '{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！',
                     {student: s.name, credits, fee: fee ? `（实收 $${fee.toFixed(2)}）` : '', balance: newBal});
                 const invoiceAction = settlement?.invoiceId
-                    ? {label: '查看发票', onClick: () => setTab('billing', {recordId: settlement.invoiceId})}
+                    ? {label: '查看发票', onClick: () => setTab('billing', {invoiceId: settlement.invoiceId})}
                     : {label: '复制充值确认（发家长）', onClick: () => copyText(cMsg, '充值确认已复制')};
                 showToast(createInvoice
                     ? `${s.name} 充值 ${credits} 课时，已${paymentReceived ? '开票并登记收款' : '开票待收款'}`
@@ -2671,7 +2677,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const newBal = (parseFloat(s.balance) || 0) - credits;
                 const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），当前剩余 ${newBal} 课时。感谢您的理解与支持。`;
                 const action = result?.invoiceId
-                    ? {label: '查看原发票', onClick: () => setTab('billing', {recordId: result.invoiceId})}
+                    ? {label: '查看原发票', onClick: () => setTab('billing', {invoiceId: result.invoiceId})}
                     : {label: '复制退款确认（发家长）', onClick: () => copyText(cMsg, '退款确认已复制')};
                 showToast(rfAdjustDocuments
                     ? `${s.name} 已退款并开具贷记单 $${(amountCents / 100).toFixed(2)}`
@@ -3127,18 +3133,44 @@ document.getElementById('copybtn').addEventListener('click', function(){
             promptLabel:'拒绝原因（将随通知邮件发送给家长，可留空）', promptPlaceholder:'可留空'});
     };
 
+    /* 跟进日期有三种状态，不是两种：**没动过**、改成了某一天、明确清空。
+     *
+     * 之前只有两种。`followUpDates` 是一个只在内存里活着的临时对象，初值 `{}`，
+     * 页面上的日期框只读它、从不读服务端已存的值；于是刷新之后框永远是空的，
+     * 而这个函数把「空」当成用户的明确输入发了出去：
+     *
+     *     {"status":"contacted","nextFollowUpAt":"","reviewNote":"…"}
+     *
+     * 服务端那条 UPDATE 对三个字段用了两种保护纪律 —— review_note 与 loss_reason
+     * 看「值是不是空串」，只有 next_follow_up_at 看「键在不在」
+     * （api_v1/students.py:499、:663）。所以空串在前两个字段上是安全的，在它上面
+     * 是删除。前台每天点的「已联系」，每点一次就抹掉一次跟进计划，界面上不说。
+     *
+     * 现在：键不在 followUpDates 里 = 没动过 = 整个字段不发，服务端保持原值。
+     * 那条 `ELSE next_follow_up_at` 分支一直在等这个调用，从来没等到过。
+     */
     const advanceRegistration = async (pid, status) => {
         if (busy || !TENANT_SLUG) return;
         setBusy(true);
         try {
-            const nextDate = followUpDates[pid] || '';
+            const touched = Object.prototype.hasOwnProperty.call(followUpDates, pid);
+            const nextDate = touched ? (followUpDates[pid] || '') : '';
+            const payload = {
+                status,
+                reviewNote: status === 'contacted' ? 'Studio contacted this lead.' : '',
+            };
+            if (touched) payload.nextFollowUpAt = nextDate ? `${nextDate}T09:00:00` : '';
             await v1Api(`/registrations/${pid}`, {
                 method: 'PATCH',
-                body: JSON.stringify({
-                    status,
-                    nextFollowUpAt: nextDate ? `${nextDate}T09:00:00` : '',
-                    reviewNote: status === 'contacted' ? 'Studio contacted this lead.' : '',
-                }),
+                body: JSON.stringify(payload),
+            });
+            /* 保存之后丢掉这一条的本地编辑，让日期框回去读服务端的值。留着它
+               会让界面显示一个已经不代表任何东西的草稿。 */
+            setFollowUpDates(prev => {
+                if (!Object.prototype.hasOwnProperty.call(prev, pid)) return prev;
+                const next = {...prev};
+                delete next[pid];
+                return next;
             });
             await load();
             showToast(status === 'contacted' ? '已标记联系' : status === 'trial_booked' ? '已预约试听' : '已加入跟进');
@@ -3830,6 +3862,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         students={sortedAZ.filter(s => !s.archived)}
         studentPicker={StudentPicker}
         accountId={routeRecordId}
+        invoiceId={routeInvoiceId}
         onClearAccount={()=>setTab('billing')}
     />
 )}

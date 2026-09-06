@@ -7,6 +7,7 @@
 import { BalBadge, EmptyState, Icon, PhotoAvatar, PhotoUploader, REG_STATUS_ZH } from "../components.jsx";
 import { daysSince, fmtDT, fmtDate, mediaSrc, todayISO, v1Api } from "../components.jsx";
 import { FilterBar } from "./filter_bar.jsx";
+import { apiDateInputValue } from "./_shared.jsx";
 import { OverdueReports } from "./progress_reports.jsx";
 
 export function StudentsSection(props) {
@@ -406,7 +407,13 @@ export function PendingSection(props) {
                 <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 flex flex-wrap items-end gap-2">
                     <div>
                         <label className="text-xs font-bold text-blue-700 mb-1 block">下次跟进</label>
-                        <input type="date" value={followUpDates[pen.id]||''}
+                        {/* `??` 而不是 `||`：空字符串是「用户明确清空了这一格」，
+                            必须压过服务端的值；`||` 会把它当成没填过，于是刚清空
+                            的框又被服务端的日期填回来。
+                            没有本地编辑时读服务端 —— 在 v10.15.0 之前这里只读
+                            那个临时对象，服务端存着的日期一次都没显示过。 */}
+                        <input type="date"
+                            value={followUpDates[pen.id] ?? apiDateInputValue(pen.nextFollowUpAt)}
                             onChange={e=>setFollowUpDates(p=>({...p,[pen.id]:e.target.value}))}
                             className="px-3 py-2 border border-blue-200 rounded-xl text-sm"/>
                     </div>

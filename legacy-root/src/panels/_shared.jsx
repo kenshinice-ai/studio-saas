@@ -29,3 +29,23 @@ export const monthRange = () => {
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
 };
+
+/** 日期 → `<input type="date">` 的 value（YYYY-MM-DD）；认 ISO 也认 RFC 1123。
+ *
+ * 和 fmtApiDate 分开是因为用途不同：那个给人看（DD/MM/YYYY），这个给控件读。
+ * 控件只接受 YYYY-MM-DD，喂给它别的格式会静默显示为空 —— 而空的日期框在
+ * 「更新联系状态」时会被当成用户要清除，把服务端已存的跟进计划抹掉。
+ * 这正是 v10.15.0 之前的行为，所以这里不做任何 slice。
+ *
+ * 09:00 那个锚点时间由写入方决定；读回来时只取日期部分，不做时区换算 ——
+ * 服务端以 UTC 存取，日期部分不会因为读的人在哪里而漂移。
+ */
+export const apiDateInputValue = (value) => {
+  if (!value) return '';
+  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+};
