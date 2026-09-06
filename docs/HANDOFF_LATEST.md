@@ -17,11 +17,11 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.16.0 运行提交：本次发布提交本身；精确哈希由步骤 9 的 docs-only 收口提交填入（本节按运行手册步骤 3 写于提交之前）。两份独立审计交叉核实（51 条裁决：33 成立 / 13 部分 / 3 推翻 / 1 已过时 / 1 无法静态判定）后，0–G 八批全部落地：补课额度 BLOCKER、跟进日期静默清除、发票深链接、手机 Studio Admin 编辑区、CMS 错误边界、公开面四项、钱路径五处、外壳六处、语言三级回退与词典按后果补齐、待处理队列与首屏去重、Tailwind 构建期编译。本机 pytest `2265 passed, 6 skipped`，另有 2 条 RLS 构造测试失败 —— **对照实验：未改动的 `main` 以同一命令失败同样两条**，见「已知门禁缺口」。**零迁移。** |
-| Package / SaaS | 待步骤 6 产出 `dist/PWE-StudioSaaS-aws-10.16.0.tar.gz`；三方守卫（BUILD_INFO == 本地 HEAD == `origin/main`）必须全等。 |
-| Package / Edition | 待步骤 6 产出 `dist/PWE-Studio-Edition-10.16.0.tar.gz`，同一提交，mode=standalone。 |
-| Production | **尚未部署。** 线上仍为 v10.15.0，本节在部署并公网验收后由步骤 9 的 docs-only 收口提交改写为实测事实。 |
-| Backup / migration | 部署前 dump 由 deploy 自动产出。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+| Source | v10.16.0 运行提交 `ff7d3031e47f162588756f0a9d857074d5cd9540` 已推送到 `main`。两份独立审计交叉核实（51 条裁决：33 成立 / 13 部分 / 3 推翻 / 1 已过时 / 1 无法静态判定）后，0–G 八批全部落地：补课额度 BLOCKER、跟进日期静默清除、发票深链接、手机 Studio Admin 编辑区、CMS 错误边界、公开面四项、钱路径五处、外壳六处、语言三级回退与词典按后果补齐、待处理队列与首屏去重、Tailwind 构建期编译。本机 pytest `2265 passed, 6 skipped`，另有 2 条 RLS 构造测试失败 —— **对照实验：未改动的 `main` 以同一命令失败同样两条**，见「已知门禁缺口」。**零迁移。** |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.16.0.tar.gz`，SHA-256 `2a55be949227b1859c1082743c05901f6bba163edcc97e02014f20a3e904a0c7`；`BUILD_INFO commit=ff7d3031e47f162588756f0a9d857074d5cd9540`，mode=saas，built_at 2026-09-06T10:44:24Z。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.16.0.tar.gz`，SHA-256 `1a3e63dcb6f1beabad8991460d95b814a3d2765c2fbc854680293e7647e3d84e`；同一提交，mode=standalone。双包通过校验和、BUILD_INFO、入口、排除项与解包冒烟。 |
+| Production | `pwestudio.online` = **v10.16.0**，镜像 `studiosaas:10.16.0`；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 17.4%；内网与公网边缘各验一次。`http -> 301`、`https -> 200 tls=0.068 proto=2`。公开路由实测全 200：`/`、`/lets-paint-showcase/`、`/…/register`、`/…/showcase`、`/…/timetable`、`/…/cms`、`/assets/cms-tailwind.css`（39913B）、`/manual/`、`/pricing`。CMS shell 里已无 `<script src=…tailwindcss.js>`，样式表带 `?v=10.16.0&h=ac5d12573095621e`，静态兜底与 `noscript` 都在下发的字节里。`ui_matrix.py --base https://pwestudio.online`：**342 条断言、0 失败**（CMS 与 studio-admin 条目被跳过，见下方缺口）。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260906T104456Z.dump` 及同名 manifest（deploy 自动产出）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
 
 ### 本版做了什么
 
@@ -55,6 +55,39 @@
 本机 `verify_local.sh` 在任何单一数据库配置下都无法全绿：超级用户 URL 让两条 RLS
 构造测试失败（它们要求受限角色）；换 `studiosaas_app` 则 xero 夹具大量失败。
 **对照实验确认未改动的 `main` 失败同样两条。** 这是既有缺口，需要单独一轮。
+
+
+### 部署后验收（生产实测，2026-09-06，经带审计的支持会话）
+
+本轮最重的三条在生产上逐条走了一遍，动作与今天早上审计时**完全相同**：
+
+| 动作 | 发布前（今早实测） | 发布后 |
+|---|---|---|
+| 排一次补课（周五，系列是周二） | 额度消耗、`exceptionId: null`、任何名单上都没有这节课 | `2026-09-11 · Priya Raman · 16:00 · Marika Lund · kind=makeup · chargeable=false · counts_for_pay=true`，`exception_id` 存在，额度已消耗 |
+| 设好跟进日期后只点「已联系」 | `30 Sep 2026` → `NULL` | `20 Oct 2026` → `20 Oct 2026`（保住） |
+| 用发票 id 打开账单页 | 「还没有发票」、四个 KPI 全 `$0.00`（而工作室有 5 张） | 展开 INV-0004 明细，列表 `全部 5 / 逾期 2 / 未付清 3 / 草稿 1`；不认识的账户 id 返回 `404 No billing account with that ID.` |
+
+顺带在生产上确认的三处：
+
+- **补课对话框**：`window.prompt` 调用次数 **0**，日期是真的 `<input type="date">`（`min=2026-09-06`），
+  对话框摆出学员、来源、有效期与「额度无法退回」。
+- **对话框遮罩**：`color(srgb 0.129 0.106 0.098 / 0.5)` —— 自 v8.4.2 起 `bg-black/50`
+  一直解析为 `rgba(0,0,0,0)`，本版修好，生产上可见。
+- **CMS 支持模式横幅**：平台账号进到租户后台时，现在写着「你正在 Let's Paint Studio
+  的后台内操作，每一步都会写进审计记录」并给出退出口；侧栏新增「使用手册」入口。
+
+**演示数据的实际改动（`lets-paint-showcase`）**：为验证补课链条并归还审计中被消耗的那张
+额度，把 Priya Raman 2026-09-15 的课按提前请假处理（产生新额度），再把补课排在
+2026-09-11。净结果是一次改期，比审计后的状态更完整。Isla Moore 的报名状态停在
+`contacted`、跟进日期已显式清空。支持会话已正常退出。
+
+### 未能覆盖的验收
+
+`ui_matrix.py` 的 CMS 与 studio-admin 条目在生产上被跳过：本机
+`~/.studiosaas/showcase-credentials.txt` 是本地演示用的，对生产返回 401。
+本版新增的 `assert_width`（手机 Studio Admin 编辑区）因此**没有在生产上跑过**，
+它的证据来自本机对同一份样式表的 A/B 测量（375px：`34px 320px` → `375px`）。
+要在生产上跑，需要一份生产 showcase 的凭据，那属于另一次决定。
 
 ## 上一版四层身份（v10.15.0，2026-09-03）
 
@@ -133,7 +166,7 @@
 
 ## 最新轮次
 
-- **2026-09-06（Claude）v10.16.0 两份审计的交叉核实与 0–G 八批修复**（**候选，未部署**）：
+- **2026-09-06（Claude）v10.16.0 两份审计的交叉核实与 0–G 八批修复**（**已发布**）：
   方案 `docs/design/Consolidated_Improvement_Plan_2026-09-06.md`（含生产实测附录 A
   与执行记录附录 B）；两份原始审计 `UX_Review_2026-09-06.md`、
   `User_Experience_Review_Verified_2026-09-06.md`（证据目录 `ux-review-2026-09-06/`）。

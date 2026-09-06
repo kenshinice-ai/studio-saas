@@ -1,0 +1,3429 @@
+{
+  "base": "https://pwestudio.online",
+  "config": "/Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/.claude/worktrees/ui-ux-pro-max-audit-073a82/backend/scripts/ui_matrix.yaml",
+  "ranAt": "20260906T104614Z",
+  "total": 342,
+  "failures": 0,
+  "results": [
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=54 clientWidth=54"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=91 clientWidth=91"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=119 clientWidth=119"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=62 clientWidth=62"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=86 clientWidth=86"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=115 clientWidth=115"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=40 clientWidth=40"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=94 clientWidth=94"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=54 clientWidth=54"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=91 clientWidth=91"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=119 clientWidth=119"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=62 clientWidth=62"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=86 clientWidth=86"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=115 clientWidth=115"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_portal",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_register",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_register",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/register",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=zh",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_register",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/register?lang=en",
+      "assertion": "touch-target-44px",
+      "target": "button",
+      "ok": true,
+      "detail": "all >= 44px"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=56 clientWidth=56"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=92 clientWidth=92"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=121 clientWidth=121"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=87 clientWidth=87"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=64 clientWidth=64"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=90 clientWidth=90"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=116 clientWidth=116"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=40 clientWidth=40"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=94 clientWidth=94"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=56 clientWidth=56"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=92 clientWidth=92"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=121 clientWidth=121"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=87 clientWidth=87"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=64 clientWidth=64"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=90 clientWidth=90"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=116 clientWidth=116"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_showcase",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/showcase?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=375 innerWidth=375"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 375,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=289 clientWidth=289"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=768 innerWidth=768"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=0 clientWidth=0"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 768,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=682 clientWidth=682"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=56 clientWidth=56"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=92 clientWidth=92"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=121 clientWidth=121"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=87 clientWidth=87"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=64 clientWidth=64"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=90 clientWidth=90"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=116 clientWidth=116"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "default",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人",
+      "ok": true,
+      "detail": "scrollWidth=40 clientWidth=40"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "主理人作品",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程与班次",
+      "ok": true,
+      "detail": "scrollWidth=66 clientWidth=66"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "课程安排",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员作品",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "常见问题",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "学员专区",
+      "ok": true,
+      "detail": "scrollWidth=53 clientWidth=53"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "预约体验",
+      "ok": true,
+      "detail": "scrollWidth=94 clientWidth=94"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "zh",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=zh",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "no-horizontal-scroll",
+      "target": "documentElement",
+      "ok": true,
+      "detail": "scrollWidth=1280 innerWidth=1280"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-elements-present",
+      "target": ".navrow",
+      "ok": true,
+      "detail": "navrow, navlinks and brand all found"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Principal",
+      "ok": true,
+      "detail": "scrollWidth=56 clientWidth=56"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Work by Janet",
+      "ok": true,
+      "detail": "scrollWidth=92 clientWidth=92"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Courses & Classes",
+      "ok": true,
+      "detail": "scrollWidth=121 clientWidth=121"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Timetable",
+      "ok": true,
+      "detail": "scrollWidth=63 clientWidth=63"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Work",
+      "ok": true,
+      "detail": "scrollWidth=87 clientWidth=87"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Questions",
+      "ok": true,
+      "detail": "scrollWidth=64 clientWidth=64"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Student Login",
+      "ok": true,
+      "detail": "scrollWidth=90 clientWidth=90"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "Book a trial",
+      "ok": true,
+      "detail": "scrollWidth=116 clientWidth=116"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "nav-label-not-clipped",
+      "target": "中EN",
+      "ok": true,
+      "detail": "scrollWidth=88 clientWidth=88"
+    },
+    {
+      "page": "showcase_timetable",
+      "width": 1280,
+      "language": "en",
+      "url": "https://pwestudio.online/lets-paint-showcase/timetable?lang=en",
+      "assertion": "brand-not-clipped",
+      "target": ".brand",
+      "ok": true,
+      "detail": "scrollWidth=140 clientWidth=140"
+    }
+  ]
+}
