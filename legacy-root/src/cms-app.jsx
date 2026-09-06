@@ -322,6 +322,20 @@ function App() {
     const [teamBusy, setTeamBusy] = useState(false);
     const [teamForm, setTeamForm] = useState({fullName:'',email:'',role:'teacher',temporaryPassword:''});
     const [actorRole, setActorRole] = useState('');
+    /* 平台账号通过带审计的支持会话进到别人的工作室时的那条横幅。
+       /v1/auth/me 一直在下发这个对象（api_v1/auth.py:850），Studio Admin 一直在用
+       它画一条醒目的提示加退出按钮，而 CMS 收下之后丢掉了 —— 实测（生产，
+       2026-09-06）CMS 全页匹配 /支持模式|audited|退出支持/ 为 false。在别人的
+       工作室里做不可逆的操作，屏幕上一个字都不说这是一次带审计的支持会话。 */
+    const [supportSession, setSupportSession] = useState(null);
+    /* 会话过期时不登出，只挡住屏幕。
+       原来是 showToast + setTimeout(doLogout, 1500)：一个一闪而过的提示，然后
+       整个应用卸载，填了一半的充值单、发票、学员档案全部消失。前台在柜台前，
+       家长还站在她面前。
+       正确的解法是原地重新登录——React 组件树从头到尾没有被卸载，所以表单内容
+       天然还在，不需要把学员姓名、手机号和金额写进浏览器存储（那是另一个更糟
+       的主意：客户与交易数据不该留在设备上，恢复之后也绝不能自动重放收款）。 */
+    const [sessionExpired, setSessionExpired] = useState(false);
     const ownerRoles = ['owner','platform_super_admin','super_admin'];
     const roleTabs = {
         owner: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
@@ -714,6 +728,7 @@ function App() {
                 const platformMembership = memberships.find(m => !m.tenant_slug && ['platform_super_admin','super_admin'].includes(m.role));
                 const tenantMembership = memberships.find(m => m.tenant_slug === tenantSlug);
                 const effectiveRole = platformMembership?.role || tenantMembership?.role || '';
+                setSupportSession(d.support && d.support.slug === tenantSlug ? d.support : null);
                 if (d.ok && ['owner','manager','teacher','front_desk','staff','platform_super_admin','super_admin'].includes(effectiveRole)) {
                     setActorRole(effectiveRole);
                     setLoggedIn(true);
@@ -958,7 +973,7 @@ function App() {
             const body = {...nd, rev: revRef.current, ...(force ? {force:true} : {})};
             const r = await fetch('/api/save', {method:'POST', headers:apiHeaders(),
                                                 credentials:'include', body:JSON.stringify(body)});
-            if (r.status === 401) { showToast('登录已过期，请重新登录 / Session expired', 'error'); setTimeout(doLogout, 1500); return false; }
+            if (r.status === 401) { setSessionExpired(true); return false; }
             if (r.status === 403) {
                 showToast('无权保存此租户数据 / No permission for this tenant.', 'error');
                 /* resync the optimistic setDb(nd) above back to server truth */
@@ -1120,21 +1135,33 @@ function App() {
        东西每重写一次就多一份会各自漂的实现。 */
     const [worksQuery, setWorksQuery] = useState('');
     const [worksBucket, setWorksBucket] = useState('all');
-    const worksIsShared = (item) => Boolean(item.public || item.visibility === 'shared');
+    /* 公开站的规则有三条（api_v1/public.py:466 起）：作品 visibility='shared'、
+       public_consent_at 不为空、**而且**这名学员最新一条家长授权事件是
+       confirmed，学员未归档。服务端已经把前两条算好放在 item.public 里。
+       这里原来写的是 `item.public || item.visibility === 'shared'` —— 那个 `||`
+       把授权条件整个抵消掉了，于是 CMS 报「已公开」的作品，公开站上其实不显示。
+       报多了比报少了糟：工作室以为家长能看到，把链接发出去了。 */
+    const worksPublicState = ({student, item}) => {
+        if (!item.public) return 'private';
+        if (student.archived) return 'blocked';
+        return student.publicationConsent?.status === 'confirmed' ? 'shared' : 'blocked';
+    };
+    const worksIsShared = (entry) => worksPublicState(entry) === 'shared';
     const worksBuckets = useMemo(() => {
         const consented = ({student}) => student.publicationConsent?.status === 'confirmed';
         return [
             {key:'all',      label:'全部',   count: portfolioEntries.length},
-            {key:'shared',   label:'已公开', count: portfolioEntries.filter(({item}) => worksIsShared(item)).length},
-            {key:'private',  label:'未公开', count: portfolioEntries.filter(({item}) => !worksIsShared(item)).length},
+            {key:'shared',   label:'已公开', count: portfolioEntries.filter(entry => worksIsShared(entry)).length},
+            {key:'private',  label:'未公开', count: portfolioEntries.filter(entry => !worksIsShared(entry)).length},
             {key:'noconsent',label:'待授权', count: portfolioEntries.filter(e => !consented(e)).length},
         ];
     }, [portfolioEntries]);
     const worksVisible = useMemo(() => {
         const needle = worksQuery.trim().toLowerCase();
-        return portfolioEntries.filter(({student, item}) => {
-            if (worksBucket === 'shared'    && !worksIsShared(item)) return false;
-            if (worksBucket === 'private'   &&  worksIsShared(item)) return false;
+        return portfolioEntries.filter((entry) => {
+            const {student, item} = entry;
+            if (worksBucket === 'shared'    && !worksIsShared(entry)) return false;
+            if (worksBucket === 'private'   &&  worksIsShared(entry)) return false;
             if (worksBucket === 'noconsent' && student.publicationConsent?.status === 'confirmed') return false;
             if (!needle) return true;
             return [student.name, item.title, item.note].some(v => String(v || '').toLowerCase().includes(needle));
@@ -2295,7 +2322,7 @@ function App() {
         };
         const html = `<!doctype html><html lang="${RT.htmlLang}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${esc(s.name)} · 成长报告 · ${esc(reportStudioName)}</title>
+<title>${esc(s.name)} · ${RT.tag} · ${esc(reportStudioName)}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 :root{--accent:${reportAccent};--accent-dark:${reportAccentDark}}
@@ -2365,7 +2392,10 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div>
       <span class="tag">${RT.tag}</span>
       <h1>${esc(s.name)}</h1>
-	      <div class="sub">${isNew ? `${esc(reportJoinText)} · 欢迎加入 ${esc(reportStudioName)}` : `已在 ${esc(reportStudioName)} 成长陪伴 <b>${days}</b> 天 · 入学于 ${fmtD(joinDate)}`}</div>
+	      <!-- RT.welcome 和 RT.joined 上面定义好了，这一行却把中文写死了：英文
+	           工作室发给家长的报告，标题和统计栏是英文，独独这句副标题是中文。
+	           两个函数定义了、零调用——「写了但没接上」比没写更难被发现。 -->
+	      <div class="sub">${isNew ? `${esc(reportJoinText)} · ${RT.welcome(esc(reportStudioName))}` : RT.joined(esc(reportStudioName), fmtD(joinDate), days)}</div>
     </div>
   </div>
   <div class="stats">
@@ -3293,6 +3323,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
     ].map(group => ({...group, items:group.items.filter(item => allowedTabs.includes(item.k))}))
         .filter(group => group.items.length > 0);
     const NAV = NAV_GROUPS.flatMap(group => group.items);
+    /* 手机端底部导航与「更多」抽屉的图标，从 NAV 派生。
+       它们原本各自写了一份 `i:''` —— 空字符串，而模板照样渲染一个 22px 的
+       span。结果是 52px 高的标签栏里，每一项上方一块空白，下方一行 10px 的
+       字；老师在教室门口单手举着手机点名，看的就是那 10px。
+       桌面侧栏一直有图标名，所以这里不该是「补一份」，而是「用同一份」——
+       两份手写的映射正是上面那条注释记录过的漂移。
+       两个不在 NAV 里的入口（新建、设置）在这里补齐。 */
+    const NAV_ICON = Object.assign(
+        {new_student:'plus', settings:'settings'},
+        Object.fromEntries(NAV.map(item => [item.k, item.i])),
+    );
     /* Derived from NAV, not a second hand-written map. The two of them had
        already drifted — the sidebar said 课程/学员/作品 while the page called
        itself 课程目录/学员档案/作品管理, so the same screen answered to two
@@ -3319,6 +3360,50 @@ document.getElementById('copybtn').addEventListener('click', function(){
     return (
         <div className="flex h-screen bg-gray-50">
             {toast && <Toast key={toast.key} msg={toast.msg} type={toast.type} action={toast.action} onDone={()=>setToast(null)}/>}
+
+            {/* 原地重新登录。这一层盖在应用之上，应用本身没有卸载，所以关掉它
+                之后用户回到的就是刚才那一屏，输入还在。 */}
+            {sessionExpired && (
+                <div className="fixed inset-0 z-[97] bg-black/50 flex items-center justify-center p-4"
+                     role="dialog" aria-modal="true" aria-labelledby="session-expired-title">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
+                        <p id="session-expired-title" className="font-bold text-gray-900 mb-1">登录已过期</p>
+                        <p className="text-sm text-gray-600 mb-4">
+                            刚才那一下没有保存。重新登录之后你会回到这一屏，已经填好的内容还在。
+                        </p>
+                        <LoginScreen embedded onLogin={() => { setSessionExpired(false); refreshSession(); }}/>
+                    </div>
+                </div>
+            )}
+
+            {/* 支持模式横幅。Studio Admin 一直有一条（studio-admin.js:1287 起），
+                CMS 一条都没有——而 CMS 才是能签到、能退款、能消耗补课额度的
+                那一面。措辞与 Studio Admin 对齐：说清在谁的工作室里、为什么、
+                以及每一步都会被记录，并给一个出得去的门。 */}
+            {supportSession && (
+                <div role="status"
+                     className="fixed top-0 left-0 right-0 z-[60] flex flex-wrap items-center gap-3 px-4 py-2.5 bg-amber-700 text-white text-sm">
+                    <strong className="inline-flex items-center gap-1.5 font-bold tracking-wide">
+                        <Icon name="warning" className="w-4 h-4"/>支持模式 · SUPPORT MODE
+                    </strong>
+                    <span className="flex-1 min-w-0">
+                        你正在 {tenantDisplayName} 的后台内操作，每一步都会写进审计记录。
+                        {supportSession.reason ? ` 原因：${supportSession.reason}` : ''}
+                    </span>
+                    <button type="button"
+                        onClick={async () => {
+                            try {
+                                await fetch('/v1/admin/support-session/end', {method:'POST',
+                                    credentials:'include', headers:{'Content-Type':'application/json'}});
+                            } catch (e) { /* 尽力而为：退不出去也要把人送回平台控制台 */ }
+                            window.location.href = '/platform-admin';
+                        }}
+                        className="min-h-[44px] px-3 rounded-lg bg-white/15 hover:bg-white/25 font-bold text-xs">
+                        退出支持模式
+                    </button>
+                </div>
+            )}
+            {supportSession && <div className="fixed top-0 left-0 right-0 h-[46px] pointer-events-none" aria-hidden="true"/>}
 
             {/* Calendar download. Everything shown here comes from the same
                 CalendarDocument the .ics is serialized from, so the counts on
@@ -3857,7 +3942,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {/* ═══ WORKS ══════════════════════════════════════════════════ */}
-{tab==='works' && <WorksSection {...{canWritePortfolio, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible}}/>}
+{tab==='works' && <WorksSection {...{canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible}}/>}
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {tab==='students' && <StudentsSection {...{archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent}}/>}
@@ -4196,10 +4281,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {moreOpen && (
                 <div className="md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] cms-chrome border-t px-4 py-3 grid grid-cols-4 gap-2 anim"
                      onClick={e=>e.stopPropagation()}>
-                    {[{k:'courses',i:'',s:'课程'},{k:'works',i:'',s:'作品'},{k:'logs',i:'',s:'日志'},{k:'stats',i:'',s:'统计'},{k:'pending',i:'',s:'待处理',badge:pendingCount},{k:'new_student',i:<Icon name="plus" className="w-[22px] h-[22px]"/>,s:'新建'},{k:'settings',i:'',s:'设置'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s,badge})=>(
+                    {[{k:'courses',s:'课程'},{k:'works',s:'作品'},{k:'logs',s:'日志'},{k:'stats',s:'统计'},{k:'pending',s:'待处理',badge:pendingCount},{k:'new_student',s:'新建'},{k:'settings',s:'设置'}].filter(item=>allowedTabs.includes(item.k)).map(({k,s,badge})=>(
                         <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
+                            /* 底部四项一直有 aria-current，抽屉里这七项没有：
+                               同一套导航，两种无障碍处理。 */
+                            aria-current={tab===k ? 'page' : undefined}
                             className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative cms-chrome-item ${['courses','works','logs','stats','pending','new_student','settings'].includes(tab)&&tab===k?'is-active':''}`}>
-                            <span className="text-[22px] leading-none">{i}</span>
+                            <Icon name={NAV_ICON[k]} className="w-[22px] h-[22px]"/>
                             <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
                             {badge>0 && <span className="absolute top-1 right-2 bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{badge}</span>}
                         </button>
@@ -4208,11 +4296,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 cms-chrome border-t flex"
                  style={{paddingBottom:'env(safe-area-inset-bottom,0px)', transform:'translateZ(0)', willChange:'transform'}}>
-                {[{k:'dashboard',i:'',s:'工作台'},{k:'roster',i:'',s:'课表'},{k:'students',i:'',s:'档案'},{k:'topup',i:'',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
+                {[{k:'dashboard',s:'工作台'},{k:'roster',s:'课表'},{k:'students',s:'档案'},{k:'topup',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,s}) => (
                     <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                         aria-current={tab===k ? 'page' : undefined}
                         className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab===k?'is-active':''}`}>
-                        <span className="text-[22px] leading-none">{i}</span>
+                        <Icon name={NAV_ICON[k]} className="w-[22px] h-[22px]"/>
                         <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
                         {k==='dashboard' && analytics.lowBalance.length>0 &&
                             <span className="absolute top-1.5 right-[18%] bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{analytics.lowBalance.length}</span>}

@@ -3811,8 +3811,21 @@
         const over = affected.filter((item) =>
           Number(item.student_count || 0) > payload.studentLimit
           || Number(item.storage_used_mb || 0) > payload.storageLimitMb);
-        if ((over.length || showcaseReduced)
-            && !window.confirm(planImpactWarning(affected.length, over, showcaseReduced))) return;
+        /* Changing a plan reaches every studio on it, and this console already
+           knows exactly which ones and by how much — it had worked all of that
+           out and then poured it into a browser confirm() as one run-on
+           sentence with OK / Cancel. A native dialog cannot show a list, cannot
+           emphasise a number, and cannot ask for a second, deliberate action.
+           `deletePlan` in this same file has used the product's own modal all
+           along; this is the heavier change of the two.
+           (The two "Discard unsaved changes?" confirms elsewhere in this file
+           stay native on purpose: they sit inside a synchronous navigation
+           guard, and `admin-i18n.js:859` translates them — the console sets
+           wrapNativeDialogs.) */
+        if (over.length || showcaseReduced) {
+          const proceed = await confirmPlanImpact(affected.length, over, showcaseReduced);
+          if (!proceed) return;
+        }
       }
       const saveButton = $('m_savePlan');
       const finish = beginSaving(saveButton);
@@ -3835,6 +3848,33 @@
       showToast(editingPlanCode ? 'Plan updated.' : 'Plan created.');
       closeWorkspaceEditor({ confirm: false, focus: false });
       await refresh();
+    }
+
+    /* The same facts planImpactWarning() flattened into one sentence, laid out
+       so the operator can read them: how many studios, which ones go over
+       immediately and by what, and whether published work will disappear. The
+       confirm button names the action rather than saying "OK". */
+    function confirmPlanImpact(total, over, showcaseReduced) {
+      return new Promise((resolve) => {
+        const rows = over.slice(0, 8).map((item) => `<li>${esc(item.name)}</li>`).join('');
+        const more = over.length > 8 ? `<li>… +${over.length - 8}</li>` : '';
+        const overBlock = over.length
+          ? `<p><strong>${over.length}</strong> of them would be over the student or storage
+             limit the moment this is saved:</p><ul class="plan-impact-list">${rows}${more}</ul>`
+          : '';
+        const showcaseBlock = showcaseReduced
+          ? `<p class="text-warning">Lowering the showcase limit can hide work that is
+             published right now, until the plan is raised again.</p>`
+          : '';
+        const body = `<p><strong>${total}</strong> studio(s) are on this plan.</p>
+                      ${overBlock}${showcaseBlock}`;
+        const footer = `<button id="planImpactCancel" class="btn-secondary">Cancel</button>`
+          + `<button id="planImpactGo" class="btn-danger">Save plan for ${total} studio(s)</button>`;
+        openModal('Confirm plan change', body, footer);
+        const done = (answer) => { closeModal(); resolve(answer); };
+        $('planImpactGo').addEventListener('click', () => done(true));
+        $('planImpactCancel').addEventListener('click', () => done(false));
+      });
     }
 
     function planImpactWarning(total, over, showcaseReduced = false) {

@@ -25,6 +25,12 @@ const TEXT_FIELDS = [
     ['postcode', '邮编', ''],
     ['contact_email', '开票邮箱', '家长回信会到这里'],
     ['contact_phone', '开票电话', ''],
+    /* website 与 country 一直存在数据库里，被冻结进每一张已开具发票的供应商
+       快照（services/billing.py:154 的 BILLING_IDENTITY_FIELDS），并被发票文档
+       渲染出来——只是 CMS 里没有任何输入框能看到或改它们。存了、印在发票上了、
+       编辑不了。 */
+    ['website', '网址', '会印在发票页脚'],
+    ['country', '国家/地区', 'Australia'],
     ['bank_account_name', '收款户名', ''],
     ['bank_bsb', 'BSB', ''],
     ['bank_account_no', '银行账号', ''],

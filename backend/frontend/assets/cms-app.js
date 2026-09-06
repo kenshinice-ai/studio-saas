@@ -2010,6 +2010,12 @@
     ["postcode", "邮编", ""],
     ["contact_email", "开票邮箱", "家长回信会到这里"],
     ["contact_phone", "开票电话", ""],
+    /* website 与 country 一直存在数据库里，被冻结进每一张已开具发票的供应商
+       快照（services/billing.py:154 的 BILLING_IDENTITY_FIELDS），并被发票文档
+       渲染出来——只是 CMS 里没有任何输入框能看到或改它们。存了、印在发票上了、
+       编辑不了。 */
+    ["website", "网址", "会印在发票页脚"],
+    ["country", "国家/地区", "Australia"],
     ["bank_account_name", "收款户名", ""],
     ["bank_bsb", "BSB", ""],
     ["bank_account_no", "银行账号", ""]
@@ -3875,7 +3881,7 @@
       "恢复此备份（双重确认）"
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
-  function LoginScreen({ onLogin }) {
+  function LoginScreen({ onLogin, embedded = false }) {
     const [email, setEmail] = useState8(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
     const [pw, setPw] = useState8("");
     const [busy, setBusy] = useState8(false);
@@ -3909,7 +3915,7 @@
         setBusy(false);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: embedded ? "" : "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: embedded ? "text-center" : "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, !embedded && /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), !embedded && /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), !embedded && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
       "input",
       {
         id: "cms-login-email",
@@ -4945,6 +4951,7 @@
   // legacy-root/src/panels/media.jsx
   function WorksSection(props) {
     const {
+      worksPublicState,
       canWritePortfolio,
       portfolioEntries,
       setEditP,
@@ -4972,13 +4979,16 @@
         totalNoun: "件"
       }
     ), /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-5", "aria-labelledby": "works-list-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { id: "works-list-title", className: "font-bold text-gray-900" }, "最近作品"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "按作品日期倒序 · 最多显示最近 50 件")), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-500" }, worksVisible.length, " 件")), !portfolioEntries.length ? /* @__PURE__ */ React.createElement(EmptyState, { icon: /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-8 h-8" }), main: "还没有作品", sub: "打开学员档案后，在作品区上传第一件作品。", action: "查看学员", onAction: () => setTab("students") }) : !worksVisible.length ? /* @__PURE__ */ React.createElement(EmptyState, { icon: /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-8 h-8" }), main: "没有符合筛选的作品", sub: "换一个分类，或清空搜索词。" }) : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" }, worksVisible.slice(0, 50).map(({ student, item }) => {
-      const shared = item.public || item.visibility === "shared";
+      const publicState = worksPublicState({ student, item });
+      const shared = publicState === "shared";
+      const badge = publicState === "shared" ? "已公开" : publicState === "blocked" ? "待家长授权" : "未公开";
+      const badgeClass = publicState === "shared" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : publicState === "blocked" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-gray-100 border-gray-200 text-gray-500";
       return /* @__PURE__ */ React.createElement("article", { key: `${student.id}-${item.id || item.filename || item.date}`, className: "overflow-hidden rounded-2xl border border-gray-200 bg-gray-50" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
         setTab("students", { recordId: student.id });
         setSelS(student);
         setEditP(false);
         setTimeout(() => setStudentProfileTab("portfolio"), 0);
-      }, className: "block w-full text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" }, /* @__PURE__ */ React.createElement("div", { className: "aspect-[4/3] bg-gray-100 overflow-hidden" }, item.filename ? /* @__PURE__ */ React.createElement("img", { src: portfolioThumbSrc(student.id, item), loading: "lazy", alt: `${student.name} 的作品`, className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full h-full inline-flex items-center justify-center text-gray-300" }, /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-10 h-10" }))), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.title || item.note || "未命名作品"), /* @__PURE__ */ React.createElement("span", { className: `flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full border ${shared ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-gray-100 border-gray-200 text-gray-500"}` }, shared ? "已公开" : "未公开")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1 truncate" }, student.name, " · ", fmtDate(item.date)), item.note && item.title && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1 line-clamp-2" }, item.note))), canWritePortfolio && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
+      }, className: "block w-full text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" }, /* @__PURE__ */ React.createElement("div", { className: "aspect-[4/3] bg-gray-100 overflow-hidden" }, item.filename ? /* @__PURE__ */ React.createElement("img", { src: portfolioThumbSrc(student.id, item), loading: "lazy", alt: `${student.name} 的作品`, className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full h-full inline-flex items-center justify-center text-gray-300" }, /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-10 h-10" }))), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.title || item.note || "未命名作品"), /* @__PURE__ */ React.createElement("span", { className: `flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`, title: publicState === "blocked" ? "这件作品已设为公开，但学员的家长授权还没确认，公开站上不会显示" : void 0 }, badge)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1 truncate" }, student.name, " · ", fmtDate(item.date)), item.note && item.title && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1 line-clamp-2" }, item.note))), canWritePortfolio && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
         setTab("students", { recordId: student.id });
         setSelS(student);
         setEditP(false);
@@ -6550,6 +6560,8 @@
     const [teamBusy, setTeamBusy] = useState10(false);
     const [teamForm, setTeamForm] = useState10({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
     const [actorRole, setActorRole] = useState10("");
+    const [supportSession, setSupportSession] = useState10(null);
+    const [sessionExpired, setSessionExpired] = useState10(false);
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -6878,6 +6890,7 @@
       const platformMembership = memberships.find((m) => !m.tenant_slug && ["platform_super_admin", "super_admin"].includes(m.role));
       const tenantMembership = memberships.find((m) => m.tenant_slug === tenantSlug);
       const effectiveRole = platformMembership?.role || tenantMembership?.role || "";
+      setSupportSession(d.support && d.support.slug === tenantSlug ? d.support : null);
       if (d.ok && ["owner", "manager", "teacher", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(effectiveRole)) {
         setActorRole(effectiveRole);
         setLoggedIn(true);
@@ -7141,8 +7154,7 @@
           body: JSON.stringify(body)
         });
         if (r.status === 401) {
-          showToast("登录已过期，请重新登录 / Session expired", "error");
-          setTimeout(doLogout, 1500);
+          setSessionExpired(true);
           return false;
         }
         if (r.status === 403) {
@@ -7286,21 +7298,27 @@
     );
     const [worksQuery, setWorksQuery] = useState10("");
     const [worksBucket, setWorksBucket] = useState10("all");
-    const worksIsShared = (item) => Boolean(item.public || item.visibility === "shared");
+    const worksPublicState = ({ student, item }) => {
+      if (!item.public) return "private";
+      if (student.archived) return "blocked";
+      return student.publicationConsent?.status === "confirmed" ? "shared" : "blocked";
+    };
+    const worksIsShared = (entry) => worksPublicState(entry) === "shared";
     const worksBuckets = useMemo6(() => {
       const consented = ({ student }) => student.publicationConsent?.status === "confirmed";
       return [
         { key: "all", label: "全部", count: portfolioEntries.length },
-        { key: "shared", label: "已公开", count: portfolioEntries.filter(({ item }) => worksIsShared(item)).length },
-        { key: "private", label: "未公开", count: portfolioEntries.filter(({ item }) => !worksIsShared(item)).length },
+        { key: "shared", label: "已公开", count: portfolioEntries.filter((entry) => worksIsShared(entry)).length },
+        { key: "private", label: "未公开", count: portfolioEntries.filter((entry) => !worksIsShared(entry)).length },
         { key: "noconsent", label: "待授权", count: portfolioEntries.filter((e) => !consented(e)).length }
       ];
     }, [portfolioEntries]);
     const worksVisible = useMemo6(() => {
       const needle = worksQuery.trim().toLowerCase();
-      return portfolioEntries.filter(({ student, item }) => {
-        if (worksBucket === "shared" && !worksIsShared(item)) return false;
-        if (worksBucket === "private" && worksIsShared(item)) return false;
+      return portfolioEntries.filter((entry) => {
+        const { student, item } = entry;
+        if (worksBucket === "shared" && !worksIsShared(entry)) return false;
+        if (worksBucket === "private" && worksIsShared(entry)) return false;
         if (worksBucket === "noconsent" && student.publicationConsent?.status === "confirmed") return false;
         if (!needle) return true;
         return [student.name, item.title, item.note].some((v) => String(v || "").toLowerCase().includes(needle));
@@ -8421,7 +8439,7 @@ ${lines.join("\n")}`, "日报已复制到剪贴板");
       };
       const html = `<!doctype html><html lang="${RT.htmlLang}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${esc(s.name)} · 成长报告 · ${esc(reportStudioName)}</title>
+<title>${esc(s.name)} · ${RT.tag} · ${esc(reportStudioName)}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 :root{--accent:${reportAccent};--accent-dark:${reportAccentDark}}
@@ -8491,7 +8509,10 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div>
       <span class="tag">${RT.tag}</span>
       <h1>${esc(s.name)}</h1>
-	      <div class="sub">${isNew ? `${esc(reportJoinText)} · 欢迎加入 ${esc(reportStudioName)}` : `已在 ${esc(reportStudioName)} 成长陪伴 <b>${days}</b> 天 · 入学于 ${fmtD(joinDate)}`}</div>
+	      <!-- RT.welcome 和 RT.joined 上面定义好了，这一行却把中文写死了：英文
+	           工作室发给家长的报告，标题和统计栏是英文，独独这句副标题是中文。
+	           两个函数定义了、零调用——「写了但没接上」比没写更难被发现。 -->
+	      <div class="sub">${isNew ? `${esc(reportJoinText)} · ${RT.welcome(esc(reportStudioName))}` : RT.joined(esc(reportStudioName), fmtD(joinDate), days)}</div>
     </div>
   </div>
   <div class="stats">
@@ -9519,6 +9540,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
       ] }
     ].map((group) => ({ ...group, items: group.items.filter((item) => allowedTabs.includes(item.k)) })).filter((group) => group.items.length > 0);
     const NAV = NAV_GROUPS.flatMap((group) => group.items);
+    const NAV_ICON = Object.assign(
+      { new_student: "plus", settings: "settings" },
+      Object.fromEntries(NAV.map((item) => [item.k, item.i]))
+    );
     const CMS_PAGE_TITLE_EXTRAS = { settings: "系统设置", new_student: "新建学员档案" };
     const cmsPageTitle = CMS_PAGE_TITLE_EXTRAS[tab] || (NAV.find((item) => item.k === tab) || {}).l || "Studio CMS";
     const actorRoleLabel = {
@@ -9541,7 +9566,46 @@ document.getElementById('copybtn').addEventListener('click', function(){
       setShowSettings(false);
       if (tab === "settings") setTab("dashboard");
     };
-    return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen bg-gray-50" }, toast && /* @__PURE__ */ React.createElement(Toast, { key: toast.key, msg: toast.msg, type: toast.type, action: toast.action, onDone: () => setToast(null) }), icsPreview && /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen bg-gray-50" }, toast && /* @__PURE__ */ React.createElement(Toast, { key: toast.key, msg: toast.msg, type: toast.type, action: toast.action, onDone: () => setToast(null) }), sessionExpired && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "fixed inset-0 z-[97] bg-black/50 flex items-center justify-center p-4",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": "session-expired-title"
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("p", { id: "session-expired-title", className: "font-bold text-gray-900 mb-1" }, "登录已过期"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mb-4" }, "刚才那一下没有保存。重新登录之后你会回到这一屏，已经填好的内容还在。"), /* @__PURE__ */ React.createElement(LoginScreen, { embedded: true, onLogin: () => {
+        setSessionExpired(false);
+        refreshSession();
+      } }))
+    ), supportSession && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "status",
+        className: "fixed top-0 left-0 right-0 z-[60] flex flex-wrap items-center gap-3 px-4 py-2.5 bg-amber-700 text-white text-sm"
+      },
+      /* @__PURE__ */ React.createElement("strong", { className: "inline-flex items-center gap-1.5 font-bold tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "支持模式 · SUPPORT MODE"),
+      /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, "你正在 ", tenantDisplayName, " 的后台内操作，每一步都会写进审计记录。", supportSession.reason ? ` 原因：${supportSession.reason}` : ""),
+      /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: async () => {
+            try {
+              await fetch("/v1/admin/support-session/end", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" }
+              });
+            } catch (e) {
+            }
+            window.location.href = "/platform-admin";
+          },
+          className: "min-h-[44px] px-3 rounded-lg bg-white/15 hover:bg-white/25 font-bold text-xs"
+        },
+        "退出支持模式"
+      )
+    ), supportSession && /* @__PURE__ */ React.createElement("div", { className: "fixed top-0 left-0 right-0 h-[46px] pointer-events-none", "aria-hidden": "true" }), icsPreview && /* @__PURE__ */ React.createElement(
       "div",
       {
         className: "fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4",
@@ -10081,7 +10145,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         setUserMenuOpen(false);
         confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" });
       }, className: "w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50" }, "退出登录"))))),
-      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
         BillingPanel,
         {
           api: v1Api,
@@ -10402,7 +10466,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] cms-chrome border-t px-4 py-3 grid grid-cols-4 gap-2 anim",
         onClick: (e) => e.stopPropagation()
       },
-      [{ k: "courses", i: "", s: "课程" }, { k: "works", i: "", s: "作品" }, { k: "logs", i: "", s: "日志" }, { k: "stats", i: "", s: "统计" }, { k: "pending", i: "", s: "待处理", badge: pendingCount }, { k: "new_student", i: /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-[22px] h-[22px]" }), s: "新建" }, { k: "settings", i: "", s: "设置" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s, badge }) => /* @__PURE__ */ React.createElement(
+      [{ k: "courses", s: "课程" }, { k: "works", s: "作品" }, { k: "logs", s: "日志" }, { k: "stats", s: "统计" }, { k: "pending", s: "待处理", badge: pendingCount }, { k: "new_student", s: "新建" }, { k: "settings", s: "设置" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, s, badge }) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: k,
@@ -10410,9 +10474,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
             setTab(k);
             setMoreOpen(false);
           },
+          "aria-current": tab === k ? "page" : void 0,
           className: `flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative cms-chrome-item ${["courses", "works", "logs", "stats", "pending", "new_student", "settings"].includes(tab) && tab === k ? "is-active" : ""}`
         },
-        /* @__PURE__ */ React.createElement("span", { className: "text-[22px] leading-none" }, i),
+        /* @__PURE__ */ React.createElement(Icon, { name: NAV_ICON[k], className: "w-[22px] h-[22px]" }),
         /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold leading-none tracking-tight" }, s),
         badge > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1 right-2 bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4" }, badge)
       ))
@@ -10422,7 +10487,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "md:hidden fixed bottom-0 left-0 right-0 z-40 cms-chrome border-t flex",
         style: { paddingBottom: "env(safe-area-inset-bottom,0px)", transform: "translateZ(0)", willChange: "transform" }
       },
-      [{ k: "dashboard", i: "", s: "工作台" }, { k: "roster", i: "", s: "课表" }, { k: "students", i: "", s: "档案" }, { k: "topup", i: "", s: "充值" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s }) => /* @__PURE__ */ React.createElement(
+      [{ k: "dashboard", s: "工作台" }, { k: "roster", s: "课表" }, { k: "students", s: "档案" }, { k: "topup", s: "充值" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, s }) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: k,
@@ -10433,7 +10498,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           "aria-current": tab === k ? "page" : void 0,
           className: `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab === k ? "is-active" : ""}`
         },
-        /* @__PURE__ */ React.createElement("span", { className: "text-[22px] leading-none" }, i),
+        /* @__PURE__ */ React.createElement(Icon, { name: NAV_ICON[k], className: "w-[22px] h-[22px]" }),
         /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold leading-none tracking-tight" }, s),
         k === "dashboard" && analytics.lowBalance.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-[18%] bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4" }, analytics.lowBalance.length)
       )),

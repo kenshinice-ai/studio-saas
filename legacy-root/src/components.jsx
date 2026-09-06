@@ -1142,7 +1142,11 @@ export function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify
 }
 
 /* ═══════════════════ LOGIN SCREEN ════════════════════════════ */
-export function LoginScreen({ onLogin }) {
+/* `embedded` 让同一个表单也能当作重新登录的浮层用：整屏包装和品牌头去掉，
+   表单本身一字不改。会话过期时 CMS 把它盖在应用上而不是把应用卸载掉——
+   组件树不卸载，填了一半的表单就还在，也就不需要把客户与交易数据写进浏览器
+   存储去「恢复」。 */
+export function LoginScreen({ onLogin, embedded = false }) {
     const [email, setEmail] = useState(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || '');
     const [pw,   setPw]   = useState('');
     const [busy, setBusy] = useState(false);
@@ -1170,11 +1174,11 @@ export function LoginScreen({ onLogin }) {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-	                <TenantBrandLogo className="w-36 max-h-20 object-contain mx-auto mb-3"/>
-	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
-	                <p className="text-sm text-gray-400 mb-6">请输入 Studio CMS 账号</p>
+        <div className={embedded ? '' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4'}>
+            <div className={embedded ? 'text-center' : 'bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim'}>
+	                {!embedded && <TenantBrandLogo className="w-36 max-h-20 object-contain mx-auto mb-3"/>}
+	                {!embedded && <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>}
+	                {!embedded && <p className="text-sm text-gray-400 mb-6">请输入 Studio CMS 账号</p>}
                 <form onSubmit={submit} className="space-y-3">
                     <div className="text-left">
                         <label htmlFor="cms-login-email" className="block text-xs font-bold text-gray-500 mb-1">管理员邮箱</label>

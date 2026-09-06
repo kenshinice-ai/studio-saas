@@ -163,3 +163,43 @@ def test_the_log_export_button_says_what_it_actually_downloads() -> None:
     assert "不随上面的筛选变化" in panel, (
         "它无视屏幕上的日期、学员和操作类型筛选——位置本身在暗示相反的事"
     )
+
+
+def test_the_invoice_identity_editor_covers_every_field_the_invoice_prints() -> None:
+    """存了、印在发票上了、编辑不了——三件事只能同时成立两件。
+
+    `website` 和 `country` 一直在 ``BILLING_IDENTITY_FIELDS`` 里，被冻结进每一张
+    已开具发票的供应商快照并被发票文档渲染，而 CMS 里没有任何输入框看得到它们。
+    断言按模型推导，不写死清单：下次给发票加字段，忘了给界面加输入框，这条会红。
+    """
+
+    from studiosaas.services.billing import BILLING_IDENTITY_FIELDS
+
+    panel = _source("const TEXT_FIELDS")
+    #: 不走文本框的三个，各有理由：GST 是开关，付款说明是多行，schema 版本不是人填的。
+    SPECIAL = {"gst_registered", "payment_note"}
+    for field in BILLING_IDENTITY_FIELDS:
+        if field in SPECIAL:
+            assert f"form.{field}" in panel, f"{field} 连特例处理都没有"
+            continue
+        assert f"['{field}'," in panel, (
+            f"发票会印 {field}，但 CMS 里没有一个输入框能看到或改它"
+        )
+
+
+def test_the_growth_report_is_written_in_one_language() -> None:
+    """报告在新窗口里打开，cms-i18n 的 DOM 翻译层够不到它，所以它自己带一份文案。
+
+    那份文案里 `welcome` 和 `joined` 定义好了，却零调用——英文工作室发给家长的
+    报告，标题和统计栏是英文，独独 hero 副标题是中文。「写了但没接上」比没写
+    更难被发现，因为词典看起来是全的。
+    """
+
+    app = _source("const RT = rlang==='en'")
+    report = app[app.index("const RT = rlang==='en'"):][:6000]
+    for key in ("welcome", "joined", "tag"):
+        assert f"RT.{key}" in report, f"RT.{key} 定义了却没有任何地方用它"
+    hero = report[report.index('<div class="sub">'):][:400]
+    assert "已在 " not in hero and "欢迎加入 " not in hero, (
+        "hero 副标题不能写死中文——它旁边的每一句都跟着报告语言走"
+    )

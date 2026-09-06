@@ -9,6 +9,7 @@ import { FilterBar } from "./filter_bar.jsx";
 
 export function WorksSection(props) {
     const {
+        worksPublicState,
         canWritePortfolio, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab,
         setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery,
         worksVisible,
@@ -32,11 +33,23 @@ export function WorksSection(props) {
         {!portfolioEntries.length ? <EmptyState icon={<Icon name="image" className="w-8 h-8"/>} main="还没有作品" sub="打开学员档案后，在作品区上传第一件作品。" action="查看学员" onAction={()=>setTab('students')}/>
          : !worksVisible.length ? <EmptyState icon={<Icon name="image" className="w-8 h-8"/>} main="没有符合筛选的作品" sub="换一个分类，或清空搜索词。"/>
          : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{worksVisible.slice(0,50).map(({student,item})=>{
-            const shared = item.public || item.visibility === 'shared';
+            /* 三态，不是两态。原来这里自己复制了一份判定（而且比公开站宽松），
+               于是同一件作品在 CMS 里是绿色的「已公开」，在公开站上根本不显示。
+               现在用传下来的同一个函数，并把「设为公开但授权没生效」单列出来
+               —— 那正是需要工作室去做点什么的那一档。 */
+            const publicState = worksPublicState({student, item});
+            const shared = publicState === 'shared';
+            const badge = publicState === 'shared' ? '已公开'
+                        : publicState === 'blocked' ? '待家长授权' : '未公开';
+            const badgeClass = publicState === 'shared'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : publicState === 'blocked'
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-gray-100 border-gray-200 text-gray-500';
             return <article key={`${student.id}-${item.id||item.filename||item.date}`} className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
                 <button type="button" onClick={()=>{setTab('students',{recordId:student.id});setSelS(student);setEditP(false);setTimeout(()=>setStudentProfileTab('portfolio'),0);}} className="block w-full text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
                     <div className="aspect-[4/3] bg-gray-100 overflow-hidden">{item.filename ? <img src={portfolioThumbSrc(student.id,item)} loading="lazy" alt={`${student.name} 的作品`} className="w-full h-full object-cover"/> : <div className="w-full h-full inline-flex items-center justify-center text-gray-300"><Icon name="image" className="w-10 h-10"/></div>}</div>
-                    <div className="p-3"><div className="flex items-center justify-between gap-2"><p className="font-bold text-gray-900 truncate">{item.title||item.note||'未命名作品'}</p><span className={`flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full border ${shared?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-gray-100 border-gray-200 text-gray-500'}`}>{shared?'已公开':'未公开'}</span></div><p className="text-xs text-gray-500 mt-1 truncate">{student.name} · {fmtDate(item.date)}</p>{item.note && item.title && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.note}</p>}</div>
+                    <div className="p-3"><div className="flex items-center justify-between gap-2"><p className="font-bold text-gray-900 truncate">{item.title||item.note||'未命名作品'}</p><span className={`flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`} title={publicState === 'blocked' ? '这件作品已设为公开，但学员的家长授权还没确认，公开站上不会显示' : undefined}>{badge}</span></div><p className="text-xs text-gray-500 mt-1 truncate">{student.name} · {fmtDate(item.date)}</p>{item.note && item.title && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.note}</p>}</div>
                 </button>
                 {canWritePortfolio && <div className="px-3 pb-3"><button type="button" onClick={()=>{setTab('students',{recordId:student.id});setSelS(student);setEditP(false);setTimeout(()=>{setStudentProfileTab('portfolio');setPortUpload(true);},0);}} className="w-full min-h-[44px] rounded-xl border border-indigo-200 bg-white text-xs font-bold text-indigo-700 hover:bg-indigo-50">在该学员下继续上传</button></div>}
             </article>;
