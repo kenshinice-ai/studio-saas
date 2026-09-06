@@ -1882,7 +1882,7 @@
         type: "button",
         disabled: busy,
         onClick: () => confirm2(
-          "走清算账户，意味着我们推过去的收款先入一个中转科目，再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。\n科目号由你的会计提供，来自这个 Xero 账套的科目表。",
+          "走清算账户，意味着我们推过去的收款先入一个中转科目，再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。科目号由你的会计提供，来自这个 Xero 账套的科目表。",
           (code) => step("single_entry", { decision: "clearing_account", clearingAccountCode: code }),
           {
             prompt: true,

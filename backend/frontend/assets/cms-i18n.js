@@ -737,6 +737,44 @@
     ['PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。',
      'The PWA cache is cleared and the page will reload. If the home-screen icon is still stale, remove it and add it again.'],
     ['请确认终端正在运行', 'Check that this is running in your terminal']
+
+    /* ── 钱与不可逆操作（v10.16.0） ──
+     * 补齐的优先级按后果，不按出现频率。词典有约 870 条，源码里的可见中文串
+     * 是它的两倍多——把差距补到 100% 是一场追不上的赛跑，所以先补这一类：
+     * 每一条确认对话框、每一条涉及金额或不可撤销动作的提示。
+     * 一个英文用户读不懂一句列表标题只是别扭；读不懂一句「这一步不可撤销」
+     * 是另一回事。 */
+    ['确认退出登录？', 'Sign out?'],
+    ['放弃未保存的修改？', 'Discard unsaved changes?'],
+    ['生成新访问码后，旧访问码和现有登录会话会立即失效。继续？',
+     'Issuing a new access code immediately invalidates the old one and any signed-in session. Continue?'],
+    ['请填写套餐名称、课时数和价格', 'Enter a package name, a number of lessons and a price'],
+    ['请填写退款原因', 'Enter a reason for the refund'],
+    ['请输入有效课时数', 'Enter a valid number of lessons'],
+    ['请选择一笔原充值，再继续退款', 'Choose the original top-up before refunding'],
+    ['课时数必须大于 0，价格不能为负数', 'Lessons must be more than 0 and the price cannot be negative'],
+    ['退款金额无效', 'That refund amount is not valid'],
+    ['金额为 0 时不能创建发票，请关闭“同时创建发票”。',
+     'An invoice cannot be created for a zero amount — turn off "Create an invoice too".'],
+    ['该充值没有完整的发票/付款桥，不能同步调整钱款单据。',
+     'This top-up has no linked invoice or payment, so the money documents cannot be adjusted with it.'],
+    ['默认上课时间必须是有效的 HH:MM', 'The default class time must be a valid HH:MM'],
+    ['付款方资料已更新；已开具发票继续读取冻结快照',
+     'Payer details updated. Invoices already issued keep the snapshot frozen at the time of issue.'],
+    ['已撤销这次变更，随之发出的补课额度也已作废',
+     'Change undone. The make-up credit it granted has been cancelled with it.'],
+    ['走清算账户，意味着我们推过去的收款先入一个中转科目，再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。科目号由你的会计提供，来自这个 Xero 账套的科目表。',
+     'A clearing account means the payments we push land in a holding account first, so your accountant can reconcile them against the other channel\u2019s records and the same money never appears twice in Xero. Your accountant supplies the account code from this Xero organisation\u2019s chart of accounts.'],
+    ['清算账户科目号', 'Clearing account code'],
+    ['保留双通道，走清算账户', 'Keep both channels, use a clearing account'],
+    ['补课日期', 'Make-up date'],
+    ['排进课表并用掉额度', 'Schedule it and spend the credit'],
+    ['确认后这张额度立刻用掉，并在选定日期排出一节课。额度无法退回。',
+     'Confirming spends this credit now and puts a lesson on the calendar for the date chosen. The credit cannot be returned.'],
+    ['未关联循环课，无法排补课', 'Not linked to a recurring lesson — no make-up can be scheduled'],
+    ['服务端没有排出这节课，请把这条告诉技术支持后再试',
+     'The server did not create the lesson. Please report this before trying again.'],
+
   ]);
 
   /* Prefixes that carry no meaning of their own (icons and status glyphs the

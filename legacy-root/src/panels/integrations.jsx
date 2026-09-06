@@ -395,10 +395,10 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
                     已关掉对方的同步
                   </button>
                   <button type="button" disabled={busy}
+                          /* 一条字面量，不是三段拼接。带变量或拼接的句子没有稳定的
+                             键，词典永远命中不了它——而这是一句决定钱怎么入账的话。 */
                           onClick={() => confirm(
-                            '走清算账户，意味着我们推过去的收款先入一个中转科目，'
-                            + '再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。\n'
-                            + '科目号由你的会计提供，来自这个 Xero 账套的科目表。',
+                            '走清算账户，意味着我们推过去的收款先入一个中转科目，再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。科目号由你的会计提供，来自这个 Xero 账套的科目表。',
                             (code) => step('single_entry', { decision: 'clearing_account', clearingAccountCode: code }),
                             { prompt: true, promptLabel: '清算账户科目号',
                               promptPlaceholder: '例如 820', promptRequired: true,
