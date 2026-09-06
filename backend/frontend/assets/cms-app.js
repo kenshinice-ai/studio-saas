@@ -1582,7 +1582,7 @@
     const badge = done ? "bg-green-50 text-green-700 border-green-200" : active ? "bg-indigo-600 text-white border-indigo-600" : "bg-gray-100 text-gray-500 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { className: `flex gap-3 items-start p-3 rounded-xl border ${active ? "border-indigo-200 bg-indigo-50" : "border-gray-200 bg-white"}` }, /* @__PURE__ */ React.createElement("span", { className: `w-7 h-7 rounded-full grid place-items-center text-xs font-bold border flex-none ${badge}` }, done ? "✓" : n), /* @__PURE__ */ React.createElement("div", { className: "text-xs min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold mb-0.5" }, title), /* @__PURE__ */ React.createElement("div", { className: "text-gray-600" }, children)));
   }
-  function IntegrationsPanel({ api, showToast, canManage }) {
+  function IntegrationsPanel({ api, showToast, confirm: confirm2, canManage }) {
     const [state, setState] = useState3(null);
     const [busy, setBusy] = useState3(false);
     const [error, setError] = useState3("");
@@ -1846,10 +1846,17 @@
       {
         type: "button",
         disabled: busy,
-        onClick: () => {
-          const code = window.prompt("清算账户科目号");
-          if (code) step("single_entry", { decision: "clearing_account", clearingAccountCode: code });
-        },
+        onClick: () => confirm2(
+          "走清算账户，意味着我们推过去的收款先入一个中转科目，再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。\n科目号由你的会计提供，来自这个 Xero 账套的科目表。",
+          (code) => step("single_entry", { decision: "clearing_account", clearingAccountCode: code }),
+          {
+            prompt: true,
+            promptLabel: "清算账户科目号",
+            promptPlaceholder: "例如 820",
+            promptRequired: true,
+            confirmText: "保留双通道，走清算账户"
+          }
+        ),
         className: "min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold"
       },
       "保留，走清算账户"
@@ -2261,7 +2268,7 @@
     { value: "studio", label: "工作室停课" }
   ];
   var iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, students }) {
+  function PrivateLessonsPanel({ api, showToast, confirm: confirm2, canWrite, canWritePolicy, students }) {
     const [view, setView] = useState7("upcoming");
     const [series, setSeries] = useState7([]);
     const [occurrences, setOccurrences] = useState7([]);
@@ -2361,25 +2368,40 @@
         setBusy(false);
       }
     }
-    async function useCredit(credit) {
-      const onDate = window.prompt(
-        `给 ${credit.student_name} 安排补课，日期（YYYY-MM-DD）：`,
-        range.start
-      );
-      if (!onDate) return;
-      setBusy(true);
-      try {
-        await api(`/scheduling/credits/${credit.id}/consume`, {
-          method: "POST",
-          body: JSON.stringify({ onDate })
-        });
-        showToast("补课已登记，这次额度已用掉", "success");
-        await load();
-      } catch (e) {
-        showToast(e.message || "登记失败", "error");
-      } finally {
-        setBusy(false);
-      }
+    function useCredit(credit) {
+      const lines = [
+        `${credit.student_name} · ${fmtApiDate(credit.earned_from_date)} 请假产生的额度`,
+        credit.series_start_time ? `补课排进原来的循环课：${credit.series_start_time}${credit.teacher_name ? ` · ${credit.teacher_name}` : ""}${credit.room ? ` · ${credit.room}` : ""}` : "",
+        credit.expires_on ? `额度有效期至 ${fmtApiDate(credit.expires_on)}` : "",
+        "确认后这张额度立刻用掉，并在选定日期排出一节课。额度无法退回。"
+      ].filter(Boolean);
+      confirm2(lines.join("\n"), async (onDate) => {
+        setBusy(true);
+        try {
+          const res = await api(`/scheduling/credits/${credit.id}/consume`, {
+            method: "POST",
+            body: JSON.stringify({ onDate })
+          });
+          if (res && res.exceptionId) {
+            showToast(`补课已排在 ${fmtApiDate(res.onDate || onDate)}，这次额度已用掉`, "success");
+          } else {
+            showToast("服务端没有排出这节课，请把这条告诉技术支持后再试", "error");
+          }
+          await load();
+        } catch (e) {
+          showToast(e.message || "登记失败", "error");
+        } finally {
+          setBusy(false);
+        }
+      }, {
+        prompt: true,
+        promptType: "date",
+        promptLabel: "补课日期",
+        promptDefault: range.start,
+        promptMin: range.start,
+        promptRequired: true,
+        confirmText: "排进课表并用掉额度"
+      });
     }
     if (loading) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-gray-500" }, "正在加载一对一课程…");
     if (error) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-red-600" }, error);
@@ -2461,7 +2483,9 @@
         busy,
         setBusy
       }
-    ))))), view === "credits" && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, !credits.length && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-sm text-gray-400 text-center" }, "没有欠着的补课。提前请假产生的额度会出现在这里。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, credits.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "px-4 py-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800 flex-1 min-w-0 truncate" }, c.student_name), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, fmtApiDate(c.earned_from_date), " 请假产生"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${c.is_expired ? "bg-gray-100 text-gray-500" : "bg-amber-50 text-amber-700"}` }, c.is_expired ? "已过期" : c.expires_on ? `${fmtApiDate(c.expires_on)} 前有效` : "不过期"), canWrite && !c.is_expired && /* @__PURE__ */ React.createElement(
+    ))))), view === "credits" && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, !credits.length && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-sm text-gray-400 text-center" }, "没有欠着的补课。提前请假产生的额度会出现在这里。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, credits.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "px-4 py-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800 flex-1 min-w-0 truncate" }, c.student_name), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, fmtApiDate(c.earned_from_date), " 请假产生"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${c.is_expired ? "bg-gray-100 text-gray-500" : "bg-amber-50 text-amber-700"}` }, c.is_expired ? "已过期" : c.expires_on ? `${fmtApiDate(c.expires_on)} 前有效` : "不过期"), canWrite && !c.is_expired && /* 没有关联循环课的额度排不出补课（服务端会拒绝）。
+       与其让人点了才知道，不如在这里就说清楚。 */
+    (c.series_id ? /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -2470,7 +2494,7 @@
         className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"
       },
       "安排补课"
-    ))))), view === "policy" && policy && /* @__PURE__ */ React.createElement(
+    ) : /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, "未关联循环课，无法排补课")))))), view === "policy" && policy && /* @__PURE__ */ React.createElement(
       PolicyEditor,
       {
         policy,
@@ -3275,6 +3299,9 @@
           value: typed,
           onChange: (e) => setTyped(e.target.value),
           autoFocus: true,
+          type: dialog.promptType || "text",
+          min: dialog.promptMin || void 0,
+          max: dialog.promptMax || void 0,
           placeholder: dialog.promptPlaceholder || "",
           onKeyDown: (e) => {
             if (e.key === "Enter" && ready) {
@@ -4267,6 +4294,10 @@
       canWriteScheduling,
       checkIn,
       checkInWindow,
+      /* `confirm` shadows window.confirm inside this component on purpose: the
+         panel below used to fall back to a native dialog precisely because it
+         never received this one. */
+      confirm: confirm2,
       copyRosterDaily,
       copyRosterReminders,
       copyText,
@@ -4647,6 +4678,7 @@
       {
         api: v1Api,
         showToast,
+        confirm: confirm2,
         canWrite: canWriteScheduling,
         canWritePolicy: canManageOperations,
         students: db.students.filter((s) => !s.archived)
@@ -9970,7 +10002,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       }, className: "w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50" }, "退出登录"))))),
       tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }),
       tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }),
-      tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }),
+      tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }),
       tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }),
       tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }),
       tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }),
@@ -10235,7 +10267,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             showToast,
             canManage: ownerRoles.includes(actorRole)
           }
-        )), ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "integrations", active: settingsSection === "integrations" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "集成"), /* @__PURE__ */ React.createElement(IntegrationsPanel, { api: v1Api, showToast, canManage: ownerRoles.includes(actorRole) })), /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "workspace", active: settingsSection === "workspace" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "学员注册页面"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500 flex-1 font-mono truncate" }, window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`), /* @__PURE__ */ React.createElement(
+        )), ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "integrations", active: settingsSection === "integrations" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "集成"), /* @__PURE__ */ React.createElement(IntegrationsPanel, { api: v1Api, showToast, confirm: confirm2, canManage: ownerRoles.includes(actorRole) })), /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "workspace", active: settingsSection === "workspace" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "学员注册页面"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500 flex-1 font-mono truncate" }, window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`), /* @__PURE__ */ React.createElement(
           "button",
           {
             type: "button",

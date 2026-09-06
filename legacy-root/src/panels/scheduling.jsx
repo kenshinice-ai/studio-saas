@@ -66,7 +66,11 @@ const closeMenu = (e) => { const menu = e.currentTarget.closest('details'); if (
 export function RosterSection(props) {
     const {
         WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy,
-        canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders,
+        canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow,
+        /* `confirm` shadows window.confirm inside this component on purpose: the
+           panel below used to fall back to a native dialog precisely because it
+           never received this one. */
+        confirm, copyRosterDaily, copyRosterReminders,
         copyText, courses, dayIds, db, defaultClassTime, deleteGroup,
         deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence,
         openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster,
@@ -497,7 +501,7 @@ export function RosterSection(props) {
                     <span className="group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
                 </summary>
                 <div className="p-3 bg-white">
-                    <PrivateLessonsPanel api={v1Api} showToast={showToast}
+                    <PrivateLessonsPanel api={v1Api} showToast={showToast} confirm={confirm}
                         canWrite={canWriteScheduling} canWritePolicy={canManageOperations}
                         students={db.students.filter(s=>!s.archived)} />
                 </div>

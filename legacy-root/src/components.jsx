@@ -592,7 +592,16 @@ export function ConfirmDialog({ dialog, onClose }) {
                 {isPrompt && !needsText && (
                     <div className="mb-5">
                         {dialog.promptLabel && <label className="block text-xs font-bold text-gray-600 mb-1.5">{dialog.promptLabel}</label>}
+                        {/* `promptType` exists so a date question can be a date
+                            field. The one place that needed one was booking a
+                            make-up, and it was answered with window.prompt and a
+                            free-text YYYY-MM-DD — an operator who typed the month
+                            and day the other way round spent an irreversible
+                            credit on the wrong day. */}
                         <input value={typed} onChange={e=>setTyped(e.target.value)} autoFocus
+                            type={dialog.promptType || 'text'}
+                            min={dialog.promptMin || undefined}
+                            max={dialog.promptMax || undefined}
                             placeholder={dialog.promptPlaceholder || ''}
                             onKeyDown={e=>{ if (e.key==='Enter' && ready) { dialog.onConfirm(typed); onClose(); } }}
                             className="w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"/>

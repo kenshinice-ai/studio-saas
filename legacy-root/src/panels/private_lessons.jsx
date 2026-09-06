@@ -28,7 +28,7 @@ const WHO = [
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, students }) {
+export function PrivateLessonsPanel({ api, showToast, confirm, canWrite, canWritePolicy, students }) {
     const [view, setView] = useState('upcoming');
     const [series, setSeries] = useState([]);
     const [occurrences, setOccurrences] = useState([]);
@@ -133,20 +133,54 @@ export function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, 
         } finally { setBusy(false); }
     }
 
-    async function useCredit(credit) {
-        const onDate = window.prompt(
-            `给 ${credit.student_name} 安排补课，日期（YYYY-MM-DD）：`, range.start);
-        if (!onDate) return;
-        setBusy(true);
-        try {
-            await api(`/scheduling/credits/${credit.id}/consume`, {
-                method: 'POST', body: JSON.stringify({ onDate }),
-            });
-            showToast('补课已登记，这次额度已用掉', 'success');
-            await load();
-        } catch (e) {
-            showToast(e.message || '登记失败', 'error');
-        } finally { setBusy(false); }
+    /* 花掉一张补课额度，就是排出一节课 —— 两件事要么一起成立，要么都不发生。
+     *
+     * 这里曾经是 window.prompt，而且是全仓库最后一个原生对话框，守着全产品
+     * 唯一一个不可逆、又没有任何撤销路径的动作。它退回原生不是取舍，是挂载点
+     * （panels/scheduling.jsx）忘了把 confirm 传下来，面板拿不到房子的对话框。
+     *
+     * 更要紧的是最后那句 showToast：它无条件说「补课已登记」，而服务端返回的
+     * exceptionId 恒为 null —— 一节课都没排。所以现在念的是服务端真正做成的
+     * 事，不是这一步本来打算做的事。
+     */
+    function useCredit(credit) {
+        const lines = [
+            `${credit.student_name} · ${fmtApiDate(credit.earned_from_date)} 请假产生的额度`,
+            credit.series_start_time
+                ? `补课排进原来的循环课：${credit.series_start_time}`
+                    + `${credit.teacher_name ? ` · ${credit.teacher_name}` : ''}`
+                    + `${credit.room ? ` · ${credit.room}` : ''}`
+                : '',
+            credit.expires_on ? `额度有效期至 ${fmtApiDate(credit.expires_on)}` : '',
+            '确认后这张额度立刻用掉，并在选定日期排出一节课。额度无法退回。',
+        ].filter(Boolean);
+
+        confirm(lines.join('\n'), async (onDate) => {
+            setBusy(true);
+            try {
+                const res = await api(`/scheduling/credits/${credit.id}/consume`, {
+                    method: 'POST', body: JSON.stringify({ onDate }),
+                });
+                if (res && res.exceptionId) {
+                    showToast(`补课已排在 ${fmtApiDate(res.onDate || onDate)}，这次额度已用掉`, 'success');
+                } else {
+                    /* 服务端现在会拒绝这种情况而不是默默返回，所以这一支应当
+                       永远走不到。留着它，是因为上一版正是在这里说了假话。 */
+                    showToast('服务端没有排出这节课，请把这条告诉技术支持后再试', 'error');
+                }
+                await load();
+            } catch (e) {
+                showToast(e.message || '登记失败', 'error');
+            } finally { setBusy(false); }
+        }, {
+            prompt: true,
+            promptType: 'date',
+            promptLabel: '补课日期',
+            promptDefault: range.start,
+            promptMin: range.start,
+            promptRequired: true,
+            confirmText: '排进课表并用掉额度',
+        });
     }
 
     if (loading) return <div className="p-6 text-sm text-gray-500">正在加载一对一课程…</div>;
@@ -288,10 +322,18 @@ export function PrivateLessonsPanel({ api, showToast, canWrite, canWritePolicy, 
                                         : c.expires_on ? `${fmtApiDate(c.expires_on)} 前有效` : '不过期'}
                                 </span>
                                 {canWrite && !c.is_expired && (
-                                    <button type="button" onClick={() => useCredit(c)} disabled={busy}
-                                            className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">
-                                        安排补课
-                                    </button>
+                                    /* 没有关联循环课的额度排不出补课（服务端会拒绝）。
+                                       与其让人点了才知道，不如在这里就说清楚。 */
+                                    c.series_id ? (
+                                        <button type="button" onClick={() => useCredit(c)} disabled={busy}
+                                                className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">
+                                            安排补课
+                                        </button>
+                                    ) : (
+                                        <span className="text-xs text-gray-400">
+                                            未关联循环课，无法排补课
+                                        </span>
+                                    )
                                 )}
                             </div>
                         ))}

@@ -341,6 +341,7 @@ def occurrences(
     return fetch_all(
         conn,
         """
+        SELECT * FROM (
         SELECT ls.id AS series_id,
                to_char(d::date, 'YYYY-MM-DD')          AS on_date,
                to_char(ls.start_time, 'HH24:MI')       AS start_time,
@@ -383,9 +384,56 @@ def occurrences(
                    AND (ls.paused_to IS NULL OR d::date <= ls.paused_to))
           AND (%s = '' OR ls.id::text = %s)
           AND (%s = '' OR ls.teacher_user_id::text = %s)
-        ORDER BY d::date, ls.start_time
+
+        UNION ALL
+
+        -- Make-up lessons, which the expansion above structurally cannot
+        -- reach. A make-up is booked onto a day the series does not normally
+        -- run — that is what makes it a make-up — and the branch above only
+        -- generates days where `extract(dow) = ls.weekday`. Between v9.x and
+        -- v10.15.0 `kind = 'makeup'` was written in exactly one place and read
+        -- in none, so a booked make-up existed in the table and appeared on
+        -- nobody's list: not the teacher's, not the front desk's.
+        --
+        -- Deliberately not filtered by series status, pause window or term
+        -- closure: those rules generate the ordinary timetable, while this row
+        -- is a decision somebody made about one named family on one named day.
+        -- A pause that started afterwards must not make an owed lesson vanish.
+        SELECT ls.id AS series_id,
+               to_char(ex.on_date, 'YYYY-MM-DD')       AS on_date,
+               to_char(COALESCE(ex.moved_to_start_time, ls.start_time),
+                       'HH24:MI')                      AS start_time,
+               ls.duration_minutes, ls.room,
+               ls.student_id, s.display_name           AS student_name,
+               COALESCE(ex.teacher_user_id, ls.teacher_user_id) AS teacher_user_id,
+               COALESCE(ut.full_name, u.full_name)     AS teacher_name,
+               ex.id                                   AS exception_id,
+               ex.kind                                 AS exception_kind,
+               ex.chargeable, ex.counts_for_pay,
+               to_char(ex.moved_to_date, 'YYYY-MM-DD') AS moved_to_date,
+               to_char(ex.moved_to_start_time, 'HH24:MI') AS moved_to_start_time,
+               ex.reason
+        FROM lesson_exceptions ex
+        JOIN lesson_series ls ON ls.tenant_id = ex.tenant_id AND ls.id = ex.series_id
+        JOIN students s ON s.tenant_id = ls.tenant_id AND s.id = ls.student_id
+        LEFT JOIN users u  ON u.id  = ls.teacher_user_id
+        LEFT JOIN users ut ON ut.id = ex.teacher_user_id
+        WHERE ex.tenant_id = %s
+          AND ex.kind = 'makeup'
+          AND ex.on_date BETWEEN %s::date AND %s::date
+          -- On the series' own weekday the first branch already returns this
+          -- row through its LEFT JOIN; without this guard it would come back
+          -- twice.
+          AND extract(dow FROM ex.on_date)::int <> ls.weekday
+          AND (%s = '' OR ls.id::text = %s)
+          AND (%s = '' OR COALESCE(ex.teacher_user_id, ls.teacher_user_id)::text = %s)
+        ) q
+        ORDER BY q.on_date, q.start_time
         """,
         (start, end, end, tenant_id,
+         series_id or "", series_id or "",
+         teacher_user_id or "", teacher_user_id or "",
+         tenant_id, start, end,
          series_id or "", series_id or "",
          teacher_user_id or "", teacher_user_id or ""),
     )
@@ -531,9 +579,24 @@ def credits(
                 AND mc.expires_on IS NOT NULL
                 AND mc.expires_on < CURRENT_DATE)         AS is_expired,
                to_char(mc.consumed_on_date, 'YYYY-MM-DD') AS consumed_on_date,
-               mc.reason
+               mc.reason,
+               -- The series the credit came from. A credit is always born of a
+               -- cancelled lesson, so the series is knowable from the credit
+               -- itself; until v10.16.0 these columns were missing and the
+               -- booking screen had no series to name, which is how every
+               -- make-up came to be spent without a lesson being scheduled.
+               ls.id                                      AS series_id,
+               to_char(ls.start_time, 'HH24:MI')          AS series_start_time,
+               ls.teacher_user_id,
+               u.full_name                                AS teacher_name,
+               ls.room, ls.duration_minutes, ls.status    AS series_status
         FROM makeup_credits mc
         JOIN students s ON s.tenant_id = mc.tenant_id AND s.id = mc.student_id
+        LEFT JOIN lesson_exceptions le
+               ON le.tenant_id = mc.tenant_id AND le.id = mc.earned_from_exception_id
+        LEFT JOIN lesson_series ls
+               ON ls.tenant_id = mc.tenant_id AND ls.id = le.series_id
+        LEFT JOIN users u ON u.id = ls.teacher_user_id
         WHERE mc.tenant_id = %s
           AND (%s = '' OR mc.student_id::text = %s)
           AND (%s OR mc.status = 'available')
@@ -550,12 +613,64 @@ def consume_credit(
 ) -> dict[str, Any]:
     """Book a make-up lesson against a credit.
 
-    The guard is on the UPDATE rather than on a prior SELECT: two people
-    booking the same credit from two screens both pass a check-then-write, and
-    only one of them can win a conditional update.
+    Spending the credit and putting the lesson on the calendar are two halves
+    of one write, and this function refuses to do only the first half.
+
+    Until v10.16.0 it would: the lesson was created only ``if series_id``, the
+    caller was the only source of that argument, and ``credits()`` did not
+    return one — so every booking made through the CMS marked the credit
+    consumed, created nothing, and returned ``{"ok": true, "exceptionId":
+    null}``. The screen said "booked". No API could give the credit back.
+
+    The series is now resolved from the credit itself (``earned_from_exception_id``
+    knows which lesson was missed), an explicit ``series_id`` only overrides it,
+    and a credit whose series cannot be resolved is refused **before** the
+    credit is touched.
+
+    The concurrency guard stays on the UPDATE rather than on a prior SELECT:
+    two people booking the same credit from two screens both pass a
+    check-then-write, and only one of them can win a conditional update.
     """
 
     with conn.cursor() as cur:
+        # Resolve first, spend second. The reverse order is what shipped, and
+        # a failure after the UPDATE is exactly the state this function exists
+        # to prevent.
+        cur.execute(
+            """
+            SELECT ls.id                              AS series_id,
+                   to_char(ls.start_time, 'HH24:MI')  AS start_time,
+                   ls.teacher_user_id
+              FROM makeup_credits mc
+              LEFT JOIN lesson_exceptions le
+                     ON le.tenant_id = mc.tenant_id AND le.id = mc.earned_from_exception_id
+              LEFT JOIN lesson_series ls
+                     ON ls.tenant_id = mc.tenant_id AND ls.id = le.series_id
+             WHERE mc.tenant_id = %s AND mc.id = %s
+            """,
+            (tenant_id, credit_id),
+        )
+        origin = cur.fetchone() or {}
+        series_id = series_id or (str(origin["series_id"]) if origin.get("series_id") else None)
+        if not series_id:
+            raise SchedulingError(
+                "This credit is not linked to a recurring lesson, so a make-up cannot be "
+                "scheduled from it. Add the lesson to the series first."
+            )
+        start_time = start_time or origin.get("start_time")
+        teacher_user_id = teacher_user_id or (
+            str(origin["teacher_user_id"]) if origin.get("teacher_user_id") else None
+        )
+
+        # A studio closure is not a day anybody can be taught on. Refusing here
+        # beats booking a lesson the roster will never show.
+        cur.execute(
+            "SELECT 1 FROM term_closures WHERE tenant_id = %s AND on_date = %s",
+            (tenant_id, on_date),
+        )
+        if cur.fetchone():
+            raise SchedulingError("The studio is closed that day — pick another date.")
+
         cur.execute(
             """
             UPDATE makeup_credits
@@ -572,34 +687,34 @@ def consume_credit(
                 "That credit is not available — it has been used, cancelled, or has expired."
             )
 
-        exception_id = None
-        if series_id:
-            cur.execute(
-                """
-                INSERT INTO lesson_exceptions
-                    (tenant_id, series_id, on_date, kind, moved_to_date, moved_to_start_time,
-                     teacher_user_id, chargeable, counts_for_pay, makeup_credit_id,
-                     created_by_user_id)
-                VALUES (%s, %s, %s, 'makeup', %s, %s::time, %s, false, true, %s, %s)
-                ON CONFLICT (series_id, on_date) DO NOTHING
-                RETURNING id
-                """,
-                (tenant_id, series_id, on_date, on_date, start_time, teacher_user_id,
-                 credit_id, created_by_user_id),
-            )
-            row = cur.fetchone()
-            if not row:
-                raise SchedulingError("That date already has a recorded change on this series.")
-            exception_id = row["id"]
-            cur.execute(
-                "UPDATE makeup_credits SET consumed_exception_id = %s WHERE id = %s",
-                (exception_id, credit_id),
-            )
+        cur.execute(
+            """
+            INSERT INTO lesson_exceptions
+                (tenant_id, series_id, on_date, kind, moved_to_date, moved_to_start_time,
+                 teacher_user_id, chargeable, counts_for_pay, makeup_credit_id,
+                 created_by_user_id)
+            VALUES (%s, %s, %s, 'makeup', %s, %s::time, %s, false, true, %s, %s)
+            ON CONFLICT (series_id, on_date) DO NOTHING
+            RETURNING id
+            """,
+            (tenant_id, series_id, on_date, on_date, start_time, teacher_user_id,
+             credit_id, created_by_user_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise SchedulingError("That date already has a recorded change on this series.")
+        exception_id = row["id"]
+        cur.execute(
+            "UPDATE makeup_credits SET consumed_exception_id = %s WHERE id = %s",
+            (exception_id, credit_id),
+        )
 
     return {
         "creditId": str(credit["id"]),
         "studentId": str(credit["student_id"]),
-        "exceptionId": str(exception_id) if exception_id else None,
+        "seriesId": str(series_id),
+        "onDate": on_date.isoformat() if hasattr(on_date, "isoformat") else str(on_date),
+        "exceptionId": str(exception_id),
     }
 
 

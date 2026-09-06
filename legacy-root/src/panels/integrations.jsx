@@ -46,7 +46,7 @@ function Step({ n, done, active, title, children }) {
   );
 }
 
-export function IntegrationsPanel({ api, showToast, canManage }) {
+export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
   const [state, setState] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -370,10 +370,14 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
                     已关掉对方的同步
                   </button>
                   <button type="button" disabled={busy}
-                          onClick={() => {
-                            const code = window.prompt('清算账户科目号');
-                            if (code) step('single_entry', { decision: 'clearing_account', clearingAccountCode: code });
-                          }}
+                          onClick={() => confirm(
+                            '走清算账户，意味着我们推过去的收款先入一个中转科目，'
+                            + '再由会计和对方渠道的记录对平，避免同一笔钱在 Xero 里出现两次。\n'
+                            + '科目号由你的会计提供，来自这个 Xero 账套的科目表。',
+                            (code) => step('single_entry', { decision: 'clearing_account', clearingAccountCode: code }),
+                            { prompt: true, promptLabel: '清算账户科目号',
+                              promptPlaceholder: '例如 820', promptRequired: true,
+                              confirmText: '保留双通道，走清算账户' })}
                           className="min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold">
                     保留，走清算账户
                   </button>

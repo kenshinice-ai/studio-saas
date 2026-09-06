@@ -3803,7 +3803,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='courses' && <CoursesSection {...{archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab}}/>}
 
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
-{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry}}/>}
+{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry}}/>}
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {/* ═══ WORKS ══════════════════════════════════════════════════ */}
@@ -4087,7 +4087,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             照样能把它挂起来。判断与 SETTINGS_SECTIONS 同源。 */}
                         {ownerRoles.includes(actorRole) && <TabPanel idBase="settings" name="integrations" active={settingsSection==='integrations'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
-                            <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
+                            <IntegrationsPanel api={v1Api} showToast={showToast} confirm={confirm} canManage={ownerRoles.includes(actorRole)} />
                         </TabPanel>}
                         <TabPanel idBase="settings" name="workspace" active={settingsSection==='workspace'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
