@@ -1212,3 +1212,70 @@ export function LoginScreen({ onLogin }) {
     );
 }
 
+
+/* ═══════════════════ ERROR BOUNDARY ══════════════════════════ */
+/* 一个 JS 异常不该让八小时的工作台变成一片米色空白。
+ *
+ * 在 v10.16.0 之前，这个仓库里没有任何一层兜底：整份 legacy-root/src 搜不到
+ * ErrorBoundary / componentDidCatch / getDerivedStateFromError，挂载点是裸的
+ * `createRoot(...).render(<App/>)`，index.html 里的 `<div id="root">` 是空的，
+ * 五个界面的 noscript 计数都是 0。而且没有 window.onerror、没有
+ * unhandledrejection —— **产品自己都不知道白屏发生过几次**。零可观测性是这条
+ * 缺陷的一半。
+ *
+ * 两个界面的风险并不对称：Studio Admin 与 Super Admin 的 <body> 里是完整的静态
+ * HTML，脚本挂了会变成「按钮不响应」；只有 CMS 是一个空 div，挂了就是空白。
+ *
+ * 三件事必须做到：说人话、给一个出得去的门、给一个能报给技术支持的编号。
+ */
+export class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { error: null, code: '' };
+    }
+
+    static getDerivedStateFromError(error) {
+        /* 编号只要在一次对话里能对上就够了，不需要全局唯一 —— 它的用途是
+           前台念给技术支持听，然后在日志里搜到同一串。 */
+        const code = Math.random().toString(36).slice(2, 6).toUpperCase()
+            + '-' + String(Date.now()).slice(-4);
+        return { error, code };
+    }
+
+    componentDidCatch(error, info) {
+        /* console 是这里唯一确定存在的接收方。上报通道要另开一轮，但「什么都
+           不记」不能是现状的延续。 */
+        try {
+            console.error('[StudioSaaS] panel crashed', this.state.code, error, info);
+        } catch (e) { /* 记录失败也不能再抛 */ }
+    }
+
+    render() {
+        if (!this.state.error) return this.props.children;
+        const onLeave = this.props.onLeave;
+        return (
+            <div className="m-4 rounded-2xl border border-red-200 bg-red-50 p-5 max-w-2xl">
+                <p className="font-bold text-red-800 text-sm mb-1">这个页面出问题了</p>
+                <p className="text-sm text-gray-700 mb-1">
+                    你刚才填的内容可能没有保存。已经保存过的数据不受影响。
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                    把这个编号告诉技术支持，可以在日志里找到这一次：
+                    <span className="ml-1 font-mono font-bold text-gray-700">{this.state.code}</span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                    {onLeave && (
+                        <button type="button" onClick={() => { this.setState({error:null, code:''}); onLeave(); }}
+                                className="min-h-[44px] px-4 rounded-xl bg-indigo-600 text-white text-sm font-bold">
+                            返回工作台
+                        </button>
+                    )}
+                    <button type="button" onClick={() => window.location.reload()}
+                            className="min-h-[44px] px-4 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700">
+                        重新加载
+                    </button>
+                </div>
+            </div>
+        );
+    }
+}

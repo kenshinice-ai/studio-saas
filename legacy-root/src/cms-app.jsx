@@ -14,7 +14,7 @@ import { FilterBar } from "./panels/filter_bar.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
 
-import { AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_SECTIONS, CMS_ROUTE_TABS, CmsNotificationCenter, ConfirmDialog, Icon } from "./components.jsx";
+import { ErrorBoundary, AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_SECTIONS, CMS_ROUTE_TABS, CmsNotificationCenter, ConfirmDialog, Icon } from "./components.jsx";
 import { LoginScreen, MaintSection, PhotoAvatar, StudentPicker, TENANT_SLUG, Toast } from "./components.jsx";
 import { auditNote, daysSince, fmtDate, mediaSrc, nowAU, parseMonthKey } from "./components.jsx";
 import { portfolioImgSrc, portfolioSrcSet, readCmsRoute, tenantOwnedLogoUrl, tenantSlug, todayISO } from "./components.jsx";
@@ -3828,6 +3828,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </div>
                 </header>
 
+{/* 面板崩了，侧栏和顶栏要还在 —— 用户得能走到别的地方去，而不是整个
+    应用消失。key={tab} 让边界在换页时复位：不复位的话，一次崩溃会把它之后
+    每一个页面都变成同一张错误卡。 */}
+<ErrorBoundary key={tab} onLeave={() => setTab('dashboard')}>
+
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
 {tab==='dashboard' && <DashboardSection {...{activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount}}/>}
 
@@ -3878,6 +3883,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
 {/* ═══ STATS ══════════════════════════════════════════════════ */}
 {tab==='stats' && <StatsSection {...{analytics, bizReport, exportBizCSV, exportRevenueCSV, payBreakdown, sFrom, sPeriod, sStu, sStu2, sTo, sYear, setSFrom, setSPeriod, setSStu, setSStu2, setSTo, setSYear, sortedAZ, statsData, studentStats}}/>}
+
+</ErrorBoundary>
 
 {/* ═══ PROFILE MODAL ══════════════════════════════════════════ */}
 {selS && <StudentProfileModal {...{accessCodeResult, archiveStudent, attHistory, busy, canPublishProgress, canUseSettlementBilling, canWriteAttendance, canWriteCredits, canWritePortfolio, canWriteProgress, canWriteStudents, consentEdit, copyText, db, editP, editPhoto, generateStudentAccessCode, handleDelete, handleUpdateStudent, isStudentScheduledOn, notify, openGrowthReport, portfolioDoDelete, preferenceProfile, preferenceRows, preferenceValue, profileDialogRef, revokeStudentAccessCode, save, savePublicationConsent, scheduleStudentToday, selS, setConsentEdit, setEditP, setEditPhoto, setPortEdit, setPortLB, setPortUpload, setSelS, setStudentProfileTab, setTab, setTuStu, showToast, studentProfileTab, tab, withdrawPublicationConsent, workNoun}}/>}
@@ -4210,4 +4217,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
     );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+/* 顶层兜底。App 自己在挂载期就抛的话（一个坏掉的 localStorage、一个读不到
+   的全局），panel 级的边界还没被渲染出来，接不住。 */
+ReactDOM.createRoot(document.getElementById('root')).render(
+    <ErrorBoundary>
+        <App/>
+    </ErrorBoundary>
+);

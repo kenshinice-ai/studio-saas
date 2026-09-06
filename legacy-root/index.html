@@ -542,6 +542,14 @@
            all eight palettes. --bg is set by the theme map above and falls back
            to the old value only until /brand answers. */
         body { background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+        /* 脚本还没跑起来时屏幕上唯一的东西。放在 shell 自己的 <style> 里而不是
+           内联 style 属性上，是因为「颜色只有一个来源」——回退值也算一个来源。
+           这些类在文档解析时就可用，不等 Tailwind 的运行时编译器，也不等
+           /brand 应答；深色块（见上）会一起套到它们身上。 */
+        .boot-note { max-width:34rem; margin:21vh auto 0; padding:0 21px;
+                     line-height:1.7; text-align:center; color:var(--muted); }
+        .boot-note b { display:block; color:var(--ink); margin-bottom:5px; }
+        .boot-note small { display:block; margin-top:13px; font-size:13px; }
         .shadow-sm { box-shadow:var(--shadow-sm) !important; }
         .shadow-md { box-shadow:var(--shadow-md) !important; }
         .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
@@ -1267,7 +1275,24 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-<div id="root"></div>
+<!-- 脚本没到、没跑起来、或者在挂载前就抛了的时候，这里是屏幕上唯一的字。
+     React 的 createRoot 会在挂载时把它整个换掉，所以它只在「还没成功」的那段
+     时间可见 —— 而在 v10.16.0 之前那段时间里，屏幕上是一片空白。
+     双语一行：i18n 运行时排在 cms-app.js 后面加载，这段文字比它先出现。 -->
+<div id="root">
+  <div class="boot-note">
+    <b>正在加载 Studio CMS…</b>
+    Loading Studio CMS…
+    <small>如果这行字一直停在这里，请检查网络后刷新页面。<br>
+           If this message stays, check your connection and reload.</small>
+  </div>
+</div>
+<noscript>
+  <div class="boot-note">
+    <b>Studio CMS 需要开启 JavaScript</b>
+    Studio CMS needs JavaScript enabled to run.
+  </div>
+</noscript>
 <script src="/assets/cms-app.js?v=__APP_VERSION__"></script>
 <!-- Loaded after the app so the observer starts on a rendered tree. Shares the
      language choice with Studio Admin / Super Admin via admin-i18n's key. -->
