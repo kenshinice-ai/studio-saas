@@ -126,24 +126,38 @@ def test_runtime_role_has_crud_but_no_platform_admin_power(monkeypatch):
     except ImportError:
         pytest.skip("psycopg is not installed")
 
+    # Creating a role is the owner's job, not the application's. This used to
+    # gate on STUDIOSAAS_DATABASE_URL being a role administrator — which was
+    # only ever true because verify_local.sh connected as the superuser. The
+    # moment that was fixed, this test removed itself from the run and nobody
+    # noticed: a green suite that no longer checked the thing it is named after.
+    admin_url = os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL", "").strip() or database_url
+
     role = f"v778_app_{secrets.token_hex(6)}"
     password = secrets.token_hex(24)
     role_created = False
     try:
-        with psycopg.connect(database_url, autocommit=True) as conn:
+        with psycopg.connect(admin_url, autocommit=True) as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")
+                cur.execute(
+                    "SELECT rolsuper, rolcreaterole FROM pg_roles WHERE rolname = current_user"
+                )
                 row = cur.fetchone()
-                if not row or not row[0]:
-                    pytest.skip("integration database user is not a role administrator")
+                if not row or not (row[0] or row[1]):
+                    # Name the variable to set, not a property of whatever
+                    # connection happened to be handed in.
+                    pytest.skip(
+                        "no role-administrator connection: set "
+                        "STUDIOSAAS_OWNER_DATABASE_URL to a CREATEROLE role"
+                    )
 
         monkeypatch.setenv("STUDIOSAAS_DB_RUNTIME_ROLE", role)
         monkeypatch.setenv("STUDIOSAAS_DB_RUNTIME_PASSWORD", password)
-        monkeypatch.setenv("STUDIOSAAS_MIGRATION_DATABASE_URL", database_url)
+        monkeypatch.setenv("STUDIOSAAS_MIGRATION_DATABASE_URL", admin_url)
         assert configure_role.main() == 0
         role_created = True
 
-        with psycopg.connect(database_url) as conn:
+        with psycopg.connect(admin_url) as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
@@ -166,7 +180,7 @@ def test_runtime_role_has_crud_but_no_platform_admin_power(monkeypatch):
     finally:
         if role_created:
             try:
-                with psycopg.connect(database_url, autocommit=True) as conn:
+                with psycopg.connect(admin_url, autocommit=True) as conn:
                     with conn.cursor() as cur:
                         cur.execute(
                             sql.SQL("DROP OWNED BY {}").format(sql.Identifier(role))

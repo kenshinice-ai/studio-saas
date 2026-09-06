@@ -45,8 +45,19 @@ def test_notification_routes_and_event_writes_stay_in_the_cms_scope() -> None:
     assert "查看通知" in ui
 
 
-def test_notification_lifecycle_against_postgres_when_configured() -> None:
-    """Exercise dedupe, cursor, read state, and tenant filtering when enabled."""
+def test_notification_lifecycle_runs_under_the_restricted_application_role() -> None:
+    """Exercise dedupe, cursor, read state, and tenant filtering when enabled.
+
+    The old name said WHEN this ran, not what it proved — and that hid a real
+    problem. Finding a tenant and an active membership is *world reading*: under
+    row level security an unbound application connection sees zero memberships,
+    so this lookup came back empty and the test **skipped itself**. It did that
+    silently, and only once ``verify_local.sh`` started using the restricted role
+    it was always supposed to use. Trading a red test for an invisible one is not
+    a fix, so fixtures read as the owner — the same split
+    ``_cms_sources.owner_connection`` makes — while the behaviour under test runs
+    on the application connection, bound to a tenant.
+    """
 
     database_url = os.environ.get("STUDIOSAAS_DATABASE_URL", "").strip()
     if not database_url:
@@ -59,9 +70,10 @@ def test_notification_lifecycle_against_postgres_when_configured() -> None:
 
     from studiosaas.services import cms_notifications
 
-    with psycopg.connect(database_url, row_factory=dict_row) as conn:
-        tenants = conn.execute("SELECT id FROM tenants ORDER BY id LIMIT 2").fetchall()
-        actor = conn.execute(
+    fixture_url = os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL", "").strip() or database_url
+    with psycopg.connect(fixture_url, row_factory=dict_row) as fixture_conn:
+        tenants = fixture_conn.execute("SELECT id FROM tenants ORDER BY id LIMIT 2").fetchall()
+        actor = fixture_conn.execute(
             """
             SELECT m.tenant_id, m.user_id
             FROM memberships m
@@ -70,11 +82,22 @@ def test_notification_lifecycle_against_postgres_when_configured() -> None:
             LIMIT 1
             """
         ).fetchone()
-        if not tenants or not actor:
-            pytest.skip("Integration database has no tenant membership fixture")
+    if not tenants or not actor:
+        pytest.skip("Integration database has no tenant membership fixture")
 
+    from studiosaas.tenant_context import bind_tenant_session
+
+    with psycopg.connect(database_url, row_factory=dict_row) as conn:
         tenant_id = str(actor["tenant_id"])
         user_id = str(actor["user_id"])
+        # The running server binds every request's connection to one tenant;
+        # so does this test, now that it runs as the role the server uses.
+        # Without it the very first INSERT is refused by the RLS policy —
+        # which is the correct answer, and which the old skip hid.
+        bind_tenant_session(conn, tenant_id)
+        assert conn.execute("SELECT count(*) AS n FROM memberships").fetchone()["n"] >= 1, (
+            "绑定之后连自己租户的 memberships 都看不见——那这条测试又在空跑了"
+        )
         dedupe_key = f"test-cms-notification:{secrets.token_hex(12)}"
         created = cms_notifications.create(
             conn,
@@ -131,6 +154,9 @@ def test_notification_lifecycle_against_postgres_when_configured() -> None:
         assert after_read["notifications"] == []
 
         if len(tenants) > 1:
+            # Asking for another tenant's notifications on a connection bound to
+            # this one. Two things must refuse it now: the service's own filter
+            # and the RLS policy underneath it. Belt and braces, on purpose.
             other_tenant_id = str(tenants[0]["id"])
             if other_tenant_id == tenant_id:
                 other_tenant_id = str(tenants[1]["id"])

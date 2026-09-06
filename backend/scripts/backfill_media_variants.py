@@ -43,9 +43,23 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
 
     import server
 
-    failures: list[str] = []
+    # Four conditions, reported under four names. They used to share one bucket
+    # called "Failed assets", and verify_local.sh summarised that bucket as
+    # "media derivative backfill is incomplete" — naming the one of the four
+    # that had zero instances while 40 rows failed for a different reason
+    # entirely. A gate that says the wrong cause costs more than one that says
+    # nothing.
+    invalid_keys: list[str] = []
+    absent_originals: list[str] = []
+    unreadable: list[str] = []
+    undecodable: list[str] = []
+    failures: list[str] = []   # write failures from the generation path below
     generated = 0
+    root_label = "<unresolved>"
     with server.app.app_context(), connect() as conn:
+        # media_root() needs the app context, and the report is printed after
+        # the block closes — so read it here, once.
+        root_label = media_root()
         filters = ["m.storage_provider = 'local'"]
         params: list[object] = []
         if tenant_id:
@@ -94,22 +108,37 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
                     # checksum no longer describe anything. Replace it rather
                     # than leaving a record that cannot be verified.
                     stale_rows.append(variant)
-            if not missing:
-                continue
             storage_parts = str(row["storage_key"]).split("/")
             if (
                 len(storage_parts) < 2
                 or any(part in {"", ".", ".."} for part in storage_parts)
                 or any(secure_filename(part) != part for part in storage_parts)
             ):
-                failures.append(f"{row['tenant_id']}/{row['id']}: invalid storage key")
+                invalid_keys.append(
+                    f"{row['tenant_id']}/{row['id']}: {row['storage_key']}"
+                )
                 continue
             original = os.path.join(media_root(), *storage_parts)
+            # The original is checked BEFORE the derivative early-return. A row
+            # whose three derivatives are all present but whose original is gone
+            # is a real defect — the download and re-crop paths 404 — and this
+            # script could not see it at all, because `if not missing: continue`
+            # came first.
+            if not Path(original).is_file():
+                absent_originals.append(
+                    f"{row['tenant_id']}/{row['id']}: {row['storage_key']}"
+                )
+                continue
+            if not missing:
+                continue
             try:
                 data = Path(original).read_bytes()
                 variants = _build_safe_variants(data, ext)
-            except (OSError, MediaUploadError) as exc:
-                failures.append(f"{row['tenant_id']}/{row['id']}: {exc}")
+            except OSError as exc:
+                unreadable.append(f"{row['tenant_id']}/{row['id']}: {exc}")
+                continue
+            except MediaUploadError as exc:
+                undecodable.append(f"{row['tenant_id']}/{row['id']}: {exc}")
                 continue
             if dry_run:
                 generated += len(missing)
@@ -175,15 +204,40 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
                         pass
                 failures.append(f"{row['tenant_id']}/{row['id']}: {exc}")
 
+    # Name the directory that was measured. backend/media is untracked runtime
+    # data, so a git worktree gets whatever happens to be there while the
+    # database is shared — and the checker then reports the wrong tree's
+    # contents as a defect. Saying which root it read makes that legible at a
+    # glance instead of after an hour.
+    print(f"Media root: {root_label}")
     print(f"Generated variants: {generated}")
-    if failures:
-        print("Failed assets:", file=sys.stderr)
-        for failure in failures:
-            print(f"- {failure}", file=sys.stderr)
+    problems = 0
+    for label, bucket, hint in (
+        ("ORIGINAL FILE ABSENT", absent_originals,
+         "the database row points at a file this media root does not contain. "
+         "Either the media tree belongs to a different install, or it was "
+         "written by another checkout. Derivatives cannot be built from nothing."),
+        ("ORIGINAL UNREADABLE", unreadable,
+         "the file exists but could not be read (permissions, truncation)."),
+        ("ORIGINAL UNDECODABLE", undecodable,
+         "the file exists and reads, but is not a decodable image."),
+        ("INVALID STORAGE KEY", invalid_keys,
+         "the stored path is not a safe tenant-scoped key; refusing to touch it."),
+        ("WRITE FAILED", failures,
+         "generation was attempted and rolled back."),
+    ):
+        if not bucket:
+            continue
+        problems += len(bucket)
+        print(f"\n{label} ({len(bucket)}) — {hint}", file=sys.stderr)
+        for item in bucket:
+            print(f"- {item}", file=sys.stderr)
+    if problems:
         return 1
     if check and generated:
         print(
-            f"ERROR: {generated} media variant(s) are missing. Run this script without --check.",
+            f"ERROR: {generated} DERIVATIVE(s) are missing while their originals "
+            "are present. Run this script without --check to build them.",
             file=sys.stderr,
         )
         return 2
