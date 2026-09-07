@@ -27,7 +27,7 @@ from _cms_sources import cms_source_files  # noqa: E402
 
 
 def _strip_comments(text: str) -> str:
-    """Remove every comment form the CMS sources actually contain.
+    r"""Remove every comment form the CMS sources actually contain.
 
     Three, not two. The HTML form was missing, and that omission had already
     fooled an assertion in this very file: the growth report is built as an HTML
