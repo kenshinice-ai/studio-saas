@@ -17,11 +17,29 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.17.0 运行提交 `<填：deploy 后写回>`。做的是 v10.16.0 附录 C 明写「留到下一轮」的四件事，其中两件的病因与记录不同，并顺出四个未记录的缺陷（三个在门禁自身）。本机 `verify_local.sh` **首次全绿**：`All checks passed`，pytest `2394 passed, 41 skipped`。**零迁移**，schema 仍至 `0047_xero_transport.sql`。 |
-| Package / SaaS | `<填：deploy 后写回>` |
-| Package / Edition | `<填：deploy 后写回>` |
-| Production | `<填：deploy 后写回>` |
-| Backup / migration | `<填：deploy 后写回>`。本版零迁移。 |
+| Source | v10.17.0 运行提交 `cb72f69f30252e700bb8567490310f46a29a6592` 已推送到 `main`。做的是 v10.16.0 附录 C 明写「留到下一轮」的四件事，其中两件的病因与记录不同，并顺出四个未记录的缺陷（三个在门禁自身）。本机 `verify_local.sh` **首次全绿**：`All checks passed`，pytest `2394 passed, 41 skipped`（v10.16.0 是 `2 failed, 2265 passed`）。**零迁移**，schema 仍至 `0047_xero_transport.sql`。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.17.0.tar.gz`，SHA-256 `46a880291bd43fca70bfb1ea68372ddf9d0a39b8ebcd78b6f238bc873ecccf74`；`BUILD_INFO commit=cb72f69f3025…`，mode=saas。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.17.0.tar.gz`，SHA-256 `fa590f12b9e5befdcca3e191db6ee6ff2bc72fa38bacc6839c0364a111983886`；同一提交，mode=standalone。双包通过校验和、BUILD_INFO、入口、排除项与解包冒烟。 |
+| Production | `pwestudio.online` = **v10.17.0**；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 16.7%。`http -> 301`、`https -> 200 proto=2`。**`GET /vendor/tailwindcss.js` 现在是 404**（此前 200、451,131 字节），`/assets/register-tailwind.css` = 16,943 字节。`ui_matrix.py --base https://pwestudio.online`：**416 条断言、0 失败、12/13 页**（`cms_roster_teacher` 因 teacher 账号密码未提供而跳过 —— 见下）。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260907T003855Z.dump` 及同名 manifest（deploy 自动产出）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后验收（生产实测，2026-09-07）
+
+| 验的东西 | 结果 |
+|---|---|
+| 注册页外观是否变了 | **逐项相同。** 改动前在生产上取过基线（166 个元素 × 21 个计算属性，digest `ba8bf82f`）；部署后同一页面同一方法：`ba8bf82f`，`matchesPreReleaseBaseline: true`。脚本列表里 `tailwindcss.js` 已消失 |
+| 451KB 编译器 | `GET /vendor/tailwindcss.js` → **404**；`/assets/register-tailwind.css` → 200，16,943 字节 |
+| 侧栏状态文字对比度 | `text-green-600` **8.50**（发布前 2.75）、`text-red-600` **12.02**（3.74）、课程帮助卡 `text-amber-600` **11.87**（3.61）。对照：正文 7.41 未变；`bg-gray-800` 深色面 6.07，仍正确反转 |
+| 悬空选择器 | `html[data-brand-scheme] :root` 规则数 **0**（此前 1，它会静默吞掉紧随其后的规则） |
+| v10.16.0 的遮罩层修复是否还在 | `bg-black/50` → `color(srgb 0.129 0.106 0.098 / 0.5)`，仍生效 |
+| 层叠里的 `!important` | 32 → **28** |
+| 手机编辑区宽度断言 | **首次在生产上跑过**：375px 下 `.settings-panel` = 343px（needs ≥ 300px），`.workbench-layout` = 343px。v10.16.0 收口时明写「从没在生产上跑过」，这一条现在关掉了 |
+
+### 这次收口不声称的
+
+- **`cms_roster_teacher` 一页仍未检查**：生产 `teacher.showcase@pwe-studio.invalid` 的密码未提供，返回 401。矩阵会自己说出来（`12/13 pages checked, 1 skipped`），不再报成「0 失败」。
+- **`~/.studiosaas/showcase-credentials.txt` 里的生产密码在本轮排查中被打印到了会话输出里**（脱敏正则只覆盖同行 `label: value`，而那个值单独占一行）。建议轮换该 demo 租户口令。生产专用凭据已另存为 `showcase-credentials.production.txt`（0600），矩阵通过 `STUDIOSAAS_DEMO_CREDENTIALS_FILE` 读它。
+- **`!important` 还剩 46 行**（源码计数）。把阴影/圆角移进 Tailwind 主题实测会改 14 处圆角、让 2 个 `disabled` 按钮失去阴影；收窄 `[class*="text-…"]` 的子串匹配实测会让 46 个元素失去对比度补偿。两件都留给单独一轮。
 
 ### 本版做了什么
 
