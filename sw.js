@@ -1,8 +1,9 @@
 /* StudioSaaS tenant CMS — Service Worker
  * Icon/manifest cache only; everything else goes straight to the network.
- * Bump CACHE_VERSION whenever PWA assets or icons change.
+ * Bump CACHE_VERSION whenever PWA assets or icons change — /manifest.json is
+ * precached, so a changed start_url reaches installed clients only after a bump.
  */
-const CACHE_VERSION = 'v7.8.0-brand-family';
+const CACHE_VERSION = 'v10.18.0-pwe-house';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'

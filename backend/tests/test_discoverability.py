@@ -132,6 +132,9 @@ def test_robots_names_the_sitemap_and_closes_the_private_paths(client) -> None:
     assert response.headers["Content-Type"].startswith("text/plain")
     body = response.get_data(as_text=True)
     assert f"Sitemap: {SITE_ORIGIN}/sitemap.xml" in body
+    # One robots file for the whole host: the house website's sitemap is
+    # named beside the product's.
+    assert f"Sitemap: {SITE_ORIGIN}/sitemap-pwe.xml" in body
     for path in DISALLOWED_PATHS:
         assert f"Disallow: {path}" in body
 
@@ -155,6 +158,11 @@ def test_the_sitemap_lists_both_languages_of_every_page(client) -> None:
     for page in PUBLIC_PAGES:
         for language in ("en", "zh"):
             assert SITE_ORIGIN + page[language] in locations
+    # The root belongs to the house website and its own sitemap-pwe.xml.
+    assert SITE_ORIGIN + "/" not in locations
+    assert SITE_ORIGIN + "/zh/" not in locations
+    assert SITE_ORIGIN + "/studio" in locations
+    assert SITE_ORIGIN + "/zh/studio/" in locations
 
 
 def test_every_sitemap_entry_points_back_at_itself(client) -> None:
@@ -233,6 +241,15 @@ def test_llms_txt_points_at_pages_that_exist(client) -> None:
     assert links
     for path in links:
         assert client.get(path).status_code == 200, f"llms.txt names {path}, which does not resolve"
+    # The product's home is /studio; the root is the house website's.
+    assert f"[Home]({SITE_ORIGIN}/studio)" in body
+    assert f"[Home]({SITE_ORIGIN}/)" not in body
+    # nginx gives the root llms.txt to the house from v10.18.0; the same file
+    # stays reachable at an address inside the product.
+    mirror = client.get("/studio/llms.txt")
+    assert mirror.status_code == 200
+    assert mirror.get_data(as_text=True) == body
+    assert mirror.headers["Content-Type"].startswith("text/plain")
 
 
 def test_the_setup_fee_is_quoted_identically_everywhere(client) -> None:
@@ -269,7 +286,7 @@ def _types(nodes: list[dict]) -> set[str]:
     return {node["@type"] for node in nodes}
 
 
-@pytest.mark.parametrize("path", ["/", "/zh/"])
+@pytest.mark.parametrize("path", ["/", "/zh/", "/studio", "/zh/studio/"])
 def test_the_home_page_describes_the_product_and_the_publisher(client, path: str) -> None:
     types = _types(_graph(client, path))
     assert {"SoftwareApplication", "Organization", "FAQPage"} <= types
@@ -332,8 +349,11 @@ def test_the_organization_is_one_entity_across_the_site(client) -> None:
 
 # ── on-page metadata ────────────────────────────────────────────────────────
 
+# The product home is `/studio`; `/` and `/zh/` still serve it inside the
+# application as an interim, but their canonical says `/studio`, so they are
+# not pages with an identity of their own any more.
 PAGES_WITH_META = [
-    "/", "/zh/", "/manual/", "/zh/manual/",
+    "/studio", "/zh/studio/", "/manual/", "/zh/manual/",
     *[f"/customer-resources/{name}" for name in RESOURCE_PAGES],
     *[f"/zh/customer-resources/{name}" for name in RESOURCE_PAGES],
 ]

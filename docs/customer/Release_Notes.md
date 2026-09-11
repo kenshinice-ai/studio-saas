@@ -1,5 +1,36 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.18.0 — 产品首页搬到 /studio，公司官网接管根地址
+
+状态：**源码候选，未发布**（分支 `release/10.18.0-pwe-house`）。验收证据将在部署后
+写进 `docs/HANDOFF_LATEST.md` 的四层身份表；本轮记录见
+`docs/handoff/claude/2026-09-11-pwe-house.md`。
+
+PWE Studio 现在是 PWE · 天域 旗下的 SaaS 产品线，公司官网接管 `pwestudio.online`
+的根。本版是那次切换的前置，不改任何图标、图片、数据模型、权限或 API，零迁移。
+
+**你会看见的**
+
+- **产品首页在 `/studio`**（中文 `/zh/studio/`）。canonical、hreflang、og:url、语言
+  切换、`sitemap.xml`、`llms.txt` 的 Home 全部指向它；`/studio/llms.txt` 与
+  `/llms.txt` 内容相同。`/` 与 `/zh/` 本版仍渲染产品首页，上线后由 nginx 交给官网。
+- **工作室网址标识多了一批保留名。** 官网栏目（`production`、`work`、`tools`、
+  `labs`、`about`、`services`、`contact`、`ai`）和产品自己的根页面（`studio`、
+  `pricing`、`manual`、`customer-resources`、`assets` 等）不再能建成租户；现有租户
+  地址不受影响。
+- **加到手机主屏的应用不再以 `/` 起步。** 平台 manifest 起点改为 `/platform-admin`，
+  学员门户根 manifest 改为 `/studio`；租户 CMS 壳直接链接自己的
+  `/<slug>/manifest-cms.json`。`sw.js` 升了缓存版本，已安装客户端下次打开即刷新。
+- **页脚署名。** 工作室官网、报名页、CMS、Studio Admin、设密码页改为
+  `Powered by PWE`；产品站、定价页、平台控制台改为 `PWE · 天域出品` 并链到 `/`。
+- `robots.txt` 多一行 `Sitemap: https://pwestudio.online/sitemap-pwe.xml`（官网自己的
+  站点地图）。
+
+**顺手修的**
+
+- 定价页的语言切换原本指向首页的另一种语言（`/zh/`、`/`），改为 `/zh/pricing`、
+  `/pricing`；跳过链接原本跨页到 `/#main`，改为页内 `#main`。
+
 ## v10.17.0 — 收口清单上的四条，和它们底下的六个缺陷
 
 验收证据见 `docs/HANDOFF_LATEST.md` 的四层身份表；方案与实测记录见

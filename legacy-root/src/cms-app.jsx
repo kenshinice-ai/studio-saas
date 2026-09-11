@@ -4295,7 +4295,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     它排在哪都看不出来；设置变成正常页面之后，它就夹在标签条
                     和面板中间了。 */}
                 <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
-                    © 2026 {tenantDisplayName} · Powered by Paradise Production
+                    © 2026 {tenantDisplayName} · Powered by PWE
                 </footer>
             </main>
 

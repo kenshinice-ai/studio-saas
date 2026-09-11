@@ -2,7 +2,7 @@
   "name": "Studio Student Portal",
   "short_name": "Studio Portal",
   "description": "Tenant student registration, balance, and portfolio portal",
-  "start_url": "/",
+  "start_url": "/studio",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

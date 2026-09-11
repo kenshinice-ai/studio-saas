@@ -103,7 +103,9 @@ def test_shared_markup_is_present_in_both_languages() -> None:
         assert '/assets/marketing.css' in document, "the stylesheet link was damaged"
         assert 'id="supportForm"' in document
         assert 'id="spark"' in document
-        assert 'href="/paradise-production/"' in document
+        # The house credit: PWE · 天域 is the parent, and its site is the root.
+        assert '<a class="sig" href="/">' in document
+        assert '/paradise-production/' not in document
 
 
 def test_no_language_element_contains_the_same_tag(  ) -> None:
@@ -148,8 +150,11 @@ def test_each_page_names_its_own_canonical() -> None:
 
     english = apply_language(_source(), "en")
     chinese = apply_language(_source(), "zh")
-    assert '<link rel="canonical" href="https://pwestudio.online/">' in english
-    assert '<link rel="canonical" href="https://pwestudio.online/zh/">' in chinese
+    # The root is the house website's from v10.18.0; the product's canonical
+    # home is /studio in each language.
+    assert '<link rel="canonical" href="https://pwestudio.online/studio">' in english
+    assert '<link rel="canonical" href="https://pwestudio.online/zh/studio/">' in chinese
+    assert 'href="https://pwestudio.online/">' not in english
 
 
 def test_both_pages_carry_the_same_reciprocal_hreflang_set() -> None:
@@ -158,9 +163,9 @@ def test_both_pages_carry_the_same_reciprocal_hreflang_set() -> None:
     from studiosaas.services.public_site import apply_language
 
     expected = {
-        '<link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/">',
-        '<link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/">',
-        '<link rel="alternate" hreflang="x-default" href="https://pwestudio.online/">',
+        '<link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/studio">',
+        '<link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/studio/">',
+        '<link rel="alternate" hreflang="x-default" href="https://pwestudio.online/studio">',
     }
     for language in ("en", "zh"):
         document = apply_language(_source(), language)
@@ -172,8 +177,8 @@ def test_the_language_switch_is_a_link_not_a_toggle() -> None:
     """A language with no address of its own cannot be pointed at."""
 
     source = _source()
-    assert 'href="/zh/" hreflang="zh-Hans"' in source
-    assert 'href="/" hreflang="en-AU"' in source
+    assert 'href="/zh/studio/" hreflang="zh-Hans"' in source
+    assert 'href="/studio" hreflang="en-AU"' in source
     assert 'id="languageButton"' not in source
 
 
@@ -182,6 +187,12 @@ def test_the_server_routes_both_languages() -> None:
     assert "@app.route('/zh/')" in source
     assert "@app.route('/zh')" in source
     assert "redirect('/zh/', code=301)" in source
+    # The product's own address, in both languages, with the same
+    # trailing-slash discipline as the root pair.
+    for route in ("@app.route('/studio')", "@app.route('/studio/')",
+                  "@app.route('/zh/studio/')", "@app.route('/zh/studio')"):
+        assert route in source, route
+    assert "redirect('/zh/studio/', code=301)" in source
 
 
 def test_the_bilingual_source_is_not_servable_as_a_file() -> None:
@@ -196,7 +207,15 @@ def test_the_bilingual_source_is_not_servable_as_a_file() -> None:
 def test_the_language_roots_cannot_be_taken_by_a_tenant() -> None:
     from studiosaas.workspaces import RESERVED_SLUGS
 
-    assert {"zh", "en"} <= RESERVED_SLUGS
+    assert {"zh", "en", "studio"} <= RESERVED_SLUGS
+    # The house website's section prefixes are answered by nginx before a
+    # request reaches this app: a tenant created there would never be served.
+    assert {"production", "work", "tools", "labs", "about", "services",
+            "contact", "ai", "sitemap-pwe.xml", "llms.txt", "404.html"} <= RESERVED_SLUGS
+    # And the addresses this app routes itself, which were never reserved.
+    assert {"pricing", "manual", "customer-resources", "assets", "robots.txt",
+            "sitemap.xml", "pricing.md", "setup-password", "shared", "xero",
+            "s"} <= RESERVED_SLUGS
 
 
 # ── pricing ──────────────────────────────────────────────────────────────────
@@ -316,7 +335,7 @@ def test_structured_data_prices_come_from_the_same_rows() -> None:
     assert '"@type":"AggregateOffer"' in payload
     assert '"lowPrice":"49"' in payload and '"highPrice":"199"' in payload
     assert '"priceCurrency":"AUD"' in payload
-    assert '"url":"https://pwestudio.online/"' in payload
+    assert '"url":"https://pwestudio.online/studio"' in payload
     assert '"inLanguage":"zh-Hans"' in render_product_jsonld(PLANS, "zh")
 
 
@@ -355,7 +374,10 @@ def test_the_shared_query_never_selects_the_entitlements_column() -> None:
 
 @pytest.mark.parametrize(
     ("path", "expected_lang"),
-    [("/", "en"), ("/zh/", "zh-Hans")],
+    # `/` and `/zh/` stay interim aliases of the product home inside the
+    # application (nginx gives them to the house website in production).
+    [("/", "en"), ("/zh/", "zh-Hans"),
+     ("/studio", "en"), ("/studio/", "en"), ("/zh/studio/", "zh-Hans")],
 )
 def test_the_served_page_is_monolingual(client, path: str, expected_lang: str) -> None:
     response = client.get(path)
@@ -371,3 +393,69 @@ def test_the_bare_zh_path_redirects_to_the_canonical_form(client) -> None:
     response = client.get("/zh")
     assert response.status_code == 301
     assert response.headers["Location"].endswith("/zh/")
+    response = client.get("/zh/studio")
+    assert response.status_code == 301
+    assert response.headers["Location"].endswith("/zh/studio/")
+
+
+# ── the house at the root, the product at /studio ────────────────────────────
+
+def test_the_chinese_home_is_not_the_prefix_rule() -> None:
+    """`/studio` → `/zh/studio/`, not `/zh/studio` and a redirect per link."""
+
+    from studiosaas.services.public_site import localise_links
+
+    document = (
+        '<a class="brand" href="/">house</a>'
+        '<a href="/studio">home</a><a href="/studio#faq">faq</a>'
+        '<a href="/studio?utm_source=x#contact">contact</a>'
+        '<a class="lang" href="/studio" hreflang="en-AU">EN</a>'
+    )
+    localised = localise_links(document, "zh")
+    assert 'href="/zh/"' in localised, "the house link must follow the reader's language"
+    assert 'href="/zh/studio/"' in localised
+    assert 'href="/zh/studio/#faq"' in localised
+    assert 'href="/zh/studio/?utm_source=x#contact"' in localised
+    assert 'href="/zh/studio"' not in localised.replace('href="/zh/studio/', '')
+    assert 'href="/studio" hreflang="en-AU"' in localised, "the language switch must not follow"
+    assert localise_links(document, "en") == document
+
+
+def test_the_served_home_links_up_to_the_house_and_back_to_itself(client) -> None:
+    """Header wordmark → the house at the root; footer wordmark → /studio;
+    credit → the house. Each in the reader's own language."""
+
+    english = client.get("/studio").get_data(as_text=True)
+    assert '<a class="brand" href="/" aria-label="PWE home">' in english
+    assert '<a class="brand" href="/studio" aria-label="PWE Studio home">' in english
+    assert '<a class="sig" href="/">PWE · <b>天域</b>出品</a>' in english
+    assert '<link rel="canonical" href="https://pwestudio.online/studio">' in english
+    assert '<meta property="og:url" content="https://pwestudio.online/studio">' in english
+    assert 'href="/zh/studio/" hreflang="zh-Hans"' in english
+
+    chinese = client.get("/zh/studio/").get_data(as_text=True)
+    assert '<a class="brand" href="/zh/" aria-label="PWE home">' in chinese
+    assert '<a class="brand" href="/zh/studio/" aria-label="PWE Studio home">' in chinese
+    assert '<a class="sig" href="/zh/">PWE · <b>天域</b>出品</a>' in chinese
+    assert '<link rel="canonical" href="https://pwestudio.online/zh/studio/">' in chinese
+    assert 'href="/studio" hreflang="en-AU"' in chinese
+    for retired in ('href="/paradise-production/"', 'A Paradise Production', '天域文创出品'):
+        assert retired not in english and retired not in chinese
+
+
+def test_the_other_product_pages_point_home_at_studio(client) -> None:
+    """Pricing, the manual and the customer documents all had links to 
+    that meant 'the product home'. From v10.18.0 that address is the house."""
+
+    pricing = client.get("/pricing").get_data(as_text=True)
+    assert 'href="/studio#contact"' in pricing and 'href="/#' not in pricing
+    assert 'href="/zh/pricing" hreflang="zh-Hans"' in pricing
+    assert '<a class="sig" href="/">' in pricing
+    manual = client.get("/manual/").get_data(as_text=True)
+    assert '<a href="/studio">Product website</a>' in manual
+    assert 'href="/#' not in manual
+    assert '<a href="/zh/studio/">产品官网</a>' in client.get("/zh/manual/").get_data(as_text=True)
+    faq = client.get("/customer-resources/FAQ.html").get_data(as_text=True)
+    assert 'href="/studio">&larr; PWE Studio home</a>' in faq
+    faq_zh = client.get("/zh/customer-resources/FAQ.html").get_data(as_text=True)
+    assert 'href="/zh/studio/">&larr; 返回 PWE Studio 首页</a>' in faq_zh

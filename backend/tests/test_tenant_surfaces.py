@@ -24,9 +24,16 @@ EXISTING_TENANTS = tuple(sorted(
 ))
 
 
-@pytest.mark.parametrize("slug", ["cms", "platform-admin", "showcase"])
+@pytest.mark.parametrize("slug", [
+    "cms", "platform-admin", "showcase",
+    # The product home and the app's own root pages (v10.18.0).
+    "studio", "pricing", "manual", "customer-resources", "assets",
+    # The house website's section prefixes, answered by nginx before this app.
+    "production", "work", "tools", "labs", "about", "services", "contact", "ai",
+])
 def test_control_plane_and_neutral_entry_slugs_are_reserved(slug):
-    """A tenant workspace must never shadow a platform or neutral entry route."""
+    """A tenant workspace must never shadow a platform or neutral entry route,
+    nor a prefix the house website owns at the edge."""
 
     with pytest.raises(WorkspaceError, match="reserved"):
         validate_tenant_slug(slug)

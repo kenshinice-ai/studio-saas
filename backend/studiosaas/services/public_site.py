@@ -166,7 +166,12 @@ def filter_language(document: str, language: str) -> str:
 
 
 HTML_LANG = {"en": "en", "zh": "zh-Hans"}
-CANONICAL_PATH = {"en": "/", "zh": "/zh/"}
+# The product home's canonical address in each language. `/` and `/zh/` belong
+# to the house website (PWE · 天域) from v10.18.0; the SaaS product lives under
+# `/studio`. The English form has no trailing slash because that is the exact
+# location nginx proxies; the Chinese one keeps the `/zh/…/` shape every other
+# Chinese page uses.
+CANONICAL_PATH = {"en": "/studio", "zh": "/zh/studio/"}
 # The value of an `hreflang` attribute, which is not the value of `html lang`:
 # the pages are targeted at Australia and say so.
 HREFLANG = {"en": "en-AU", "zh": "zh-Hans"}
@@ -192,11 +197,15 @@ def apply_language(document: str, language: str) -> str:
 # English holds the unprefixed path throughout. It is the URL already indexed
 # and the market the copy addresses; `/zh/` is the prefix everywhere else.
 #
+# The home page is `/studio`, not `/`: the root is the house website's from
+# v10.18.0 and is listed in the house's own `sitemap-pwe.xml`, never here.
+#
 # Tenant portals are deliberately absent. A tenant's site is the tenant's, and
 # listing every one of them in the platform's own sitemap would publish
 # studios that have not opened yet.
 PUBLIC_PAGES: tuple[dict[str, Any], ...] = (
-    {"en": "/", "zh": "/zh/", "priority": "1.0", "changefreq": "monthly"},
+    {"en": CANONICAL_PATH["en"], "zh": CANONICAL_PATH["zh"],
+     "priority": "1.0", "changefreq": "monthly"},
     {"en": "/manual/", "zh": "/zh/manual/", "priority": "0.9", "changefreq": "monthly"},
     {"en": "/customer-resources/FAQ.html", "zh": "/zh/customer-resources/FAQ.html",
      "priority": "0.7", "changefreq": "monthly"},
@@ -294,6 +303,9 @@ def render_robots() -> str:
         lines.extend(f"Disallow: {path}" for path in DISALLOWED_PATHS)
         lines.append("")
     lines.append(f"Sitemap: {SITE_ORIGIN}/sitemap.xml")
+    # The house website (PWE · 天域) publishes its own sitemap at the edge from
+    # v10.18.0. One robots file serves the whole host, so it has to name both.
+    lines.append(f"Sitemap: {SITE_ORIGIN}/sitemap-pwe.xml")
     return "\n".join(lines) + "\n"
 
 
@@ -511,8 +523,8 @@ def render_llms_txt(rows: list[dict[str, Any]] | None) -> str:
         "Simplified Chinese at its own URL.",
         "",
         "## Product",
-        f"- [Home]({SITE_ORIGIN}/): what the product is, who it is for, how a"
-        " studio goes live",
+        f"- [Home]({SITE_ORIGIN}{CANONICAL_PATH['en']}): what the product is,"
+        " who it is for, how a studio goes live",
         f"- [Pricing]({SITE_ORIGIN}/pricing.md): plans, limits and the setup fee,"
         " as plain markdown",
         "",
@@ -818,6 +830,10 @@ def resource_path(filename: str, language: str) -> str:
 _TRANSLATED_PATHS = frozenset(
     {"/", "/manual/"} | {f"/customer-resources/{name}" for name in RESOURCE_PAGES}
 )
+# Pages whose Chinese address is not simply `/zh` + the English one. The
+# product home is `/studio` in English and `/zh/studio/` in Chinese — the
+# prefix rule would produce `/zh/studio`, a redirect on every internal link.
+_TRANSLATED_HOME = {CANONICAL_PATH["en"]: CANONICAL_PATH["zh"]}
 _ANCHOR = re.compile(r"<a\b[^>]*>", re.I)
 _HREF = re.compile(r'href="(/[^"]*)"')
 
@@ -848,6 +864,8 @@ def localise_links(document: str, language: str) -> str:
         def rewrite_href(href: re.Match[str]) -> str:
             path = href.group(1)
             base = path.split("#", 1)[0].split("?", 1)[0]
+            if base in _TRANSLATED_HOME:
+                return f'href="{_TRANSLATED_HOME[base]}{path[len(base):]}"'
             if base not in _TRANSLATED_PATHS:
                 return href.group(0)
             return f'href="{prefix}{path}"'

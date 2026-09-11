@@ -63,7 +63,8 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 
 | Route | Surface |
 |---|---|
-| `/` | Super Admin dashboard |
+| `/studio`, `/zh/studio/` | PWE Studio product home — the canonical address from v10.18.0 (`/studio/llms.txt` carries the product's `llms.txt`) |
+| `/`, `/zh/` | Interim: still the product home inside the application, but from v10.18.0 the house website (PWE · 天域) owns `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`, `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`, `/llms.txt`, `/sitemap-pwe.xml` and `/404.html` at the nginx edge; those names are reserved slugs so no tenant can be created under them. A later release turns the root into a redirect to `/studio` |
 | `/platform-admin` | Direct StudioSaaS Super Admin login |
 | `/super-admin` | Optional Cloudflare Access-protected alias of the same dashboard |
 | `/pricing`, `/zh/pricing` | Public plan catalogue and calculator |

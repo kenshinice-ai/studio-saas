@@ -1,17 +1,24 @@
-# PWE Studio / Paradise Production Brand Assets
+# PWE · 天域 Brand Assets — PWE Studio and Paradise Production
 
-This folder is the human-facing delivery kit for the PWE Studio brand family.
+This folder is the human-facing delivery kit for the house brand family:
+**PWE · 天域** (the house), **PWE Studio** (its SaaS product line) and
+**Paradise Production · 天域影像** (its film and creative line).
 Runtime assets are generated into the repository root. The canonical PWE
 geometry lives in `docs/design/brand/render_assets.py`; a distribution copy is
 kept in `pwe-studio/source/`.
 
 ## Brand hierarchy
 
-1. **PWE Studio** — the single product brand in every operating mode.
-2. **SaaS / Edition** — delivery-model descriptors in prose, never part of
+1. **PWE · 天域** — the house and parent brand; the company website at the
+   root of `pwestudio.online`.
+2. **PWE Studio** — the house's SaaS product line, the single product brand
+   in every operating mode. Home: `/studio`. Mark: the Feather Star (a
+   wing-family mark is planned; nothing is swapped yet).
+3. **SaaS / Edition** — delivery-model descriptors in prose, never part of
    the logo or primary product name.
-3. **Paradise Production · 天域文创** — the producer and parent brand.
-4. **Tenant studio brands** — customer-owned logos, colours and copy. They
+4. **Paradise Production · 天域影像** — the house's film and creative line.
+   A sibling of PWE Studio, not its parent or producer.
+5. **Tenant studio brands** — customer-owned logos, colours and copy. They
    take visual precedence in Studio Admin, Portal, Register and CMS.
 
 ## The Feather Star
@@ -32,13 +39,13 @@ See [BRAND_ARCHITECTURE.md](BRAND_ARCHITECTURE.md) for placement rules and
 
 | Path | Purpose |
 |---|---|
-| `logo/` | Paradise Production SVG and PNG assets |
-| `source/` | Paradise construction, raster generation and validation |
+| `logo/` | Paradise Production (film and creative line) SVG and PNG assets |
+| `source/` | Paradise Production construction, raster generation and validation |
 | `pwe-studio/svg/` | Feather Star mark and PWE STUDIO lockups |
 | `pwe-studio/png/` | Transparent marks and lockups |
 | `pwe-studio/pwa/` | PWE favicon, app icons and Apple touch icon |
 | `pwe-studio/source/` | Distribution copy of the PWE asset generator |
-| `brand-identity.html` | Paradise Production visual guideline |
+| `brand-identity.html` | Paradise Production (film and creative line) visual guideline |
 
 ## Production rules
 
@@ -46,9 +53,11 @@ See [BRAND_ARCHITECTURE.md](BRAND_ARCHITECTURE.md) for placement rules and
 - Use `#A16207` instead of family amber for small text on white or Warm Paper.
 - Never stretch, rotate, shadow, outline or recolour either identity.
 - Never merge the Feather Star and Paradise wing into a combined logo.
-- Never replace a tenant logo with a PWE or Paradise logo.
-- On tenant surfaces, use only the restrained footer text
-  `Powered by Paradise Production`; do not add a producer logo to the header.
+- Never replace a tenant logo with a PWE Studio, house or Paradise logo.
+- On tenant surfaces, use only the restrained footer text `Powered by PWE`;
+  do not add a house logo to the header.
+- On PWE Studio's own pages the credit is `PWE · 天域出品`, linking to the
+  house at `/`.
 
 ## Regeneration
 

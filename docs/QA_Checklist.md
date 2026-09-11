@@ -28,7 +28,7 @@
 - [ ] `/<tenant_slug>/manifest-student.json` uses tenant-scoped `start_url` and `scope`; root `/manifest-student.json` does not point to `/register`
 - [ ] `/<tenant_slug>/manifest-cms.json` starts at `/<tenant_slug>/cms` and uses tenant scope
 - [ ] Unknown tenant slug returns 404 (not a blank page)
-- [ ] Reserved slugs (`api`, `v1`, `cms`, `register`, `platform-admin`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
+- [ ] Reserved slugs (`api`, `v1`, `cms`, `register`, `platform-admin`, `super-admin`, `studio-admin`, `vendor`, `studio`, `pricing`, `manual`, and the house website prefixes `production`, `work`, `tools`, `labs`, `about`, `services`, `contact`, `ai`) rejected on tenant creation
 - [ ] Unauthenticated mutation requests return 401/403 (see route-protection and tenant-isolation tests)
 - [ ] Tenant A session cannot read or write tenant B data (isolation tests)
 - [ ] `X-Tenant-Slug` header spoofing cannot cross tenant boundaries

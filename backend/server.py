@@ -125,7 +125,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '10.17.0'
+APP_VERSION   = '10.18.0'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
@@ -184,7 +184,7 @@ def _stamp_asset_versions(html):
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-09-07'
+RELEASE_DATE  = '2026-09-11'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.
@@ -1169,30 +1169,65 @@ def _serve_product_home(language):
     resp.headers['Cache-Control'] = 'no-cache'
     return resp
 
-@app.route('/')
-def serve_index():
+def _serve_product_home_or_tenant(language):
+    """The product home, or the single tenant's portal in standalone mode.
+
+    Standalone edition: the platform console does not exist, so every product
+    address is the one tenant's public portal.
+    """
+
     if is_standalone():
-        # Standalone edition: the platform console does not exist, so the root
-        # is the single tenant's public portal.
         slug = _standalone_tenant_slug()
         if not slug:
             return api_error('Service temporarily unavailable.', 503)
         return redirect(f'/{slug}', code=302)
-    return _serve_product_home('en')
+    return _serve_product_home(language)
+
+# ── The product home lives at /studio from v10.18.0 ─────────────────────────
+#
+# The root of pwestudio.online belongs to the house website (PWE · 天域) from
+# this release: nginx claims `/`, `/zh/` and the house's section prefixes at
+# the edge and serves static files there, so requests for them never reach
+# this application. The SaaS product's own home is `/studio` (English) and
+# `/zh/studio/` (Chinese), and every canonical, hreflang, sitemap and llms.txt
+# address says so.
+#
+# `/` and `/zh/` below deliberately still serve the product home in this
+# release. nginx shadows them in production, and a machine without the house
+# in front (local development, the Edition, a preview) keeps a working front
+# door. A later release turns them into redirects to `/studio` once the house
+# is live; doing both in one step would leave nothing at the root if the edge
+# change slipped.
+
+@app.route('/studio')
+@app.route('/studio/')
+def serve_studio_home():
+    return _serve_product_home_or_tenant('en')
+
+@app.route('/zh/studio/')
+def serve_studio_home_zh():
+    return _serve_product_home_or_tenant('zh')
+
+@app.route('/zh/studio')
+def serve_studio_home_zh_redirect():
+    # One address per language; the trailing-slash form is the canonical one.
+    return redirect('/zh/studio/', code=301)
+
+@app.route('/')
+def serve_index():
+    # Interim: still the product home. See the note above `/studio`.
+    return _serve_product_home_or_tenant('en')
 
 @app.route('/zh/')
 def serve_index_zh():
     """The Chinese home page.
 
     A separate URL rather than a toggle: `hreflang` can only point somewhere,
-    and a language that has no address of its own cannot be pointed at. The
-    root keeps English because that is the URL already indexed and the market
-    the copy addresses.
+    and a language that has no address of its own cannot be pointed at.
+    Interim like `/`: the canonical Chinese product home is `/zh/studio/`.
     """
 
-    if is_standalone():
-        return serve_index()
-    return _serve_product_home('zh')
+    return _serve_product_home_or_tenant('zh')
 
 @app.route('/zh')
 def serve_index_zh_redirect():
@@ -1567,7 +1602,12 @@ def serve_pricing_markdown():
 
 
 @app.route('/llms.txt')
+@app.route('/studio/llms.txt')
 def serve_llms_txt():
+    # Both addresses carry the same file. The root one is the conventional
+    # location and is what the house website's nginx claims for its own
+    # `llms.txt` from v10.18.0; `/studio/llms.txt` is the product's copy at
+    # an address that still reaches this application.
     resp = make_response(render_llms_txt(_plan_rows_or_empty()))
     resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
     resp.headers['Cache-Control'] = 'public, max-age=3600'
@@ -1631,7 +1671,17 @@ def serve_tenant_cms_shell(tenant_slug):
         return retired
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
-    return _legacy_file('index.html', 'text/html; charset=utf-8', 0)
+    resp = _legacy_file('index.html', 'text/html; charset=utf-8', 0)
+    # One shell file serves every tenant, so its static manifest link could
+    # only ever name the root /manifest.json — whose start_url is the platform
+    # console from v10.18.0, not a place a studio's staff should land. The
+    # tenant is known here, so the link is stamped with the tenant's own CMS
+    # manifest before the page leaves; the inline script repeats the rewrite
+    # for the `?tenant=` form, which this route cannot see.
+    html = resp.get_data(as_text=True).replace(
+        'href="/manifest.json"', f'href="/{tenant_slug}/manifest-cms.json"', 1)
+    resp.set_data(html)
+    return resp
 
 @app.route('/<tenant_slug>/studio-admin')
 def serve_tenant_studio_admin(tenant_slug):

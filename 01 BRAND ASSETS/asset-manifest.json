@@ -3,14 +3,19 @@
   "family": "PWE Studio / Paradise Production",
   "files": [
     {
+      "path": ".DS_Store",
+      "bytes": 6148,
+      "sha256": "69eaeb8239af2717152705c8cad7683cc470f8c1fba62b2d53d9723728a38f12"
+    },
+    {
       "path": "BRAND_ARCHITECTURE.md",
-      "bytes": 3098,
-      "sha256": "9b48712566d6f66f84a24f556f70e0bf00f857081f178eb5b06b788e36745cf1"
+      "bytes": 4429,
+      "sha256": "6c743fcfd0a3f49839697d41fd6919d987be495f086d421f5ae20e2d6cc03f52"
     },
     {
       "path": "README.md",
-      "bytes": 2770,
-      "sha256": "4638617425171be931350787ffc2d59c291a06e493bcbfaf75dec0028ad24686"
+      "bytes": 3387,
+      "sha256": "20a8233c13d15392d732c011c1f61e590706352141710759b4ca52f9e4b06e3f"
     },
     {
       "path": "brand-identity.html",
@@ -19,8 +24,8 @@
     },
     {
       "path": "brand-tokens.json",
-      "bytes": 1106,
-      "sha256": "95ef81f2e6c5e9ca168e615d45b1b973bf00538167e549619cad6175e4153a80"
+      "bytes": 1078,
+      "sha256": "d236363114b0c55b34232d9783eb3a546b2ae8df7a51176a153b87651f2347c7"
     },
     {
       "path": "logo/app-icon-512.svg",

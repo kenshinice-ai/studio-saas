@@ -9,13 +9,17 @@
 
   <!-- ONE LANGUAGE PER URL.
        Every `data-lang` element below is removed server-side before the page
-       is sent: `/` serves the English subtree, `/zh/` serves the Chinese one.
-       Both languages used to render into one DOM with a self-referential
-       canonical and no hreflang, which is a mixed-language page to a crawler —
-       each language diluting the other on the only URL either of them had.
-       English keeps the root because that is the URL already indexed, the
-       market the copy addresses (en-AU), and the locale the Open Graph tags
-       have always declared. -->
+       is sent: `/studio` serves the English subtree, `/zh/studio/` serves the
+       Chinese one. Both languages used to render into one DOM with a
+       self-referential canonical and no hreflang, which is a mixed-language
+       page to a crawler — each language diluting the other on the only URL
+       either of them had. English keeps the unprefixed address because that
+       is the market the copy addresses (en-AU) and the locale the Open Graph
+       tags have always declared.
+       THE ROOT IS NOT THIS PAGE. From v10.18.0 `/` and `/zh/` belong to the
+       house website (PWE · 天域), served by nginx ahead of this application;
+       the product's home is `/studio`, and every canonical, hreflang, og:url
+       and language link here says so. -->
   <title data-lang="en">Studio Management Software for Art, Music &amp; Dance | PWE Studio</title>
   <title data-lang="zh">工作室管理系统 · 报名、排课、课时账本 | PWE Studio</title>
   <!-- Both under 160 characters. The English one was 195 and lost its last
@@ -24,13 +28,13 @@
   <meta data-lang="en" name="description" content="Enrolments, class schedules, attendance, class credits and student portfolios in one system. Studio software for art, music and dance schools in Australia.">
   <meta data-lang="zh" name="description" content="报名、排课、签到、课时账本与学员作品集，都在一个系统里。PWE Studio 是面向美术、音乐、舞蹈工作室与培训机构的一体化管理系统，墨尔本团队开发与支持。">
   <meta name="keywords" content="studio management software, class scheduling software, student attendance tracking, art studio software, music school management, dance studio software, 工作室管理系统, 排课系统, 课时账本, 在线报名">
-  <link data-lang="en" rel="canonical" href="https://pwestudio.online/">
-  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/">
+  <link data-lang="en" rel="canonical" href="https://pwestudio.online/studio">
+  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/studio/">
   <!-- Reciprocal, and identical on both pages: an hreflang set that does not
        point back at itself is ignored. x-default goes to the root. -->
-  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/">
-  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/">
-  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/">
+  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/studio">
+  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/studio/">
+  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/studio">
   <meta name="robots" content="index, follow">
 
   <meta property="og:type" content="website">
@@ -39,8 +43,8 @@
   <meta data-lang="en" property="og:locale:alternate" content="zh_CN">
   <meta data-lang="zh" property="og:locale" content="zh_CN">
   <meta data-lang="zh" property="og:locale:alternate" content="en_AU">
-  <meta data-lang="en" property="og:url" content="https://pwestudio.online/">
-  <meta data-lang="zh" property="og:url" content="https://pwestudio.online/zh/">
+  <meta data-lang="en" property="og:url" content="https://pwestudio.online/studio">
+  <meta data-lang="zh" property="og:url" content="https://pwestudio.online/zh/studio/">
   <meta data-lang="en" property="og:title" content="Give the time back to the work | PWE Studio">
   <meta data-lang="zh" property="og:title" content="把时间还给创作 | PWE Studio">
   <meta data-lang="en" property="og:description" content="Public site, online registration, class-credit ledger and brand front door in one system — so studio owners teach more and reconcile less.">
@@ -75,7 +79,10 @@
 
   <header class="nav" id="siteNav">
     <div class="nav-in">
-      <a class="brand" href="/" aria-label="PWE Studio home">
+      <!-- The wordmark leads up to the house (PWE · 天域) at the root; the
+           product's own home is /studio, which the footer wordmark, the
+           canonical and the language links all name. -->
+      <a class="brand" href="/" aria-label="PWE home">
         <!-- Brand_Identity.md §7: the mark is drawn twice, navy for light
              surfaces and near-white for dark ones. The page now follows the
              system theme, so the asset has to follow it too — a navy mark on
@@ -103,8 +110,8 @@
         <a href="#faq"><span data-lang="en">FAQ</span><span data-lang="zh">答疑</span></a>
         <!-- The switch is navigation now, not a DOM toggle: one language per
              URL is the whole point of the split. -->
-        <a class="lang" data-lang="en" href="/zh/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
-        <a class="lang" data-lang="zh" href="/" hreflang="en-AU" lang="en">EN</a>
+        <a class="lang" data-lang="en" href="/zh/studio/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a class="lang" data-lang="zh" href="/studio" hreflang="en-AU" lang="en">EN</a>
         <a class="nav-cta" href="#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
       </nav>
     </div>
@@ -519,7 +526,7 @@
     <div class="wrap">
       <div class="foot-grid">
         <div>
-          <a class="brand" href="/" aria-label="PWE Studio home">
+          <a class="brand" href="/studio" aria-label="PWE Studio home">
             <img src="/pwe-mark.svg" alt="" width="30" height="30">
             <span>PWE Studio</span>
           </a>
@@ -546,7 +553,7 @@
       </div>
       <div class="foot-btm">
         <span>© <span id="year"></span> PWE Group Pty Ltd · PWE Studio</span>
-        <a class="sig" href="/paradise-production/">A Paradise Production · <b>天域文创</b>出品</a>
+        <a class="sig" href="/">PWE · <b>天域</b>出品</a>
       </div>
     </div>
   </footer>

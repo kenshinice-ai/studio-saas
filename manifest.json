@@ -2,7 +2,7 @@
   "name": "PWE Studio",
   "short_name": "PWE Studio",
   "description": "PWE Studio 学员管理系统",
-  "start_url": "/",
+  "start_url": "/platform-admin",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="/assets/pricing.css?v=__APP_VERSION__">
 </head>
 <body>
-  <a class="skip" href="/#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
+  <a class="skip" href="#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
 
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
     <symbol id="spark" viewBox="-16 -16 32 32"><path d="M0,-15 Q2.2,-2.2 15,0 Q2.2,2.2 0,15 Q-2.2,2.2 -15,0 Q-2.2,-2.2 0,-15 Z"/></symbol>
@@ -37,7 +37,10 @@
 
   <header class="nav" id="siteNav">
     <div class="nav-in">
-      <a class="brand" href="/" aria-label="PWE Studio home">
+      <!-- The wordmark leads up to the house (PWE · 天域) at the root; the
+           product's own home is /studio, which the nav and the footer
+           wordmark name. -->
+      <a class="brand" href="/" aria-label="PWE home">
         <!-- Brand_Identity.md §7: the mark is drawn twice, navy for light
              surfaces and near-white for dark ones. The page now follows the
              system theme, so the asset has to follow it too — a navy mark on
@@ -57,17 +60,17 @@
         <svg aria-hidden="true"><g class="bars"><path d="M3 6h18M3 12h18M3 18h18"/></g><g class="x"><path d="M5 5l14 14M19 5L5 19"/></g></svg>
       </button>
       <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
-        <a href="/#why"><span data-lang="en">Why</span><span data-lang="zh">痛点</span></a>
-        <a href="/#product"><span data-lang="en">Product</span><span data-lang="zh">产品</span></a>
-        <a href="/#trust"><span data-lang="en">Trust</span><span data-lang="zh">关键设计</span></a>
-        <a href="/#plans"><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></a>
-        <a href="/#launch"><span data-lang="en">Launch</span><span data-lang="zh">上线</span></a>
-        <a href="/#faq"><span data-lang="en">FAQ</span><span data-lang="zh">答疑</span></a>
+        <a href="/studio#why"><span data-lang="en">Why</span><span data-lang="zh">痛点</span></a>
+        <a href="/studio#product"><span data-lang="en">Product</span><span data-lang="zh">产品</span></a>
+        <a href="/studio#trust"><span data-lang="en">Trust</span><span data-lang="zh">关键设计</span></a>
+        <a href="/studio#plans"><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></a>
+        <a href="/studio#launch"><span data-lang="en">Launch</span><span data-lang="zh">上线</span></a>
+        <a href="/studio#faq"><span data-lang="en">FAQ</span><span data-lang="zh">答疑</span></a>
         <!-- The switch is navigation now, not a DOM toggle: one language per
              URL is the whole point of the split. -->
-        <a class="lang" data-lang="en" href="/zh/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
-        <a class="lang" data-lang="zh" href="/" hreflang="en-AU" lang="en">EN</a>
-        <a class="nav-cta" href="/#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
+        <a class="lang" data-lang="en" href="/zh/pricing" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a class="lang" data-lang="zh" href="/pricing" hreflang="en-AU" lang="en">EN</a>
+        <a class="nav-cta" href="/studio#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
       </nav>
     </div>
   </header>
@@ -124,7 +127,7 @@
               <div><dt data-lang="en">One-time setup</dt><dt data-lang="zh">一次性 Setup</dt><dd id="calcSetup">AUD 299–999</dd></div>
             </dl>
             <p class="calc-note" id="calcNote"></p>
-            <a class="btn" href="/#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
+            <a class="btn" href="/studio#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
           </div>
         </div>
       </div>
@@ -234,7 +237,7 @@
     <div class="wrap">
       <div class="foot-grid">
         <div>
-          <a class="brand" href="/" aria-label="PWE Studio home">
+          <a class="brand" href="/studio" aria-label="PWE Studio home">
             <img src="/pwe-mark.svg" alt="" width="30" height="30">
             <span>PWE Studio</span>
           </a>
@@ -255,13 +258,13 @@
             <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
             <a href="/customer-resources/Support_Policy.html"><span data-lang="en">Support policy</span><span data-lang="zh">支持政策</span></a>
             <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
-            <a href="/#contact"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
+            <a href="/studio#contact"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
           </nav>
         </div>
       </div>
       <div class="foot-btm">
         <span>© <span id="year"></span> PWE Group Pty Ltd · PWE Studio</span>
-        <a class="sig" href="/paradise-production/">A Paradise Production · <b>天域文创</b>出品</a>
+        <a class="sig" href="/">PWE · <b>天域</b>出品</a>
       </div>
     </div>
   </footer>

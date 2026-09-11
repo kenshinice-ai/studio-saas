@@ -1,4 +1,4 @@
-# PWE Studio v10.17.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.18.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,20 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.17.0，2026-09-07）
+## 当前四层身份（v10.18.0，2026-09-11 · 源码候选，未发布）
+
+> 本表是 runbook 第 3 步的 prepared ledger：Source 是事实，Package / Production /
+> Backup 是**预期**，由发布人执行第 6–9 步后在 closure 里换成事实。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 分支 `release/10.18.0-pwe-house`，一个提交，**未推送**（提交哈希见 `git log -1 release/10.18.0-pwe-house`，closure 时回填）。内容：房子（PWE · 天域）接管根之前的四件事 —— 产品首页搬到 `/studio`（`/zh/studio/`），canonical / hreflang / og:url / sitemap / llms.txt 跟着走；`RESERVED_SLUGS` 26 → 49（房子的前缀 + 本应用一直路由却从未保留的根地址）；根 PWA manifest 的 `start_url` 不再是 `/`（`/platform-admin`、`/studio`），`sw.js` 升 `CACHE_VERSION`，租户 CMS 壳按租户盖 `manifest-cms.json`；`robots.txt` 加第二行 `Sitemap: …/sitemap-pwe.xml`；`/studio/llms.txt`；品牌文字改为「PWE · 天域 = 房子，PWE Studio = SaaS 产品线，Paradise Production · 天域影像 = 影像线」，租户页脚 `Powered by PWE`，产品站署名 `PWE · 天域出品` → `/`（只改文字，零图标）。改了 `tenant-template/`，3 个入库租户已本地重生成。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机门禁数字见 `docs/handoff/claude/2026-09-11-pwe-house.md`。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.18.0.tar.gz`（未构建）。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.18.0.tar.gz`（未构建）。 |
+| Production | **仍是 v10.17.0。** 部署前 STOP GATE 见轮次文件：nginx 对 `/zh/` 必须精确匹配而非前缀（否则应用的全部中文页 404）；核对生产 5 个租户 slug 不在新保留名单内（保留 slug 会被路由层 404）。 |
+| Backup / migration | 预期由 deploy 自动产出 dump + manifest；本版零迁移。 |
+
+## 上一版四层身份（v10.17.0，2026-09-07）
 
 | 层 | 精确事实 |
 |---|---|
@@ -283,6 +296,14 @@
 
 ## 最新轮次
 
+- **2026-09-11（Claude）v10.18.0 房子上线前置 —— 产品首页搬到 `/studio`**（**源码候选，未发布**）：
+  轮次文件 `docs/handoff/claude/2026-09-11-pwe-house.md`。`/studio` / `/zh/studio/`
+  成为产品首页的规范地址（`/`、`/zh/` 本版仍渲染首页，留给 nginx 遮住，下一版再 301）；
+  `RESERVED_SLUGS` 加入房子的前缀与本应用自己的根地址（26 → 49）；根 PWA manifest
+  不再以 `/` 起步、`sw.js` 升缓存版本、CMS 壳按租户盖 manifest；robots 列出
+  `sitemap-pwe.xml`；`/studio/llms.txt`；品牌文字换成「PWE · 天域 = 房子」的三层
+  结构，租户页脚 `Powered by PWE`，产品站署名 `PWE · 天域出品`。零图标改动、零迁移。
+  顺手修了定价页语言切换指向首页、跳过链接跨页两个既有缺陷。
 - **2026-09-06（Claude）v10.16.0 两份审计的交叉核实与 0–G 八批修复**（**已发布**）：
   方案 `docs/design/Consolidated_Improvement_Plan_2026-09-06.md`（含生产实测附录 A
   与执行记录附录 B）；两份原始审计 `UX_Review_2026-09-06.md`、

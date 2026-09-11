@@ -3948,7 +3948,7 @@
         className: "w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm"
       },
       busy ? "验证中..." : "进入系统 →"
-    )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
+    )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by PWE")));
   }
   var ErrorBoundary = class extends React.Component {
     constructor(props) {
@@ -10597,7 +10597,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "logout", className: "w-4 h-4" }), "退出登录")
         ))))
       ),
-      /* @__PURE__ */ React.createElement("footer", { className: "mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400" }, "© 2026 ", tenantDisplayName, " · Powered by Paradise Production")
+      /* @__PURE__ */ React.createElement("footer", { className: "mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400" }, "© 2026 ", tenantDisplayName, " · Powered by PWE")
     ), moreOpen && /* @__PURE__ */ React.createElement("div", { className: "md:hidden fixed inset-0 z-[45]", onClick: () => setMoreOpen(false) }), moreOpen && /* @__PURE__ */ React.createElement(
       "div",
       {

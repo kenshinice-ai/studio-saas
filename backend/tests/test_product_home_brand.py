@@ -270,11 +270,14 @@ def test_content_is_not_hidden_from_a_visitor_without_javascript() -> None:
     assert "root.classList.add('js')" in shell.read_text(encoding="utf-8")
 
 
-def test_the_producer_credit_is_a_link() -> None:
-    """Brand_Identity.md §10: on PWE's own surfaces the relationship is
-    authorship, and a credit naming a studio should reach it."""
+def test_the_house_credit_is_a_link() -> None:
+    """Brand_Identity.md §9: PWE · 天域 is the house and the root of the domain
+    is its website. On the product's own surfaces the relationship is
+    authorship, and a credit naming the house should reach it. Paradise
+    Production is the house's film line now, not the product's producer."""
 
-    source = _product_home_source()
-    assert '<a class="sig" href="/paradise-production/">' in source
-    assert "A Paradise Production" in source
-    assert "天域文创" in source
+    source = _strip_comments(_product_home_source())
+    assert '<a class="sig" href="/">PWE · <b>天域</b>出品</a>' in source
+    assert "/paradise-production/" not in source
+    assert "A Paradise Production" not in source
+    assert "天域文创" not in source

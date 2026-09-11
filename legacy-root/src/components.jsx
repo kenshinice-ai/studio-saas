@@ -1228,7 +1228,7 @@ export function LoginScreen({ onLogin, embedded = false }) {
                     </button>
                 </form>
                 <p className="mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400">
-                    Powered by Paradise Production
+                    Powered by PWE
                 </p>
             </div>
         </div>

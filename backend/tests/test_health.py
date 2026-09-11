@@ -201,6 +201,37 @@ def test_root_student_manifest_does_not_point_at_closed_register(client):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["start_url"] != "/register"
+    # Nor at the root: that is the house website from v10.18.0, and an
+    # installed app that opens on somebody else's home page is broken.
+    assert payload["start_url"] == "/studio"
+
+
+def test_root_manifest_opens_on_the_platform_console_not_the_house(client):
+    """The root manifest is the platform's own app; its start_url must be a
+    page this application serves, never `/` (the house website's)."""
+
+    response = client.get("/manifest.json")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["start_url"] == "/platform-admin"
+
+
+def test_root_manifest_change_reaches_installed_clients(client):
+    """sw.js precaches /manifest.json; without a new CACHE_VERSION an installed
+    CMS keeps the old start_url until its cache is cleared by hand."""
+
+    worker = client.get("/sw.js").get_data(as_text=True)
+    assert "'/manifest.json'" in worker
+    assert "CACHE_VERSION = 'v10.18.0-pwe-house'" in worker
+
+
+def test_tenant_cms_shell_links_its_own_manifest_before_any_script_runs(client):
+    """One shell file serves every tenant; its static manifest link named the
+    root /manifest.json. The route knows the tenant, so it stamps the link."""
+
+    html = client.get("/lets-paint-studio/cms").get_data(as_text=True)
+    assert 'rel="manifest" href="/lets-paint-studio/manifest-cms.json"' in html
+    assert 'href="/manifest.json"' not in html
 
 
 def test_super_admin_is_commercial_control_plane(client):

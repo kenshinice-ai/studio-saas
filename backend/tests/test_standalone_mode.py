@@ -158,6 +158,19 @@ def test_standalone_root_503_when_slug_unresolvable(client, standalone, monkeypa
     assert client.get("/").status_code == 503
 
 
+@pytest.mark.parametrize("path", ["/studio", "/studio/", "/zh/studio/"])
+def test_standalone_studio_home_behaves_like_the_root(client, standalone, monkeypatch, path):
+    """The product home moved to /studio (v10.18.0); the Edition has no
+    product home at any address, only the one tenant."""
+
+    monkeypatch.setattr(server, "_standalone_tenant_slug", lambda: "solo-studio")
+    response = client.get(path)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/solo-studio")
+    monkeypatch.setattr(server, "_standalone_tenant_slug", lambda: "")
+    assert client.get(path).status_code == 503
+
+
 def test_standalone_root_cms_redirects_to_only_tenant(client, standalone, monkeypatch):
     monkeypatch.setattr(server, "_standalone_tenant_slug", lambda: "solo-studio")
     response = client.get("/cms", follow_redirects=False)

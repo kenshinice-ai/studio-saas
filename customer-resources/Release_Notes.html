@@ -35,8 +35,8 @@
 <body>
 <main class="wrap wrap--wide">
   <div class="topline">
-    <a class="back" data-lang="en" href="/">&larr; PWE Studio home</a>
-    <a class="back" data-lang="zh" href="/zh/">&larr; 返回 PWE Studio 首页</a>
+    <a class="back" data-lang="en" href="/studio">&larr; PWE Studio home</a>
+    <a class="back" data-lang="zh" href="/zh/studio/">&larr; 返回 PWE Studio 首页</a>
     <a class="lang" data-lang="en" href="/zh/customer-resources/Release_Notes.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
     <a class="lang" data-lang="zh" href="/customer-resources/Release_Notes.html" hreflang="en-AU" lang="en">English</a>
   </div>
@@ -55,6 +55,11 @@
   <p data-lang="en">Read entries chronologically: an older entry describes the boundary of that release and does not override the latest one. The current integration boundary is Xero Beta with gated one-way transport, not the earlier Preview-only state.</p>
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">v10.18.0 — the product moves to /studio and the house takes the front door</strong><strong data-lang="zh">v10.18.0 —— 产品首页搬到 /studio，公司官网接管根地址</strong>
+      <p data-lang="en">PWE Studio is now one product line of PWE · 天域, and the company's own website is taking over the root of pwestudio.online. The product home lives at <code>/studio</code> (Chinese: <code>/zh/studio/</code>); its canonical address, language links, sitemap and <code>llms.txt</code> all say so, and the product's <code>llms.txt</code> is also served at <code>/studio/llms.txt</code>. Nothing you bookmarked breaks: studio websites, registration, the CMS, Studio Admin, pricing, the manual and the customer documents keep their addresses. Studio website addresses under the company site's sections (<code>production</code>, <code>work</code>, <code>tools</code>, <code>labs</code>, <code>about</code>, <code>services</code>, <code>contact</code>, <code>ai</code>) and under the product's own pages (<code>studio</code>, <code>pricing</code>, <code>manual</code>, …) can no longer be created, so a new studio cannot be given an address that would never be reachable. If you added the staff CMS or a student portal to a phone's home screen, it now opens on the console or the product home rather than on the company website; installed apps refresh this on their next visit. Footers on studio websites and in the CMS read <em>Powered by PWE</em>. Text only — no logo, icon or image changed in this release.</p>
+      <p data-lang="zh">PWE Studio 现在是 PWE · 天域 旗下的一条产品线，公司自己的官网接管 pwestudio.online 的根地址。产品首页搬到 <code>/studio</code>（中文 <code>/zh/studio/</code>），规范地址、语言切换、站点地图与 <code>llms.txt</code> 全部指向它；产品的 <code>llms.txt</code> 同时在 <code>/studio/llms.txt</code> 提供。你收藏过的地址都不受影响：工作室官网、报名、CMS、Studio Admin、定价、手册与客户文档的地址不变。公司官网各栏目（<code>production</code>、<code>work</code>、<code>tools</code>、<code>labs</code>、<code>about</code>、<code>services</code>、<code>contact</code>、<code>ai</code>）以及产品自己的页面（<code>studio</code>、<code>pricing</code>、<code>manual</code> 等）不再能作为工作室网址标识，新工作室不会被分到一个永远打不开的地址。如果你把 CMS 或学员门户加到过手机主屏，它现在打开的是控制台或产品首页，而不是公司官网；已安装的应用会在下次打开时自动刷新。工作室官网与 CMS 的页脚改为「Powered by PWE」。本版只改文字，不改任何 Logo、图标或图片。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">v10.17.0 — the last page that compiled CSS in your browser, and a report that draws its icons</strong><strong data-lang="zh">v10.17.0 —— 最后一个在浏览器里编译样式的页面，和一份终于画出图标的报告</strong>
       <p data-lang="en">The student registration page used to download a 451KB stylesheet compiler and run it in the visitor's browser before showing anything; it now ships a 17KB stylesheet built ahead of time, and looks pixel-for-pixel the same — verified across 166 elements and 21 computed properties. The growth report you send a parent draws its five icons at last (they were markup the browser rendered as nothing, and which swallowed the button labels beside them), and it is now written in one language throughout: four lines that should have followed the report's language never did, so an English studio's report arrived with Chinese buttons. Status labels in the sidebar and the course help card were being tinted toward the wrong end of the page and sat at 2.75:1 contrast; they are 8.50:1 now.</p>

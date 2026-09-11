@@ -123,7 +123,7 @@ if [ "$EDITION" = "1" ]; then
 
 ---
 
-*A PARADISE PRODUCTION · 天域文创出品*
+*PWE · 天域出品*
 EOF
 else
   cp "$STAGE_DIR/deploy/aws/README_AWS.md" "$STAGE_DIR/DEPLOY_AWS_FIRST.md"

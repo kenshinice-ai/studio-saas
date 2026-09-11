@@ -1,23 +1,21 @@
 # PWE Studio
 
-## v10.17.0 release identity — Living Studio System product home
+## v10.18.0 release identity — the product moves to /studio (source candidate, not released)
 
-`VERSION` = **10.17.0** and `backend/server.py` reports `APP_VERSION=10.17.0`.
-The PWE Studio product home now tells “one system, four connected surfaces” as
-one spatial story. Semantic HTML remains the content and conversion layer;
-the hero progressively enhances from a light/dark static poster to Canvas 2D,
-then to a self-hosted Three.js scene on capable desktop browsers. Portal,
-Register, Operations CMS and Studio Admin remain ordinary, keyboard-reachable
-links, and reduced-motion, data-saver, mobile and WebGL failure paths keep the
-complete page. Design and execution notes live in
-`docs/design/portal-spatial-redesign-2026-08-23/`.
+`VERSION` = **10.18.0** and `backend/server.py` reports `APP_VERSION=10.18.0`.
+v10.18.0 is the release that lets the house website (PWE · 天域) take over the
+root of `pwestudio.online`: the product home moves to `/studio`, the house's
+section prefixes become reserved tenant slugs, installed PWAs stop starting at
+`/`, and Paradise Production is no longer described as the parent brand — text
+only, no icon or image changes. Round notes:
+`docs/handoff/claude/2026-09-11-pwe-house.md`.
 The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.17.0 committed and pushed** | Runtime release commit `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2`; PostgreSQL-required gate: `2118 passed, 8 skipped`, tenant isolation `254 passed, 0 failed`, legacy smoke `73`, both console smokes green. Product-home-focused checks: `223 passed, 1 skipped`. **Zero migrations** — schema stays at `0047_xero_transport.sql`. |
-| Package | **v10.17.0 SaaS and Edition archives verified** | SaaS SHA-256 `d140cb435c954b82bcbb994049d47e69658b441821a4885ba8adff1eea1fdc67`; Edition SHA-256 `0566e37982c1e542c21eccb039cc9b70b8e18fdb4451928bd99be725e65ebb28`; both `BUILD_INFO` files identify `ba6c89774e5106349bfd8d94c2a0fdc43f8e91d2` and passed checksum, mode, entrypoint, exclusion and archive smoke checks. |
-| Production | **v10.17.0 deployed to `pwestudio.online`** | Image `studiosaas:10.17.0`; internal/public deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 19.1% used; `http -> 301`, `https -> 200 tls=0 proto=2`. Pre-deploy backups: `studiosaas_studiosaas_20260824T034213Z.dump` + manifest and `pwestudio-volumes-20260824T034214Z.tar.gz`. The served Three.js asset is byte-identical to the committed bundle and returns immutable cache plus conditional 304. |
+| Source | **v10.18.0 candidate on branch `release/10.18.0-pwe-house`, not pushed** | Local PostgreSQL-required gate and pytest counts are recorded in the round handoff; **zero migrations** — schema stays at `0047_xero_transport.sql`. The runtime commit hash is filled in at the step-9 closure. |
+| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.18.0.tar.gz` and `dist/PWE-Studio-Edition-10.18.0.tar.gz` from runbook step 6; hashes recorded at closure. |
+| Production | **still v10.17.0** (`pwestudio.online`) | Last verified deployment: v10.17.0, runtime commit `cb72f69f30252e700bb8567490310f46a29a6592`; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The pre-deploy STOP GATE for v10.18.0 is in the round handoff (nginx must match `/zh/` exactly, not as a prefix; production tenant slugs must not collide with the new reserved names). |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
@@ -1180,18 +1178,21 @@ remain deferred by product decision.
 
 ### 4.20 Current brand family integration
 
-**Brand architecture** — PWE Studio uses the Feather Star: the four-point star
-is the starting point of creativity, while the three feather blades represent
-growth, ascent and possibility. Paradise Production · 天域文创 retains the wing
-producer mark. Both use
+**Brand architecture** — PWE · 天域 is the house and parent brand, with its
+website at the root of `pwestudio.online`; PWE Studio is its SaaS product
+line at `/studio` and uses the Feather Star: the four-point star is the
+starting point of creativity, while the three feather blades represent
+growth, ascent and possibility (a wing-family mark is planned; nothing is
+swapped yet). Paradise Production · 天域影像 is the house's film and creative
+line and retains the wing mark. All use
 Family Navy `#0E1729`, Family Amber `#F5B335` and Warm Paper `#F7F5F2`
-without merging the two identities. `01 BRAND ASSETS/` is the complete
+without merging the identities. `01 BRAND ASSETS/` is the complete
 delivery kit, including placement rules, machine-readable tokens, normalized
 raster exports, deterministic generators and a SHA-256 asset manifest.
 
 **Tenant identity** — Studio Admin, Portal, Register and CMS keep the tenant
 Logo/name in the primary position in both operating modes. They use only the
-compact `Powered by Paradise Production` footer credit by default; paid
+compact `Powered by PWE` footer credit by default; paid
 removal remains an explicit, strict
 `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` deployment setting.
 
@@ -1348,4 +1349,4 @@ for attribution information.
 
 ---
 
-*Powered by Paradise Production · 天域文创*
+*Powered by PWE · 天域*

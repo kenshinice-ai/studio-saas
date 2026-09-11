@@ -59,4 +59,4 @@ Studio Admin → 数据分析 再核一次（DEPLOYMENT_PLAN.md §10 数据验�
 
 ---
 
-*A PARADISE PRODUCTION · 天域文创出品*
+*PWE · 天域出品*

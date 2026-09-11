@@ -37,6 +37,41 @@ RESERVED_SLUGS = {
     "icon-512.png",
     "apple-touch-icon.png",
     "favicon.ico",
+    # Root addresses this application already routes itself. They were never
+    # reserved, so a studio could have been created at `/pricing` and then
+    # been unreachable behind the pricing page.
+    "studio",
+    "pricing",
+    "pricing.md",
+    "manual",
+    "customer-resources",
+    "assets",
+    "robots.txt",
+    "sitemap.xml",
+    "llms.txt",
+    "favicon.svg",
+    "pwe-mark.svg",
+    "pwe-mark-dark.svg",
+    "setup-password",
+    "shared",
+    "xero",
+    "s",
+    # Prefixes the house website (PWE · 天域) owns at the nginx edge from
+    # v10.18.0: `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`,
+    # `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`,
+    # `/sitemap-pwe.xml`, `/404.html`. nginx answers these before the request
+    # reaches this app, so a tenant created under one of them would exist in
+    # the database and never be served.
+    "production",
+    "work",
+    "tools",
+    "labs",
+    "about",
+    "services",
+    "contact",
+    "ai",
+    "sitemap-pwe.xml",
+    "404.html",
 }
 
 

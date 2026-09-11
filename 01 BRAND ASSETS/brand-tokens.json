@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "family": "PWE Studio / Paradise Production",
+  "family": "PWE · 天域 / PWE Studio / Paradise Production",
   "colors": {
     "family_navy": "#0E1729",
     "family_navy_raised": "#16233D",
@@ -21,9 +21,9 @@
     "product": "PWE Studio",
     "saas_delivery": "SaaS",
     "standalone_delivery": "Edition",
-    "producer_en": "Paradise Production",
-    "producer_zh": "天域文创",
-    "producer_credit": "Powered by Paradise Production · 天域文创"
+    "producer_en": "PWE",
+    "producer_zh": "天域",
+    "producer_credit": "Powered by PWE · 天域"
   },
   "mark_story": {
     "four_point_star": "the starting point of creativity",

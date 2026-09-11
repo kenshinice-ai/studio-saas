@@ -1,8 +1,9 @@
 # PWE Studio — Brand Identity
 
-Version 4.1 — 2026-08-03. This is the source of truth for the PWE Studio
-product identity and its relationship to Paradise Production and tenant-owned
-studio identities. The delivery kit lives in `01 BRAND ASSETS/`.
+Version 4.2 — 2026-09-11. This is the source of truth for the PWE Studio
+product identity and its relationship to the house brand PWE · 天域, to the
+Paradise Production film and creative line, and to tenant-owned studio
+identities. The delivery kit lives in `01 BRAND ASSETS/`.
 
 `docs/brand-guidelines.md` is a compatibility copy for tooling that expects
 that conventional path. `docs/design/Brand_Identity.md` remains canonical;
@@ -148,41 +149,49 @@ Do not:
 
 ## 9. Brand architecture
 
-There are three distinct ownership layers:
+There are four distinct ownership layers:
 
-1. **PWE Studio** — product identity, used on Super Admin, platform packaging
-   and sales materials.
-2. **Paradise Production · 天域文创** — producer identity, used as a quiet
-   endorsement.
-3. **Tenant studio** — primary identity in Studio Admin, CMS, Portal and
+1. **PWE · 天域** — the house and parent brand. Its website is the root of
+   `pwestudio.online` (from v10.18.0 nginx serves `/`, `/zh/` and the house's
+   section prefixes ahead of the application).
+2. **PWE Studio** — the house's SaaS product line; product identity on the
+   product site (`/studio`), Super Admin, platform packaging and sales
+   materials. The Feather Star stays its mark; a wing-family mark for the
+   house's product lines is planned and nothing is swapped until it lands.
+3. **Paradise Production · 天域影像** — the house's film and creative line.
+   A sibling line of PWE Studio, no longer its producer or parent.
+4. **Tenant studio** — primary identity in Studio Admin, CMS, Portal and
    Register.
 
 Tenant top-left identity areas must show the configured tenant logo and studio
 name. If no tenant logo exists, show the tenant name only. Never substitute a
-PWE or Paradise mark.
+PWE Studio, house or Paradise mark.
 
 Canonical tenant footer:
 
-> © 2026 [Tenant Name] · Powered by Paradise Production
+> © 2026 [Tenant Name] · Powered by PWE
 
 The credit is text only, 10–11 px, neutral slate and visually subordinate.
 `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` may hide it only where a commercial
 agreement permits attribution removal.
 
-Super Admin may use the PWE mark as its primary platform identity and the
-compact bilingual credit:
+The product site and Super Admin use the PWE Studio mark as their primary
+identity and the compact bilingual house credit:
 
-> [A PARADISE PRODUCTION · 天域文创出品](/paradise-production/)
+> [PWE · 天域出品](/)
 
-**This is PWE's own credit, and it is a link.** The producer runs a site at
-`/paradise-production/`; a credit that names a studio and then dead-ends is a
-weaker signal than one a reader can follow. "出品" rather than "Powered by"
-because on PWE's own surfaces the relationship is authorship, not vendoring.
+**This is PWE Studio's own credit, and it is a link.** The house's website is
+at the root; a credit that names the house and then dead-ends is a weaker
+signal than one a reader can follow. "出品" rather than "Powered by" because
+on the product's own surfaces the relationship is authorship, not vendoring.
+The product site's header wordmark also leads to the house at `/`; the
+product's own home is `/studio`, which the footer wordmark, the canonical and
+the language links name.
 
-The tenant footer above keeps `Powered by Paradise Production` unchanged and
-unlinked. It is white-label attribution on somebody else's site, often in
-English, and it is the line a commercial agreement may remove — "出品" would
-overclaim there, and an outbound link on a customer's page is not ours to add.
+The tenant footer above keeps `Powered by PWE` unlinked. It is white-label
+attribution on somebody else's site, often in English, and it is the line a
+commercial agreement may remove — "出品" would overclaim there, and an
+outbound link on a customer's page is not ours to add.
 
 ## 10. Integration inventory
 
@@ -190,7 +199,7 @@ overclaim there, and an outbound link on a customer's page is not ours to add.
 |---|---|
 | `docs/design/brand/pwe-mark.svg` / `pwe-mark-dark.svg` | Feather Star mark |
 | `docs/design/brand/pwe-logo.svg` / `pwe-logo-dark.svg` | PWE STUDIO lockup |
-| `docs/design/brand/credit-line.svg` / `credit-line-dark.svg` | Producer credit reference |
+| `docs/design/brand/credit-line.svg` / `credit-line-dark.svg` | Credit-line reference (still renders the pre-v10.18.0 Paradise Production wording; regenerate with the wing-family mark, not by hand) |
 | `docs/design/brand/render_assets.py` | Canonical geometry and renderer |
 | `docs/design/brand/preview.html` | Visual proof sheet |
 | `01 BRAND ASSETS/` | Delivery kit, architecture, tokens and manifest |
@@ -201,6 +210,13 @@ overclaim there, and an outbound link on a customer's page is not ours to add.
 
 ## 11. Changelog
 
+- **v4.2 (v10.18.0, 2026-09-11)** — PWE · 天域 becomes the house and parent
+  brand, with its website at the root of `pwestudio.online`; PWE Studio is
+  its SaaS product line at `/studio`; Paradise Production · 天域影像 is the
+  house's film and creative line, no longer the producer (§9). Text only:
+  tenant footers read `Powered by PWE`, the product site and Super Admin
+  credit `PWE · 天域出品` linking to `/`. The Feather Star and every icon,
+  image and generated asset are unchanged; the wing-family mark is planned.
 - **v4.1 (v8.2.20, 2026-08-03)** — the product website adopts the shared
   dark-first design language and follows the visitor's system theme; the mark
   switches with it (§7.1). The producer credit became a link to
