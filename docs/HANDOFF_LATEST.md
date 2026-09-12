@@ -13,18 +13,41 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.20.0，2026-09-12 · 源码候选，未发布）
+## 当前四层身份（v10.20.0，2026-09-12 · **已发布、已部署**）
 
-> 本表是 runbook 第 3 步的 prepared ledger。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`，**未推送**（提交哈希 closure 时回填）。内容：后台三个面的层级整理，按 `jobs-simple-design` + `apple-design` 走查后实测下刀 —— 学员档案的响控件 14 → 2（十二个行内写操作降级，页面只留 `新建` 一个实心）；课程安排保留十个行内签到（那是任务本身）而把更危险的批量签到降级；平台控制台的 `Refresh` 从 `btn-primary` 降为 secondary（此前四个最响的控件全是 chrome）；工作台同一个变量渲染三次改为一次（`todayEffectiveCount` 4→1、`totalStudents` 3→1）；每行都有的 `待上课` 徽章与同名 pill 下的订阅状态都改为「只在非默认态出现」；CMS 侧栏写死的绿色「已连接」删除（顶栏那个才是接状态的）；41 处 11px 以下字号归零；课时徽章补可访问名。另修客户发布说明在手机上整页横向溢出（`1fr` 丢了 `minmax(0,…)`）与 v10.19.0 发出的重复 charset。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2489 passed, 41 skipped`。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz`（未构建）。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.0.tar.gz`（未构建）。 |
-| Production | **仍是 v10.19.0。** 部署后复核：`/customer-resources/Release_Notes.html` 在 375px 不再横向滚动；`/nope` 的 `Content-Type` 只有一个 charset；学员档案一页只剩一个实心控件；平台控制台租户表不再出现 `active` 叠 `active`。 |
-| Backup / migration | 预期由 deploy 自动产出 dump + manifest；本版零迁移。 |
+| Source | 提交 `e5140571725671a3e08c4ddb9c8accac36eef99f`，已在 `origin/main`。内容：后台三个面的层级整理，按 `jobs-simple-design` + `apple-design` 走查后实测下刀 —— 学员档案的响控件 14 → 2（十二个行内写操作降级，页面只留 `新建` 一个实心）；课程安排保留十个行内签到（那是任务本身）而把更危险的批量签到降级；平台控制台的 `Refresh` 从 `btn-primary` 降为 secondary（此前四个最响的控件全是 chrome）；工作台同一个变量渲染三次改为一次（`todayEffectiveCount` 4→1、`totalStudents` 3→1）；每行都有的 `待上课` 徽章与同名 pill 下的订阅状态都改为「只在非默认态出现」；CMS 侧栏写死的绿色「已连接」删除（顶栏那个才是接状态的）；41 处 11px 以下字号归零；课时徽章补可访问名。另修客户发布说明在手机上整页横向溢出（`1fr` 丢了 `minmax(0,…)`）与 v10.19.0 发出的重复 charset。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2489 passed, 41 skipped`。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz`，SHA-256 `6e3bd5519e03fc77b502d6a4bcd387adc4b8516c0233feba2ca2cbac5fbe619f`。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.0.tar.gz`，SHA-256 `728aa97d3c76034693f7209df587165c4f8c1b39bb8580262acd1f1f8e040bc7`。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Production | `pwestudio.online` = **v10.20.0**。2026-09-12 实测 `/v1/health?deep=1`：`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 18.2%。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260912T080929Z.dump` + 同名 manifest。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后验收（生产实测，2026-09-12）
+
+| 验的东西 | 结果 |
+|---|---|
+| 浏览器矩阵 | **642 条断言、0 失败、21/22 页**（发布前同一套跑出 3 失败，全是发布说明的横向溢出）。`cms_roster_teacher` 因 teacher 口令未提供仍跳过 |
+| 学员档案的实心控件 | **14 → 2**（`新建` 与当前筛选片）。十二个行内写操作已降级；测法是逐个控件算填色对页面底色的对比度 |
+| 课程安排 | 13 → 12。十个行内签到**保留**（那是任务本身），降的是更危险的批量签到 |
+| 客户发布说明 @375px | `scrollWidth 375 / viewport 375` —— 不再横向滚动（发布前 681） |
+| 错误页响应头 | `text/html; charset=utf-8`，只有一个 charset |
+| 平台控制台（Chrome 手工走查） | `refreshBtn` = `btn-secondary`；租户表五行里三行的 `active / active` 收成一行，两行 `onboarding / trialing` 保留两行 —— 正是「只在不同时才出现」 |
+
+### 这次收口不声称的
+
+- **平台控制台仍然不在自动矩阵里。** 它需要 platform-admin 凭据，矩阵的角色表里没有
+  这一角色，而我不经手明文口令。本版对它的验证是**手工走查 + 源码级门禁**
+  （`test_the_header_does_not_out_shout_the_page`、
+  `test_the_subscription_status_is_not_printed_under_the_identical_pill`），
+  不是自动化覆盖。要自动化，得先给矩阵一条从 0600 文件读平台管理员口令的路径。
+- `cms_roster_teacher` 一页仍未检查。
+- **只跑 pytest 不足以证明 CMS 改动生效**：本轮亲历一次 2489 条全绿而 `cms-app.jsx`
+  编译失败（esbuild 报错后留着上一版 bundle）。`verify_local.sh` 的过期检查抓得住，
+  已验证；但别用 pytest 的绿色替代它。
 
 ## 上一版四层身份（v10.19.0，2026-09-12 · 已发布、已部署）
 
@@ -361,7 +384,7 @@
 
 ## 最新轮次
 
-- **2026-09-12（Claude）v10.20.0 后台层级 —— 一页一个主操作，一个数字只说一遍**（**源码候选，未发布**）：
+- **2026-09-12（Claude）v10.20.0 后台层级 —— 一页一个主操作，一个数字只说一遍**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。用真实会话把
   CMS、Studio Admin、Platform Admin 走了一遍并按「填色对页面底色的对比度」给控件
   分档，再据实下刀。**我自己有五条观察没能通过实测，已在轮次文件里逐条更正**——
