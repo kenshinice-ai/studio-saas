@@ -534,7 +534,8 @@
         inspectorMeta(review, 'Tenants on plan', affected);
       }
       if (tenant) {
-        inspectorMeta(review, 'Current status', `${tenant.status || '—'} · ${tenant.subscription_status || '—'}`);
+        inspectorMeta(review, 'Current status',
+                      joinStatuses(tenant.status, tenant.subscription_status));
       }
       const invalidFields = Array.from(workspaceEditorRoot()?.querySelectorAll('[aria-invalid="true"]') || []);
       inspectorMeta(review, 'Validation errors', invalidFields.length);
@@ -683,7 +684,8 @@
       statusDot.setAttribute('aria-hidden', 'true');
       const statusCopy = document.createElement('div');
       const statusTitle = document.createElement('strong');
-      relabel(statusTitle, `${t.status || '—'} · ${t.subscription_status || '—'}`);
+      /* Same stutter as the table cell: join the two only when they differ. */
+      relabel(statusTitle, joinStatuses(t.status, t.subscription_status));
       const statusSub = document.createElement('div');
       statusSub.className = 'text-muted';
       statusSub.textContent = `${text(t.slug)} · ${text(t.owner_email || 'No owner email')}`;
@@ -1321,6 +1323,16 @@
       span.appendChild(document.createTextNode(text(value)));
       cell.appendChild(span);
       return span;
+    }
+
+    /* `active · active` is not two facts, it is one fact typed twice. */
+    function joinStatuses(lifecycle, subscription) {
+      const a = (lifecycle || '').trim();
+      const b = (subscription || '').trim();
+      if (!a && !b) return '—';
+      if (!b || a === b) return a || b;
+      if (!a) return b;
+      return `${a} · ${b}`;
     }
 
     // Generic icon pill (same component as status pills): static SVG via
@@ -3001,10 +3013,21 @@
         const statusCell = addCell(row, '', 'Status');
         statusCell.className += ' status-cell';
         appendPill(statusCell, t.status);
-        const sub = document.createElement('div');
-        sub.className = 'status-sub';
-        sub.textContent = text(t.subscription_status || '-');
-        statusCell.appendChild(sub);
+        /* The subscription line only when it says something the pill above it
+           does not. Three lines up, this file explains why the health column
+           is hidden when it reads "Healthy" — "a column of green ticks is a
+           column carrying no information" — and then printed `active` under
+           the `active` pill on every healthy row anyway. Walked in the browser
+           on 2026-09-12: four of five tenants read `active / active`. When the
+           two diverge (paused / past_due) the second line is the whole point,
+           and it still appears. */
+        const subscription = text(t.subscription_status || '');
+        if (subscription && subscription !== text(t.status || '')) {
+            const sub = document.createElement('div');
+            sub.className = 'status-sub';
+            sub.textContent = subscription;
+            statusCell.appendChild(sub);
+        }
         if (healthLabel(t) !== 'Healthy') appendHealthPill(statusCell, t);
         const ownerCell = addCell(row, '', 'Owner');
         const ownerLine = document.createElement('div');

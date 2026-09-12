@@ -168,8 +168,9 @@
     }
 
     /* Ghost buttons on the dark header: one shared spec (height, padding,
-       radius, hover) so Change Password / Logout read as one group while the
-       primary Refresh stays dominant. Reuses the header input surface values. */
+       radius, hover) so Change Password / Logout / Refresh read as one group.
+       Refresh was btn-primary until 2026-09-12 — see the button. Reuses the
+       header input surface values. */
     .header-actions button { min-height: 44px; border-radius: var(--radius); }
 
     .header-actions .btn-secondary {
@@ -2637,7 +2638,14 @@
         <span id="authStatus" class="auth-status">Not signed in</span>
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
-        <button id="refreshBtn" class="btn-primary requires-auth hidden">
+        <!-- Was btn-primary. Measured on 2026-09-12: the four loudest controls
+             on this console were English, Change Password, Logout and Refresh
+             — every one of them chrome, and none of them the work. The three
+             `Review` buttons that ARE the work were quiet, and so was every
+             row action. A page can have one dominant control; on Tenants that
+             is `+ Add Tenant`, on Overview it is the Review the operator came
+             to do. Refresh keeps its icon, its label and its place. -->
+        <button id="refreshBtn" class="btn-secondary requires-auth hidden">
           <span id="refreshIcon" aria-hidden="true">↻</span> Refresh
         </button>
       </div>

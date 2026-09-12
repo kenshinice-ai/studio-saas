@@ -3877,7 +3877,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                        className="flex items-center justify-center gap-1.5 rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]">
                         <Icon name="scroll" className="w-4 h-4"/>使用手册
                     </a>
-                    <div className="text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span>已连接</span></div>
+                    {/* 这里曾经是一个写死的绿色「已连接」——不接任何状态，
+                        断线了它照样说已连接。而顶栏那一个（`conn ? '已同步' :
+                        '连接中'`）是真的接着状态的，就在同一屏上。一个永远为
+                        真的状态灯比没有状态灯更糟：它训练人不看状态灯。
+                        下面那条 `db.logsTruncated` 就是对的写法——只在有话说
+                        的时候出现。 */}
                     {/* 曾经是 `db.logs.length > 1000`——永真为假，因为同一份 db.logs 在服务端
      就被 LIMIT 500 封死了。写它的人以为日志是全量的，而经营月报当时正基于
      同一个误解在算营收。现在按服务端给出的截断标志显示，并且说清后果。 */}

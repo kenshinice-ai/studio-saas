@@ -755,3 +755,44 @@ def test_each_function_is_defined_once_and_inside_the_script(name: str) -> None:
     running = script_source().count(f"function {name}(")
     assert running == 1, f"{name} is defined {running} times inside <script>"
     assert whole == running, f"{name} is also defined outside <script>"
+
+
+def test_the_header_does_not_out_shout_the_page() -> None:
+    """A page has one dominant control, and it is not Refresh.
+
+    Walked in a browser on 2026-09-12: the four loudest controls on this
+    console — measured by the contrast of each fill against the page — were
+    English, Change Password, Logout and Refresh. Every one of them is chrome.
+    The three `Review` buttons the operator actually came to press, and every
+    row action, were quiet.
+    """
+
+    markup = (Path(__file__).resolve().parents[2] / "super-admin.html").read_text(
+        encoding="utf-8")
+    header = markup[markup.index('id="changePasswordBtn"'):markup.index('id="refreshBtn"') + 400]
+    assert 'id="refreshBtn" class="btn-secondary' in header, (
+        "Refresh is the header's primary again; the page's own primary now has "
+        "a competitor that reloads data"
+    )
+    # And the page's own primary is still there.
+    assert "btn-primary" in markup, "no primary control left anywhere"
+
+
+def test_the_subscription_status_is_not_printed_under_the_identical_pill() -> None:
+    """`active` under an `active` pill, on four of five tenants.
+
+    Three lines above it the same file explains why the health column is
+    hidden when it reads "Healthy" — "a column of green ticks is a column
+    carrying no information" — and then printed the subscription status
+    unconditionally anyway.
+    """
+
+    source = (Path(__file__).resolve().parents[2]
+              / "backend/frontend/assets/super-admin.js").read_text(encoding="utf-8")
+    cell = source[source.index("statusCell.className += ' status-cell'"):][:1400]
+    assert "subscription !== text(t.status" in cell, (
+        "the subscription line is unconditional again"
+    )
+    assert "function joinStatuses(" in source, (
+        "joinStatuses is gone; the inspector will read `active · active` again"
+    )

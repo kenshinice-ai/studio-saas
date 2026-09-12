@@ -60,3 +60,22 @@ def test_the_floor_is_actually_being_looked_for() -> None:
     assert len(DECLARED.findall(corpus)) >= 20, (
         "no font-size declarations found at all — the pattern is wrong"
     )
+
+
+def test_no_status_light_is_wired_to_nothing() -> None:
+    """The CMS sidebar carried a hardcoded green 「已连接」.
+
+    Not bound to any state — it said 已连接 while disconnected. The header's
+    indicator on the same screen is real (`conn ? '已同步' : '连接中'`), so the
+    fake one was both a duplicate and a lie. A status light that is always
+    green trains people not to read status lights.
+    """
+
+    source = (REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx").read_text(encoding="utf-8")
+    body = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    body = re.sub(r"\{/\*.*?\*/\}", "", body, flags=re.S)
+    assert "已连接" not in body, (
+        "a hardcoded 已连接 is back in the CMS; bind it to `conn` or delete it"
+    )
+    # The real one, which is bound, must still be there.
+    assert "conn?'已同步':'连接中'" in source.replace(" ", "")

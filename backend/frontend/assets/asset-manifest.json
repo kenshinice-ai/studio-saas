@@ -3,9 +3,9 @@
   "assets": {
     "admin-i18n.js": "efb2d660e392c6cd694c8e4ea981ab31d5d538fb6fe42bd296b6e021adf3ccef",
     "brand-system.css": "1bee850f81dbfb311dad70cbfda9ae1ebaa6641e08ee16b2ed91a67740c95ab9",
-    "cms-app.js": "92680bf4fb5ef6a368fc9cc1f0d804a9f4f368a58303e826de0378814bb8d7bd",
+    "cms-app.js": "b6c0260f0e352bd7eb1c996027580827605475fd04741a9cf27a0561b9775763",
     "cms-i18n.js": "fe8f97e71216f8e5b8a640518b2d0da1b8699d658fd3048065383c51a3316b82",
-    "cms-tailwind.css": "6c6f44e51268cd8f9eeb66ecda5c159ddd49c5073ace1a7cb3465443aff60a1f",
+    "cms-tailwind.css": "162a790298f7c9ee62f362dc97ea93150dec44541be3beaca126f51ab5dec490",
     "console-theme.css": "a0b7f2f6ad067a9570aa2b84b93e34801792a850250bb27215a03ccd0d21ada5",
     "customer-resources.css": "f29bfd0fa125f6cdfdc9635e3956a5915d3c6dd94a0c457099e2d1a8f19cc325",
     "customer-resources.js": "e03eefff798e442996d32c9c76e9639474b1fe53e321bd1717e2388a4281ef1d",
@@ -86,7 +86,7 @@
     "showcase-botanical-home.webp": "643ceabe437120bb5535c01df6b3376b5fb2061ae5ba56cd16d96a24a5daa85c",
     "showcase-coast-home.webp": "e576da0d7841f7e0f7d4eba1265dc5f8de0b4345651b334df10351fd43eb694b",
     "studio-admin.js": "1d9699a63b957ef434558b24b4d24280b43bc6523f3689b36997f92ed1f0a67d",
-    "super-admin.js": "d37e27c65e970668fe5b78741ef91de6a6950382bbad29be3201efc8096ccdf0",
+    "super-admin.js": "57c7e0126ff013a606bbf43a5e7abdb44fd3688f0004dc8e3a7070f9cfbd070c",
     "ui-common.js": "490262fd04e0112e3d394f5ee9c76080875c964819fb6d5f48321eca3d051f6c",
     "ui-tokens.css": "8378ce3f5ec1c6739c5c7a239da3da8ca373f8707fe820326bfab00886432f2e"
   },

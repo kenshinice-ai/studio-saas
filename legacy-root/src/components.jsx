@@ -386,11 +386,17 @@ export function EmptyState({icon=null, main='暂无数据', sub='', action=null,
 
 export function BalBadge({ n }) {
     const v = parseInt(n,10)||0;
-    if (v===0) return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap"><Icon name="warning" className="w-3.5 h-3.5"/>0</span>;
-    if (v<=2)  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
+    /* The badge was a bare number in the corner of a card: sighted readers had
+       to infer "课时" from position, and a screen reader read out "7". The
+       colour and the bolt already separate low from normal (see below); this
+       adds what the number IS, in both channels, without changing the
+       layout. */
+    const named = {title: `剩余 ${v} 课时`, 'aria-label': `剩余 ${v} 课时`};
+    if (v===0) return <span {...named} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap"><Icon name="warning" className="w-3.5 h-3.5"/>0</span>;
+    if (v<=2)  return <span {...named} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
     /* a11y: the low state must not differ from normal by colour alone */
-    if (v<=4)  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
-    return           <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap">{v}</span>;
+    if (v<=4)  return <span {...named} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
+    return           <span {...named} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap">{v}</span>;
 }
 
 /* ═══════════════════ TOAST ════════════════════════════════════ */
