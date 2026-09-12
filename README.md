@@ -1,9 +1,9 @@
 # PWE Studio
 
-## v10.18.0 release identity — the product moves to /studio (source candidate, not released)
+## v10.19.0 release identity — the product moves to /studio (source candidate, not released)
 
-`VERSION` = **10.18.0** and `backend/server.py` reports `APP_VERSION=10.18.0`.
-v10.18.0 is the release that lets the house website (PWE · 天域) take over the
+`VERSION` = **10.19.0** and `backend/server.py` reports `APP_VERSION=10.19.0`.
+v10.19.0 is the release that lets the house website (PWE · 天域) take over the
 root of `pwestudio.online`: the product home moves to `/studio`, the house's
 section prefixes become reserved tenant slugs, installed PWAs stop starting at
 `/`, and Paradise Production is no longer described as the parent brand — text
@@ -13,9 +13,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.18.0 candidate on branch `release/10.18.0-pwe-house`, not pushed** | Local PostgreSQL-required gate and pytest counts are recorded in the round handoff; **zero migrations** — schema stays at `0047_xero_transport.sql`. The runtime commit hash is filled in at the step-9 closure. |
-| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.18.0.tar.gz` and `dist/PWE-Studio-Edition-10.18.0.tar.gz` from runbook step 6; hashes recorded at closure. |
-| Production | **still v10.17.0** (`pwestudio.online`) | Last verified deployment: v10.17.0, runtime commit `cb72f69f30252e700bb8567490310f46a29a6592`; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The pre-deploy STOP GATE for v10.18.0 is in the round handoff (nginx must match `/zh/` exactly, not as a prefix; production tenant slugs must not collide with the new reserved names). |
+| Source | **v10.19.0 candidate on branch `release/10.19.0-pwe-house`, not pushed** | Local PostgreSQL-required gate and pytest counts are recorded in the round handoff; **zero migrations** — schema stays at `0047_xero_transport.sql`. The runtime commit hash is filled in at the step-9 closure. |
+| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.19.0.tar.gz` and `dist/PWE-Studio-Edition-10.19.0.tar.gz` from runbook step 6; hashes recorded at closure. |
+| Production | **still v10.17.0** (`pwestudio.online`) | Last verified deployment: v10.17.0, runtime commit `cb72f69f30252e700bb8567490310f46a29a6592`; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The pre-deploy STOP GATE for v10.19.0 is in the round handoff (nginx must match `/zh/` exactly, not as a prefix; production tenant slugs must not collide with the new reserved names). |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

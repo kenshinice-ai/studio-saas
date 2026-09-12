@@ -10,7 +10,7 @@
  * the literal: green for as long as you forgot, red the moment you got it
  * right. Deriving it deletes the failure mode instead of detecting it.
  */
-const CACHE_VERSION = 'v10.18.0';
+const CACHE_VERSION = 'v10.19.0';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'

@@ -1,4 +1,4 @@
-# PWE Studio v10.18.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.19.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,18 +13,52 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.18.0，2026-09-11 · 源码候选，未发布）
+## 当前四层身份（v10.19.0，2026-09-12 · 源码候选，未发布）
 
 > 本表是 runbook 第 3 步的 prepared ledger：Source 是事实，Package / Production /
 > Backup 是**预期**，由发布人执行第 6–9 步后在 closure 里换成事实。
+> 轮次文件：`docs/handoff/claude/2026-09-12-brand-realignment-r1.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 分支 `release/10.18.0-pwe-house`，一个提交，**未推送**（提交哈希见 `git log -1 release/10.18.0-pwe-house`，closure 时回填）。内容：房子（PWE · 天域）接管根之前的四件事 —— 产品首页搬到 `/studio`（`/zh/studio/`），canonical / hreflang / og:url / sitemap / llms.txt 跟着走；`RESERVED_SLUGS` 26 → 49（房子的前缀 + 本应用一直路由却从未保留的根地址）；根 PWA manifest 的 `start_url` 不再是 `/`（`/platform-admin`、`/studio`），`sw.js` 升 `CACHE_VERSION`，租户 CMS 壳按租户盖 `manifest-cms.json`；`robots.txt` 加第二行 `Sitemap: …/sitemap-pwe.xml`；`/studio/llms.txt`；品牌文字改为「PWE · 天域 = 房子，PWE Studio = SaaS 产品线，Paradise Production · 天域影像 = 影像线」，租户页脚 `Powered by PWE`，产品站署名 `PWE · 天域出品` → `/`（只改文字，零图标）。改了 `tenant-template/`，3 个入库租户已本地重生成。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机门禁数字见 `docs/handoff/claude/2026-09-11-pwe-house.md`。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.18.0.tar.gz`（未构建）。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.18.0.tar.gz`（未构建）。 |
-| Production | **仍是 v10.17.0。** 部署前 STOP GATE 见轮次文件：nginx 对 `/zh/` 必须精确匹配而非前缀（否则应用的全部中文页 404）；核对生产 5 个租户 slug 不在新保留名单内（保留 slug 会被路由层 404）。 |
+| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`，**未推送**（提交哈希 closure 时回填）。内容：品牌对齐变更单的 R1 —— 门禁先行（L1 从 0 页进入浏览器矩阵到 9 页；颜色字面量守卫与脚本语法检查覆盖门户；五个「不可能变红」的门禁改成能红），然后 P0 四条（租户站可能整片空白、三份法律文件的私人 Gmail、错误页是裸 JSON、询盘打开空邮件）、P1 七条（其中「警示色当文字」实测是 20 处而非 3 处，另有 6 处 hover 态）、L1 门户观感（主按钮改墨底纸字、琥珀只剩收尾带一处作地、买点补主按钮、标题字重与字距、手写月费、六条无效声明）、L2 租户站 + regenerate。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2367 passed, 135 skipped`，租户隔离 `254 passed, 0 failed`。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.19.0.tar.gz`（未构建）。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.19.0.tar.gz`（未构建）。 |
+| Production | **仍是 v10.18.0。** 部署后要复核的三件：`/nope` 在浏览器里出 HTML 而 `/v1/nope` 仍是 JSON；四个租户站的 `<html>` 带 `js` 且正文可见；`/studio` 的主按钮是墨底、收尾带是琥珀底。 |
 | Backup / migration | 预期由 deploy 自动产出 dump + manifest；本版零迁移。 |
+
+## 上一版四层身份（v10.18.0，2026-09-11 · 已发布、已部署）
+
+> **2026-09-12 由实测回填。** 本表此前把 v10.18.0 记成「源码候选，未发布 / 未推送 /
+> 未构建」，Production 一行还写着 v10.17.0 —— 四处与事实不符：九步 runbook 在
+> 2026-09-11 已经走完。这不是补一行记录：这张表是任何人（包括后来的会话）判断现状的
+> 唯一文档，下一轮的四名独立核查里就有一名信了它，因而得出「v10.18.0 未部署」的
+> 错误结论。**发布人执行完第 6–9 步就必须回写本表**，这是 runbook 第 9 步本身。
+
+| 层 | 精确事实 |
+|---|---|
+| Source | 提交 `3fc745ea93635da489a17785e065fc1cf18edbf0`，已在 `origin/main`；`release/10.18.0-pwe-house` 亦已推送。内容：房子（PWE · 天域）接管根之前的四件事 —— 产品首页搬到 `/studio`（`/zh/studio/`），canonical / hreflang / og:url / sitemap / llms.txt 跟着走；`RESERVED_SLUGS` 26 → 49（房子的前缀 + 本应用一直路由却从未保留的根地址）；根 PWA manifest 的 `start_url` 不再是 `/`（`/platform-admin`、`/studio`），`sw.js` 升 `CACHE_VERSION`，租户 CMS 壳按租户盖 `manifest-cms.json`；`robots.txt` 加第二行 `Sitemap: …/sitemap-pwe.xml`；`/studio/llms.txt`；品牌文字改为「PWE · 天域 = 房子，PWE Studio = SaaS 产品线，Paradise Production · 天域影像 = 影像线」，租户页脚 `Powered by PWE`，产品站署名 `PWE · 天域出品` → `/`（只改文字，零图标）。改了 `tenant-template/`，3 个入库租户已本地重生成。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机门禁数字见 `docs/handoff/claude/2026-09-11-pwe-house.md`。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.18.0.tar.gz`（主 checkout，2026-09-11 14:28 AEST 构建），SHA-256 `a83b26497d420f65f28cfc09aaa664ef90963703ed8ee51b2fba68b9aa7e1914`。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.18.0.tar.gz`，SHA-256 `1f98c7895aa6782ee477fae5adc3923a6e39a66548f5b623f701cc44891d57bf`。 |
+| Production | `pwestudio.online` = **v10.18.0**。2026-09-12 实测 `/v1/health?deep=1`：`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.status=ok`、`themes.unreadable=0`、5 个租户、磁盘 17.4%（47.1 GB 空闲）。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260911T102700Z.dump` + 同名 manifest，在实例 `/data/backups/postgres/`（权限 `-rw-------`，与 03:15 那批 cron 产物的 `-rw-r-----` 可区分）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后验收（生产实测，2026-09-12 回填）
+
+| 验的东西 | 结果 |
+|---|---|
+| STOP GATE 一：nginx 对 `/zh/` 是否精确匹配 | **通过。** `/zh/` `/zh/studio/` `/zh/pricing` `/zh/manual/` 全 200 —— 若配成前缀匹配，应用的全部中文页会 404 |
+| STOP GATE 二：5 个生产租户 slug 是否撞上新保留名单 | **通过。** `lets-paint-showcase`、`lets-paint-studio` 均 200 |
+| 新的规范地址 | `/studio` 200、`/zh/studio/` 200、`/studio/llms.txt` 200；`/` 与 `/zh/` 本版仍渲染首页（按设计，等 nginx 遮） |
+| 其余公开面 | `/pricing` `/manual/` `/robots.txt` `/sitemap.xml` 全 200 |
+
+### 这次回填顺带发现
+
+- **`/customer-resources/` 本身是 404。** 它在 v10.18.0 里被加进 `RESERVED_SLUGS`，
+  但路由只有 `@app.route('/customer-resources/<path:filename>')`（`server.py:1531`），
+  Flask 的 `<path:…>` 不匹配空段，所以 `server.py:1547` 那条「目录 → Release_Notes」
+  的 301 永远到不了。只有带文件名的地址能开。留给本轮 P0-03 一并处理。
+
 
 ## 上一版四层身份（v10.17.0，2026-09-07）
 
@@ -296,7 +330,16 @@
 
 ## 最新轮次
 
-- **2026-09-11（Claude）v10.18.0 房子上线前置 —— 产品首页搬到 `/studio`**（**源码候选，未发布**）：
+- **2026-09-12（Claude）v10.19.0 品牌对齐 R1 —— 先补网，再改样式**（**源码候选，未发布**）：
+  轮次文件 `docs/handoff/claude/2026-09-12-brand-realignment-r1.md`，核查结论页
+  <https://claude.ai/code/artifact/c6ef01d2-8e68-4c69-90f6-251f209226e5>。
+  依据 `23-PWE Studio SaaS 风格与内容对齐·变更单.md`（v2.4）与本会话的只读核查：
+  变更单 21 条里 16 条前提要改（2 条照做会制造它自己要修的缺陷），另发现 23 条它
+  没写的。这一版做 R0（回写 v10.18.0 的部署事实）+ R1：三张给 L1 补的网、五个改成
+  能红的门禁、P0 四条、P1 七条、L1 门户观感、L2 租户站。新门禁在本轮当场多找出
+  17 条缺陷，其中 6 条 hover 态是逐条规则的检查看不见的。五个提交。
+- **2026-09-11（Claude）v10.18.0 房子上线前置 —— 产品首页搬到 `/studio`**（**已发布、已部署**；
+  轮次文件当时写的「未推送、未打包、未部署」已于 2026-09-12 按实测更正）：
   轮次文件 `docs/handoff/claude/2026-09-11-pwe-house.md`。`/studio` / `/zh/studio/`
   成为产品首页的规范地址（`/`、`/zh/` 本版仍渲染首页，留给 nginx 遮住，下一版再 301）；
   `RESERVED_SLUGS` 加入房子的前缀与本应用自己的根地址（26 → 49）；根 PWA manifest
