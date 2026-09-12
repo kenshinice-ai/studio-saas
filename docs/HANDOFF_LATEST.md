@@ -1,4 +1,4 @@
-# PWE Studio v10.19.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,20 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.19.0，2026-09-12 · **已发布、已部署**）
+## 当前四层身份（v10.20.0，2026-09-12 · 源码候选，未发布）
+
+> 本表是 runbook 第 3 步的 prepared ledger。
+> 轮次文件：`docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`，**未推送**（提交哈希 closure 时回填）。内容：后台三个面的层级整理，按 `jobs-simple-design` + `apple-design` 走查后实测下刀 —— 学员档案的响控件 14 → 2（十二个行内写操作降级，页面只留 `新建` 一个实心）；课程安排保留十个行内签到（那是任务本身）而把更危险的批量签到降级；平台控制台的 `Refresh` 从 `btn-primary` 降为 secondary（此前四个最响的控件全是 chrome）；工作台同一个变量渲染三次改为一次（`todayEffectiveCount` 4→1、`totalStudents` 3→1）；每行都有的 `待上课` 徽章与同名 pill 下的订阅状态都改为「只在非默认态出现」；CMS 侧栏写死的绿色「已连接」删除（顶栏那个才是接状态的）；41 处 11px 以下字号归零；课时徽章补可访问名。另修客户发布说明在手机上整页横向溢出（`1fr` 丢了 `minmax(0,…)`）与 v10.19.0 发出的重复 charset。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2489 passed, 41 skipped`。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz`（未构建）。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.0.tar.gz`（未构建）。 |
+| Production | **仍是 v10.19.0。** 部署后复核：`/customer-resources/Release_Notes.html` 在 375px 不再横向滚动；`/nope` 的 `Content-Type` 只有一个 charset；学员档案一页只剩一个实心控件；平台控制台租户表不再出现 `active` 叠 `active`。 |
+| Backup / migration | 预期由 deploy 自动产出 dump + manifest；本版零迁移。 |
+
+## 上一版四层身份（v10.19.0，2026-09-12 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-12-brand-realignment-r1.md`。
@@ -348,6 +361,11 @@
 
 ## 最新轮次
 
+- **2026-09-12（Claude）v10.20.0 后台层级 —— 一页一个主操作，一个数字只说一遍**（**源码候选，未发布**）：
+  轮次文件 `docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。用真实会话把
+  CMS、Studio Admin、Platform Admin 走了一遍并按「填色对页面底色的对比度」给控件
+  分档，再据实下刀。**我自己有五条观察没能通过实测，已在轮次文件里逐条更正**——
+  其中「87% 控件是实底」把淡色底也算成了实底，真正有问题的只有两个页面。
 - **2026-09-12（Claude）v10.19.0 品牌对齐 R1 —— 先补网，再改样式**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-12-brand-realignment-r1.md`，核查结论页
   <https://claude.ai/code/artifact/c6ef01d2-8e68-4c69-90f6-251f209226e5>。
