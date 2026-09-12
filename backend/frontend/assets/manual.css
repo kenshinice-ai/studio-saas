@@ -57,6 +57,11 @@
   --line-strong: rgba(255, 255, 255, .42);
   --shadow: 0 21px 55px rgba(0, 0, 0, .34);
   --bar-bg: rgba(14, 23, 41, .88);
+  /* A wash, not a fill: the page's own ink stays legible on top of it.
+     Theme-independent on purpose — amber at 38% reads as the highlight on
+     both grounds (13.4:1 on paper, 6.9:1 on navy). */
+  --wash-accent: rgba(245, 179, 53, .38);
+  --shot-bar: rgba(127, 127, 127, .12);   /* neutral chrome, both themes */
 
   --serif: Georgia, "Times New Roman", "Songti SC", "Source Han Serif SC", serif;
   --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -194,10 +199,19 @@ kbd { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 5px
    generated rather than typed and cannot fall out of sequence in an edit. */
 .steps { counter-reset: step; max-width: var(--measure); margin: 0 0 var(--s-3); padding: 0; list-style: none; }
 .steps > li { position: relative; margin-bottom: var(--s-2); padding-left: var(--s-4); counter-increment: step; }
+/* Ink ground, page-coloured figure — not `background: var(--accent)` with
+   navy on top, which this was. That reads 9.70:1 on the dark theme and
+   3.64:1 on the light one, because `--accent` correctly swaps to #A16207
+   there and navy then sits on top of it; print was worse still at 2.05:1
+   (`--accent: #6b4200`). Light is what most visitors get by default, and a
+   700-weight 10px numeral is small text: it needs 4.5:1. Inverting the
+   surface pair measures 16.45:1 on screen in both themes and 21:1 in print,
+   and it takes one more amber ground off a product that is meant to have
+   exactly one. */
 .steps > li::before {
   content: counter(step); position: absolute; left: 0; top: 2px;
   display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%;
-  background: var(--accent); color: var(--pwe-family-navy);
+  background: var(--ink); color: var(--surface);
   font-size: var(--f-xs); font-weight: 700;
 }
 
@@ -229,7 +243,7 @@ td { color: var(--ink-soft); }
    theme. */
 figure { max-width: 100%; margin: var(--s-4) 0; }
 .shot { position: relative; overflow: hidden; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); }
-.shot-bar { display: flex; gap: 6px; padding: var(--s-1) var(--s-2); background: rgba(127, 127, 127, .12); }
+.shot-bar { display: flex; gap: 6px; padding: var(--s-1) var(--s-2); background: var(--shot-bar); }
 .shot-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); opacity: .5; }
 .shot img { width: 100%; height: auto; display: block; }
 /* A phone capture stretched to the article width is a lie about the
@@ -251,7 +265,10 @@ figcaption { max-width: var(--measure); margin-top: var(--s-2); color: var(--ink
 .print-foot { display: none; }
 .no-hits { display: none; max-width: var(--measure); padding: var(--s-3); border: 1px dashed var(--hairline); border-radius: var(--r); color: var(--ink-faint); }
 body.searching .no-hits.on { display: block; }
-mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var(--pwe-family-navy); }
+/* A wash, not a fill. Amber at 38% keeps the page's own ink on top, so the
+   search hit reads 13.4:1 on paper and 6.9:1 on navy — where a solid
+   `var(--accent)` ground with navy text was 3.64:1 on paper. */
+mark { padding: 0 2px; border-radius: 3px; background: var(--wash-accent); color: inherit; }
 
 /* ── footer ───────────────────────────────────────────────────────────── */
 .foot { max-width: var(--measure); margin-top: var(--s-5); padding-top: var(--s-3); border-top: 1px solid var(--hairline); color: var(--ink-faint); font-size: var(--f-sm); }
@@ -296,7 +313,7 @@ mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var
     font-size: 10.5pt;
   }
   @page { margin: 16mm 14mm; }
-  body { background: #fff; color: #000; }
+  body { background: var(--surface); color: var(--ink); }
   .bar, .toc, .skip, .toc-btn, .no-hits { display: none !important; }
   /* A fixed element repeats on every printed page, which is how a running
      footer is done without a second document. @page reserves the space so it

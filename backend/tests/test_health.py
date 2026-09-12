@@ -218,11 +218,20 @@ def test_root_manifest_opens_on_the_platform_console_not_the_house(client):
 
 def test_root_manifest_change_reaches_installed_clients(client):
     """sw.js precaches /manifest.json; without a new CACHE_VERSION an installed
-    CMS keeps the old start_url until its cache is cleared by hand."""
+    CMS keeps the old start_url until its cache is cleared by hand.
+
+    This asserted the literal `v10.18.0-pwe-house`, which is backwards: it
+    passed for as long as somebody forgot to bump sw.js and failed on the one
+    release where they remembered. The value is now `v` + VERSION and
+    release.sh rewrites it in the bump ledger, so this checks the derivation.
+    """
 
     worker = client.get("/sw.js").get_data(as_text=True)
     assert "'/manifest.json'" in worker
-    assert "CACHE_VERSION = 'v10.18.0-pwe-house'" in worker
+    assert f"CACHE_VERSION = 'v{VERSION}'" in worker, (
+        f"sw.js does not carry v{VERSION}; an installed client will keep the "
+        f"previous manifest and icon set"
+    )
 
 
 def test_tenant_cms_shell_links_its_own_manifest_before_any_script_runs(client):

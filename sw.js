@@ -1,9 +1,16 @@
 /* StudioSaaS tenant CMS — Service Worker
  * Icon/manifest cache only; everything else goes straight to the network.
- * Bump CACHE_VERSION whenever PWA assets or icons change — /manifest.json is
- * precached, so a changed start_url reaches installed clients only after a bump.
+ * /manifest.json is precached, so a changed start_url — or a changed icon —
+ * reaches installed clients only when CACHE_VERSION changes.
+ *
+ * This is `v` + the contents of /VERSION, with nothing else in it, and
+ * release.sh rewrites it as part of the bump ledger. It used to carry a
+ * hand-written label ('v10.18.0-pwe-house'), which meant the value had to be
+ * remembered by a human on every release and the test that guarded it pinned
+ * the literal: green for as long as you forgot, red the moment you got it
+ * right. Deriving it deletes the failure mode instead of detecting it.
  */
-const CACHE_VERSION = 'v10.18.0-pwe-house';
+const CACHE_VERSION = 'v10.18.0';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'

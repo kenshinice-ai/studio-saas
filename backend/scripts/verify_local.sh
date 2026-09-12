@@ -189,22 +189,28 @@ if [ -x "$PYTHON" ]; then
         else
             fail "inline HTML script syntax check failed"
         fi
+        # Every .js under frontend/assets/, by glob rather than by list. The
+        # list named seven files and eleven others had appeared since — among
+        # them every script the public portal loads (marketing-shell,
+        # product-home, pricing, manual, customer-resources, portal-brand).
+        # A hardcoded roster of things to check goes blind the same way an
+        # exemption set does: silently, and in the direction of green.
         STATIC_JS_OK=true
-        for asset in \
-            "$SCRIPT_DIR/frontend/assets/i18n-runtime.js" \
-            "$SCRIPT_DIR/frontend/assets/admin-i18n.js" \
-            "$SCRIPT_DIR/frontend/assets/cms-i18n.js" \
-            "$SCRIPT_DIR/frontend/assets/public-analytics.js" \
-            "$SCRIPT_DIR/frontend/assets/public-register.js" \
-            "$SCRIPT_DIR/frontend/assets/public-surface.js" \
-            "$SCRIPT_DIR/frontend/assets/ui-common.js"; do
-            if [ ! -f "$asset" ] || ! node --check "$asset" >/dev/null 2>&1; then
-                fail "$(basename "$asset") is missing or has syntax errors"
+        STATIC_JS_COUNT=0
+        for asset in "$SCRIPT_DIR"/frontend/assets/*.js; do
+            [ -f "$asset" ] || continue
+            STATIC_JS_COUNT=$((STATIC_JS_COUNT + 1))
+            if ! node --check "$asset" >/dev/null 2>&1; then
+                fail "$(basename "$asset") has syntax errors"
                 STATIC_JS_OK=false
             fi
         done
+        if [ "$STATIC_JS_COUNT" -lt 15 ]; then
+            fail "only $STATIC_JS_COUNT frontend assets found — the glob is wrong, not the code"
+            STATIC_JS_OK=false
+        fi
         if $STATIC_JS_OK; then
-            ok "shared frontend assets compile"
+            ok "frontend assets compile ($STATIC_JS_COUNT files)"
         fi
         if "$PYTHON" "$SCRIPT_DIR/scripts/check_i18n_dictionaries.py" >/dev/null 2>&1; then
             ok "i18n dictionaries have no duplicate keys"

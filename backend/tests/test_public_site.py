@@ -204,18 +204,72 @@ def test_the_bilingual_source_is_not_servable_as_a_file() -> None:
     assert "product-home.html" not in body
 
 
-def test_the_language_roots_cannot_be_taken_by_a_tenant() -> None:
-    from studiosaas.workspaces import RESERVED_SLUGS
+# Reserved on purpose without a matching `@app.route` in server.py. Each entry
+# needs a reason, because an entry that stops being true is how this list rots.
+RESERVED_WITHOUT_A_LOCAL_ROUTE = {
+    # nginx answers these at the edge for the house website (v10.18.0).
+    "production", "work", "tools", "labs", "about", "services", "contact",
+    "ai", "sitemap-pwe.xml", "404.html",
+    # Registered on a blueprint rather than `@app.route`.
+    "v1", "s",
+    # Reserved as a pair with a route that does exist: `/zh/...` is real, `en`
+    # is held so the pair cannot be split; the others are served from within
+    # a tenant or by a route whose first segment is the tenant slug.
+    "en", "showcase", "parent-portal",
+}
 
-    assert {"zh", "en", "studio"} <= RESERVED_SLUGS
-    # The house website's section prefixes are answered by nginx before a
-    # request reaches this app: a tenant created there would never be served.
-    assert {"production", "work", "tools", "labs", "about", "services",
-            "contact", "ai", "sitemap-pwe.xml", "llms.txt", "404.html"} <= RESERVED_SLUGS
-    # And the addresses this app routes itself, which were never reserved.
-    assert {"pricing", "manual", "customer-resources", "assets", "robots.txt",
-            "sitemap.xml", "pricing.md", "setup-password", "shared", "xero",
-            "s"} <= RESERVED_SLUGS
+
+def test_every_root_address_this_app_routes_is_reserved() -> None:
+    """`<=` could only ever catch a deletion.
+
+    The previous version of this test compared three hardcoded sets against
+    RESERVED_SLUGS with `<=`, so it went green for every slug already in the
+    list and stayed green for every new one that was not. The gap was already
+    open when it was written: `/public-assets/<path>` is slug-shaped, is routed
+    by this app, and was not reserved — a studio could have been created there
+    and then been permanently unreachable behind the route.
+
+    So derive the expectation from the route table and compare both ways. The
+    same shape is used for SNAPSHOT_TABLES in test_health.py: parse the source
+    of truth, assert a floor so an empty parse cannot pass vacuously, and check
+    the exclusion list for entries that no longer correspond to anything.
+    """
+
+    import re
+    from studiosaas.workspaces import RESERVED_SLUGS, SLUG_RE
+
+    source = SERVER.read_text(encoding="utf-8")
+    routed = {
+        rule.strip("/").split("/")[0]
+        for rule in re.findall(r"@app\.route\(\s*['\"](/[^'\"]*)['\"]", source)
+    }
+    routed = {segment for segment in routed if segment and not segment.startswith("<")}
+
+    assert len(routed) > 25, (
+        f"the route-table parse looks broken, it found only {sorted(routed)}"
+    )
+
+    # A tenant can only ever be created at a slug-shaped address, so those are
+    # the ones a route can actually shadow. Dotted filenames are reserved with
+    # their siblings for tidiness, not for safety.
+    shadowable = {segment for segment in routed if SLUG_RE.match(segment)}
+    unreserved = sorted(shadowable - RESERVED_SLUGS)
+    assert not unreserved, (
+        "these root addresses are routed by this app but are not in "
+        f"RESERVED_SLUGS, so a studio could be created there and never served: "
+        f"{unreserved}"
+    )
+
+    stale = sorted(RESERVED_WITHOUT_A_LOCAL_ROUTE - RESERVED_SLUGS)
+    assert not stale, (
+        f"RESERVED_WITHOUT_A_LOCAL_ROUTE names slugs that are no longer "
+        f"reserved at all: {stale}"
+    )
+    unexplained = sorted(RESERVED_SLUGS - routed - RESERVED_WITHOUT_A_LOCAL_ROUTE)
+    assert not unexplained, (
+        "these slugs are reserved but nothing routes them and no reason is "
+        f"recorded — either the route went away or the entry is dead: {unexplained}"
+    )
 
 
 # ── pricing ──────────────────────────────────────────────────────────────────

@@ -325,12 +325,20 @@ def test_parent_cards_do_not_skip_from_h2_to_h4() -> None:
 # the guard: a new literal in any of them fails.
 #
 # It is a list rather than a glob because the rest of the product is honestly
-# not done. `legacy-root/index.html` + `cms-app.js` (the operations CMS) still
-# carry ~74 literals between them, and `product-home.html`, `manual.css` and
-# `customer-resources.css` carry ~76 more. The marketing and documentation
-# pages are arguably a separate identity; the CMS is not, and is the next
-# surface to convert. Naming them here is the point — a glob that silently
-# excluded them would read as coverage.
+# not done, and a glob that silently excluded the rest would read as coverage.
+#
+# v10.19.0 brought the L1 portal in. The old note here estimated "~76 literals"
+# across product-home.html, manual.css and customer-resources.css; measured, it
+# was 5 in marketing.css, 3 in manual.css, 2 in customer-resources.css, 0 in
+# pricing.css and nothing but `theme-color` in the HTML — all now tokens. That
+# whole layer had no colour guard at all while being the first thing the brand
+# work touches.
+#
+# STILL OUT, with the count rather than an estimate:
+#   backend/frontend/assets/product-home.css — 30 literals, all of them the
+#   spatial hero's gradients, masks and elevation shadows (`rgba(9,16,31,.28)`
+#   stops, `0 42px 100px rgba(0,0,0,.42)`). Converting those is a real job
+#   about what an elevation token means, not a rename.
 TOKENISED_SURFACES = [
     "backend/frontend/studio-admin.html",
     "super-admin.html",
@@ -350,6 +358,19 @@ TOKENISED_SURFACES = [
     "legacy-root/register.html",
     "backend/frontend/cms-entry.html",
     "backend/frontend/assets/cms-app.js",
+    # v10.19.0 — L1, the public portal.
+    "backend/frontend/assets/marketing.css",
+    "backend/frontend/assets/pricing.css",
+    "backend/frontend/assets/manual.css",
+    "backend/frontend/assets/customer-resources.css",
+    "product-home.html",
+    "pricing.html",
+    "manual.html",
+    "customer-resources/FAQ.html",
+    "customer-resources/Privacy_Policy.html",
+    "customer-resources/Release_Notes.html",
+    "customer-resources/Support_Policy.html",
+    "customer-resources/Terms_of_Service.html",
 ]
 
 # What a converted surface may still state literally, and why.
@@ -385,6 +406,16 @@ ALLOWED = {
     # is no viewer theme to follow, and it already takes the studio's accent
     # through the :root it injects.
     "backend/frontend/assets/cms-app.js": ("safeReportColor",),
+    # The address bar. These pages follow the OS theme, so they declare the
+    # two grounds; there is no runtime that could rewrite them.
+    "product-home.html": ("theme-color",),
+    "pricing.html": ("theme-color",),
+    "manual.html": ("theme-color",),
+    "customer-resources/FAQ.html": ("theme-color",),
+    "customer-resources/Privacy_Policy.html": ("theme-color",),
+    "customer-resources/Release_Notes.html": ("theme-color",),
+    "customer-resources/Support_Policy.html": ("theme-color",),
+    "customer-resources/Terms_of_Service.html": ("theme-color",),
 }
 
 
@@ -401,6 +432,15 @@ PINNED_BLOCKS = {
     # is no viewer theme to follow, and it already takes the studio's accent
     # through the :root it injects.
     "backend/frontend/assets/cms-app.js": [("<style>", "</style>")],
+    # The L1 stylesheets declare their palettes in :root — once at the top for
+    # the authored theme, once inside each `@media` that re-skins it. Those
+    # blocks ARE the palette; everything outside them reads a token.
+    "backend/frontend/assets/marketing.css": [("\n:root {", "\n}"),
+                                              ("  :root {", "\n  }")],
+    "backend/frontend/assets/manual.css": [("\n:root {", "\n}"),
+                                           ("  :root {", "\n  }")],
+    "backend/frontend/assets/customer-resources.css": [("\n:root {", "\n}"),
+                                                       ("  :root {", "\n  }")],
 }
 
 

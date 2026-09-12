@@ -148,6 +148,10 @@ bump() {
     replace_all backend/server.py "RELEASE_DATE  = '$old_date'" "RELEASE_DATE  = '$today'"
   fi
 
+  # 2b. sw.js — the PWA cache key. Precaches /manifest.json, so an installed
+  #     client keeps the old start_url and icons until this value changes.
+  replace_all sw.js "CACHE_VERSION = 'v$OLD'" "CACHE_VERSION = 'v$NEW'"
+
   # 3. Role guides — the version each guide declares in its header.
   local f
   for f in docs/guides/*.md; do
@@ -182,7 +186,7 @@ deployment state, and where the acceptance evidence lives, before releasing."
 
   echo
   echo "  changed files:"
-  git diff --stat -- VERSION backend/server.py docs/guides README.md \
+  git diff --stat -- VERSION backend/server.py sw.js docs/guides README.md \
     standalone-edition customer-resources/Release_Notes.html \
     docs/customer/Release_Notes.md | sed 's/^/  /'
   echo

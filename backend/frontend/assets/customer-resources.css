@@ -44,6 +44,11 @@
   --cr-link: #2563eb;          /* Brand_Identity §4 Console Blue, never the logo */
   --cr-link-hover: #1d4ed8;
   --cr-line: #cbd5e1;          /* quiet boundary, decorative                   */
+  /* The inverted band: copy and hairline measured against --cr-ink #0e1729.
+     Both were written as literals in the rules below, which is how a palette
+     grows a second answer to "what colour is quiet text". */
+  --cr-band-copy: #cbd5e1;     /* 11.5:1 on --cr-ink                            */
+  --cr-band-line: #2c3d61;     /* boundary on --cr-ink-raised, non-text         */
   --cr-fill: #e2e8f0;          /* quiet fill                                   */
   --cr-flag: #fdf6e3;          /* disclosure band, a tint of Warm Paper        */
   --cr-danger: #b42318;        /* open-gap callouts                            */
@@ -305,13 +310,13 @@ tr:last-child td { border-bottom: 0; }
 
 .band h2 { margin-top: 0; color: var(--cr-card); }
 .band .eyebrow { margin-top: 0; color: var(--cr-spark); }
-.band li, .band p { color: #cbd5e1; }
+.band li, .band p { color: var(--cr-band-copy); }
 .band a { color: var(--cr-spark); }
 
 .band .inset {
   margin-top: var(--ui-space-3, 13px);
   padding: var(--ui-space-3, 13px) var(--ui-space-4, 21px);
-  border: 1px solid #2c3d61;
+  border: 1px solid var(--cr-band-line);
   border-radius: var(--cr-r-sm);
   background: var(--cr-ink-raised);
 }

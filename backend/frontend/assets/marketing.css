@@ -83,6 +83,12 @@
   --card-line: var(--family-navy-soft);
   --card-line-2: rgba(255, 255, 255, .16);
   --accent: var(--family-amber);
+  /* Named because they were written five times as literals below, and a
+     literal is a second opinion about the palette. `--wash-accent` is the
+     featured plan's tint; `--art-frame` is the photo mount. */
+  --wash-accent: rgba(245, 179, 53, .09);
+  --art-frame: rgba(255, 253, 248, .96);
+  --shadow-btn: 0 13px 34px rgba(245, 179, 53, .28);
   /* Warm white rather than #fff for running text: on navy it measures
      15.9:1 and keeps the paper temperature the brand is built on. */
   --ink: var(--warm-paper);
@@ -168,7 +174,7 @@ p { margin: 0; color: var(--ink-soft); }
   font-size: var(--f-0); font-weight: 600; cursor: pointer;
   transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
 }
-.btn:hover { transform: translateY(-2px); box-shadow: 0 13px 34px rgba(245, 179, 53, .28); }
+.btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-btn); }
 .btn:active { transform: scale(.985); }
 .btn-ghost { background: transparent; color: var(--ink); border-color: var(--control-line); }
 .btn-ghost:hover { border-color: var(--ink); background: var(--control-fill); box-shadow: none; }
@@ -224,7 +230,7 @@ body.menu-open .menu-btn .bars { display: none; }
 .hero .lead { margin-top: var(--s-4); }
 .split { display: grid; grid-template-columns: 61.8fr 38.2fr; gap: clamp(34px, 5vw, var(--s-6)); align-items: center; }
 .art-stack { position: relative; min-height: 340px; }
-.art { position: absolute; overflow: hidden; border: 10px solid rgba(255, 253, 248, .96); border-radius: 4px; background: var(--white); box-shadow: var(--shadow-art); }
+.art { position: absolute; overflow: hidden; border: 10px solid var(--art-frame); border-radius: 4px; background: var(--white); box-shadow: var(--shadow-art); }
 .art img { width: 100%; height: 100%; object-fit: cover; }
 .art-a { width: 78%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
 .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 2%; transform: rotate(-5deg); }
@@ -259,7 +265,7 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
 
 /* ── pricing ───────────────────────────────────────────────────────── */
 .plan { display: flex; flex-direction: column; height: 100%; padding: var(--s-4); border: 1px solid var(--card-line); border-radius: var(--r); background: var(--card); }
-.plan.feat { border-color: var(--accent); background: rgba(245, 179, 53, .09); }
+.plan.feat { border-color: var(--accent); background: var(--wash-accent); }
 .plan-badge {
   display: inline-flex; align-items: center; align-self: flex-start; min-height: 26px;
   margin-bottom: var(--s-2); padding: 2px 10px; border-radius: 999px;
@@ -406,9 +412,12 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
     --ink-faint: var(--slate-muted);
     --hairline: rgba(14, 23, 41, .14);
     --control-line: rgba(14, 23, 41, .34);   /* 3.90:1 on paper */
+    /* Paper takes a stronger tint than navy for the same apparent weight. */
+    --wash-accent: rgba(245, 179, 53, .14);
     --control-fill: var(--white);
     --shadow-strong: 0 21px 55px rgba(14, 23, 41, .12);
     --shadow-art: 0 24px 64px rgba(14, 23, 41, .22);
+    --shadow-btn: 0 13px 34px rgba(161, 98, 7, .26);
     --spark-opacity: .12;
     --nav-solid: rgba(247, 245, 242, .88);
     --nav-panel: rgba(247, 245, 242, .97);
@@ -417,10 +426,8 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
      to stay distinguishable — the inverse of the dark theme, where the
      card is the lighter of the two. Elevation reads correctly in both. */
   .band-2 .card, .band-2 .plan { background: var(--card-2); }
-  .plan.feat { background: rgba(245, 179, 53, .14); }
   /* The artwork frames were white on navy; on paper they need an edge. */
   .art { border-color: var(--white); }
-  .btn:hover { box-shadow: 0 13px 34px rgba(161, 98, 7, .26); }
 }
 
 @media (max-width: 880px) {

@@ -12,6 +12,13 @@ const roots = [
   path.join(projectRoot, 'tenants'),
   path.join(projectRoot, 'legacy-root'),
   path.join(projectRoot, 'backend', 'frontend'),
+  // The L1 portal, added v10.19.0. These five sat outside every root above,
+  // so the whole public marketing layer was unparsed — including the pages
+  // the brand work rewrites first.
+  path.join(projectRoot, 'product-home.html'),
+  path.join(projectRoot, 'pricing.html'),
+  path.join(projectRoot, 'manual.html'),
+  path.join(projectRoot, 'customer-resources'),
 ];
 
 function htmlFiles(target) {

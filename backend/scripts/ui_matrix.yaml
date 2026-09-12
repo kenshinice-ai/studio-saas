@@ -26,6 +26,87 @@ defaults:
     brand: ".brand"
 
 pages:
+  # ── L1 · the portal (public, no login) ──────────────────────────────────
+  #
+  # Added v10.19.0. Until now this layer had **零** pages in the matrix: the
+  # thirteen entries below it were four tenant surfaces and nine console
+  # panels. L1 is also the layer with no colour-literal guard and no inline
+  # script check, and it is the first thing the brand work touches — the
+  # weakest net under the busiest hands.
+  #
+  # One URL per language is the rule for these pages (`/studio` vs
+  # `/zh/studio/`), so `?lang=` does nothing here and the Chinese variants are
+  # separate entries rather than a `languages:` list.
+  #
+  # The marketing shell names its nav `.nav` / `.nav-links`, not the public
+  # shell's `.navrow` / `.navlinks`; the override is per page.
+
+  - name: portal_home
+    path: /studio
+    assert_nav: true
+    assert_cms: true
+    languages: [default]
+    selectors: {navrow: ".nav", navlinks: ".nav-links", brand: ".brand"}
+
+  - name: portal_home_zh
+    path: /zh/studio/
+    assert_nav: true
+    assert_cms: true
+    languages: [default]
+    selectors: {navrow: ".nav", navlinks: ".nav-links", brand: ".brand"}
+
+  - name: portal_pricing
+    path: /pricing
+    assert_nav: true
+    assert_cms: true
+    languages: [default]
+    selectors: {navrow: ".nav", navlinks: ".nav-links", brand: ".brand"}
+
+  - name: portal_pricing_zh
+    path: /zh/pricing
+    assert_nav: true
+    assert_cms: true
+    languages: [default]
+    selectors: {navrow: ".nav", navlinks: ".nav-links", brand: ".brand"}
+
+  # The manual carries a `.brand` but no nav row — it has a sticky bar and a
+  # table of contents instead. Overflow and touch targets are the contract
+  # that does apply, and the contents button is the control a phone uses most.
+  - name: portal_manual
+    path: /manual/
+    assert_nav: false
+    assert_cms: true
+    languages: [default]
+
+  - name: portal_manual_zh
+    path: /zh/manual/
+    assert_nav: false
+    assert_cms: true
+    languages: [default]
+
+  # Three of these are the served legal documents. They have no nav at all.
+  - name: portal_release_notes
+    path: /customer-resources/Release_Notes.html
+    assert_nav: false
+    assert_cms: true
+    languages: [default]
+
+  - name: portal_privacy_policy
+    path: /customer-resources/Privacy_Policy.html
+    assert_nav: false
+    assert_cms: true
+    languages: [default]
+
+  # The self-service registration page. It has its own Tailwind build since
+  # v10.17.0 and no site navigation by design.
+  - name: portal_register
+    path: /_legacy/register
+    assert_nav: false
+    assert_cms: true
+    languages: [default]
+
+  # ── L2 · tenant public surfaces ─────────────────────────────────────────
+
   - name: showcase_portal
     path: /lets-paint-showcase/
     assert_nav: true

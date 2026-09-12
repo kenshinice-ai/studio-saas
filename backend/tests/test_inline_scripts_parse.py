@@ -38,7 +38,19 @@ PAGES = [
     REPOSITORY_ROOT / "backend/frontend/studio-admin.html",
     REPOSITORY_ROOT / "super-admin.html",
     REPOSITORY_ROOT / "legacy-root/index.html",
+    # v10.19.0 — the L1 portal. These carry no inline JS at all, which is why
+    # they were never listed; what they carry is six hand-written assets that
+    # no `node --check` reached either. `_linked_assets` below covers both, so
+    # a page is checked for the script it actually runs rather than for the
+    # script that happens to be inline.
+    REPOSITORY_ROOT / "product-home.html",
+    REPOSITORY_ROOT / "pricing.html",
+    REPOSITORY_ROOT / "manual.html",
+    REPOSITORY_ROOT / "legacy-root/register.html",
 ]
+
+LINKED = re.compile(r'<script\b[^>]*\bsrc\s*=\s*["\']([^"\']+)["\'][^>]*>', re.I)
+MODULE = re.compile(r'\btype\s*=\s*["\']?module', re.I)
 
 # `<script>` with no type, or an explicitly JavaScript one. A
 # `type="application/ld+json"` block is data and would fail a JS parse for a
@@ -64,25 +76,57 @@ def _inline_javascript(page: Path) -> str:
     return "\n;\n".join(blocks)
 
 
+def _linked_assets(page: Path) -> list[tuple[Path, bool]]:
+    """The local scripts this page loads, as (path, is_module).
+
+    Only same-origin `/assets/...` and relative paths — a CDN URL is not ours
+    to parse. This replaced a two-entry map naming the consoles' bundles by
+    hand, which is why nothing ever checked marketing-shell.js, product-home.js,
+    pricing.js, manual.js, customer-resources.js or portal-brand.js.
+    """
+
+    source = page.read_text(encoding="utf-8")
+    found: list[tuple[Path, bool]] = []
+    for match in re.finditer(r"<script\b([^>]*)>", source, re.I):
+        attrs = match.group(1)
+        src = LINKED.match(f"<script{attrs}>")
+        if src is None:
+            continue
+        href = src.group(1).split("?")[0]
+        if "//" in href:
+            continue
+        candidate = REPOSITORY_ROOT / href.lstrip("/")
+        if not candidate.is_file():
+            candidate = REPOSITORY_ROOT / "backend/frontend" / href.lstrip("/")
+        if candidate.is_file():
+            found.append((candidate, bool(MODULE.search(attrs))))
+    return found
+
+
 @pytest.mark.skipif(NODE is None, reason="node is not installed; inline scripts cannot be parsed")
 @pytest.mark.parametrize("page", PAGES, ids=lambda p: f"{p.parent.name}-{p.name}")
 def test_inline_script_parses(page: Path, tmp_path: Path) -> None:
     javascript = _inline_javascript(page)
-    # v10.11.0: the two consoles' main script moved to versioned assets; the
-    # page's runnable JS is its remaining inline blocks plus that asset.
-    console_asset = {
-        "studio-admin.html": REPOSITORY_ROOT / "backend/frontend/assets/studio-admin.js",
-        "super-admin.html": REPOSITORY_ROOT / "backend/frontend/assets/super-admin.js",
-    }.get(page.name)
-    if console_asset is not None:
-        javascript = javascript + "\n;\n" + console_asset.read_text(encoding="utf-8")
-    assert javascript.strip(), f"{page.name} has no script at all — did the extraction break?"
-    candidate = tmp_path / "inline.js"
-    candidate.write_text(javascript, encoding="utf-8")
-    result = subprocess.run([NODE, "--check", str(candidate)], capture_output=True, text=True)
-    assert result.returncode == 0, (
-        f"{page} does not parse:\n{result.stderr}"
+    linked = _linked_assets(page)
+    assert javascript.strip() or linked, (
+        f"{page.name} has no script at all — did the extraction break?"
     )
+
+    if javascript.strip():
+        candidate = tmp_path / "inline.js"
+        candidate.write_text(javascript, encoding="utf-8")
+        result = subprocess.run([NODE, "--check", str(candidate)],
+                                capture_output=True, text=True)
+        assert result.returncode == 0, f"{page} inline script does not parse:\n{result.stderr}"
+
+    for asset, is_module in linked:
+        command = [NODE, "--check"]
+        if is_module:
+            command += ["--input-type=module"]
+        result = subprocess.run(command + [str(asset)], capture_output=True, text=True)
+        assert result.returncode == 0, (
+            f"{page.name} loads {asset.name}, which does not parse:\n{result.stderr}"
+        )
 
 
 def test_the_timetable_helpers_are_declared_at_top_level() -> None:

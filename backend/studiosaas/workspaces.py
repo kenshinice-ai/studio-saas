@@ -56,6 +56,12 @@ RESERVED_SLUGS = {
     "shared",
     "xero",
     "s",
+    # Found by the derived check below (v10.19.0): `/public-assets/<path>` is
+    # slug-shaped, so a studio could have been created there and shadowed. The
+    # precomposed icon cannot be a slug — dots fail SLUG_RE — but it is
+    # reserved with its siblings so the icon set stays one thing.
+    "public-assets",
+    "apple-touch-icon-precomposed.png",
     # Prefixes the house website (PWE · 天域) owns at the nginx edge from
     # v10.18.0: `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`,
     # `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`,
