@@ -1,6 +1,8 @@
 # 2026-09-12 · 品牌对齐 R1：先补网，再改样式（v10.19.0）
 
-> 状态：**源码候选**，分支 `claude/ui-ux-pro-max-audit-073a82`。第 6–9 步由发布人执行。
+> 状态：**已发布、已部署**（2026-09-12）。`pwestudio.online` = v10.19.0，
+> 提交 `6f1b186` 在 `origin/main`，两个包已构建。四层身份与部署后验收见
+> `docs/HANDOFF_LATEST.md`。
 > 上游依据：`23-PWE Studio SaaS 风格与内容对齐·变更单.md`（v2.4）+ 本会话的只读核查。
 > 核查结论页：<https://claude.ai/code/artifact/c6ef01d2-8e68-4c69-90f6-251f209226e5>
 

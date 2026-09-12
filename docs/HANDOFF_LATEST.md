@@ -13,19 +13,37 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.19.0，2026-09-12 · 源码候选，未发布）
+## 当前四层身份（v10.19.0，2026-09-12 · **已发布、已部署**）
 
-> 本表是 runbook 第 3 步的 prepared ledger：Source 是事实，Package / Production /
-> Backup 是**预期**，由发布人执行第 6–9 步后在 closure 里换成事实。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-12-brand-realignment-r1.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`，**未推送**（提交哈希 closure 时回填）。内容：品牌对齐变更单的 R1 —— 门禁先行（L1 从 0 页进入浏览器矩阵到 9 页；颜色字面量守卫与脚本语法检查覆盖门户；五个「不可能变红」的门禁改成能红），然后 P0 四条（租户站可能整片空白、三份法律文件的私人 Gmail、错误页是裸 JSON、询盘打开空邮件）、P1 七条（其中「警示色当文字」实测是 20 处而非 3 处，另有 6 处 hover 态）、L1 门户观感（主按钮改墨底纸字、琥珀只剩收尾带一处作地、买点补主按钮、标题字重与字距、手写月费、六条无效声明）、L2 租户站 + regenerate。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2367 passed, 135 skipped`，租户隔离 `254 passed, 0 failed`。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.19.0.tar.gz`（未构建）。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.19.0.tar.gz`（未构建）。 |
-| Production | **仍是 v10.18.0。** 部署后要复核的三件：`/nope` 在浏览器里出 HTML 而 `/v1/nope` 仍是 JSON；四个租户站的 `<html>` 带 `js` 且正文可见；`/studio` 的主按钮是墨底、收尾带是琥珀底。 |
-| Backup / migration | 预期由 deploy 自动产出 dump + manifest；本版零迁移。 |
+| Source | 提交 `6f1b186a0950b763fe2cb5cc505dec7f26075648`，已在 `origin/main`；分支 `claude/ui-ux-pro-max-audit-073a82` 亦已推送。内容：品牌对齐变更单的 R1 —— 门禁先行（L1 从 0 页进入浏览器矩阵到 9 页；颜色字面量守卫与脚本语法检查覆盖门户；五个「不可能变红」的门禁改成能红），然后 P0 四条（租户站可能整片空白、三份法律文件的私人 Gmail、错误页是裸 JSON、询盘打开空邮件）、P1 七条（其中「警示色当文字」实测是 20 处而非 3 处，另有 6 处 hover 态）、L1 门户观感（主按钮改墨底纸字、琥珀只剩收尾带一处作地、买点补主按钮、标题字重与字距、手写月费、六条无效声明）、L2 租户站 + regenerate。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2367 passed, 135 skipped`，租户隔离 `254 passed, 0 failed`。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.19.0.tar.gz`，SHA-256 `a93690e83ce4465301cd5d7e2b606a2975931b7764eea9d432c1b2db81318d86`。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.19.0.tar.gz`，SHA-256 `32bc94ad80f7f0464ca33d19404c67f9db5835dd261b9b9d031bcd8c0f71ff80`。 |
+| Production | `pwestudio.online` = **v10.19.0**。2026-09-12 实测 `/v1/health?deep=1`：`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.status=ok`、`themes.unreadable=0`、5 个租户、磁盘 18.0%。 |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260912T065503Z.dump` + 同名 manifest（实例 `/data/backups/postgres/`）。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
+
+### 部署后验收（生产实测，2026-09-12）
+
+| 验的东西 | 结果 |
+|---|---|
+| 错误页对浏览器出 HTML | `GET /nope` + `Sec-Fetch-Dest: document` → **404 `text/html`**；`GET /v1/nope` → 404 `application/json`。48 个出口共用 `api_error` 一处协商 |
+| `/customer-resources/` | **301**（此前 404） |
+| 租户站在脚本之后仍然可读 | `/lets-paint-showcase`：`<html class="js">`、28 个 `.reveal`、**24 个已可见**、`--glass-opacity` 解析为 `88%` |
+| 全站琥珀作地只剩一处 | `/studio` 上遍历每个元素求 `backgroundColor === rgb(245,179,53)`，结果是 **`SECTION.band-amber` 一个**。此前是 5 处 |
+| 主按钮 / 次按钮 / 标题 | 主 `rgb(14,23,41)` 底 `rgb(247,245,242)` 字；ghost 描边 `rgba(14,23,41,0.55)` = 3.90:1；h1 `600` / `-2.436px`（即 −0.018em @ 135px） |
+
+### 这次收口不声称的
+
+- **`/nope` 的响应头是 `text/html; charset=utf-8; charset=utf-8`** —— `Response(mimetype=…)`
+  会自己追加 charset，而我把 charset 也写进了 mimetype。重复的参数被浏览器忽略，页面
+  正常，但这是一处我发进生产的缺陷。下一轮第一件事改掉（用 `content_type=`）。
+- **`ui_matrix.py` 仍然没有接进任何门禁**。本版补齐了它的覆盖面（13 → 22 页），
+  接线留给单独一轮。
+- **`cms_roster_teacher` 一页仍未检查**（teacher 账号密码未提供）。
 
 ## 上一版四层身份（v10.18.0，2026-09-11 · 已发布、已部署）
 
@@ -330,7 +348,7 @@
 
 ## 最新轮次
 
-- **2026-09-12（Claude）v10.19.0 品牌对齐 R1 —— 先补网，再改样式**（**源码候选，未发布**）：
+- **2026-09-12（Claude）v10.19.0 品牌对齐 R1 —— 先补网，再改样式**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-12-brand-realignment-r1.md`，核查结论页
   <https://claude.ai/code/artifact/c6ef01d2-8e68-4c69-90f6-251f209226e5>。
   依据 `23-PWE Studio SaaS 风格与内容对齐·变更单.md`（v2.4）与本会话的只读核查：
