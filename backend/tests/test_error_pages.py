@@ -71,9 +71,14 @@ def test_the_language_follows_the_address(client) -> None:
     english = client.get("/nope", headers=DOCUMENT).get_data(as_text=True)
     chinese = client.get("/zh/nope", headers=DOCUMENT).get_data(as_text=True)
     assert 'lang="en"' in english and 'lang="zh-CN"' in chinese
-    # Both languages are on both pages; only the order changes.
+    # Both languages are on both pages; the order and the <title> follow the
+    # address. An English visitor must not get a tab labelled 找不到这个地址.
     for body in (english, chinese):
         assert "这个地址不存在" in body and "This address does not exist." in body
+    assert "<title>Address not found" in english
+    assert "<title>找不到这个地址" in chinese
+    assert english.index("This address does not exist.") < english.index("这个地址不存在")
+    assert chinese.index("这个地址不存在") < chinese.index("This address does not exist.")
 
 
 def test_the_path_is_escaped_not_reflected(client) -> None:

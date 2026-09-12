@@ -1,3 +1,10 @@
+/* NOTE 2026-09-12: this sheet consumed `--muted` six times and neither of the
+   two stylesheets the pricing page loads defines it — every one of those
+   declarations was invalid-at-computed-value, so the text simply inherited
+   whatever was above it and the whole secondary tier was missing. Replaced
+   with the tier each site actually meant: `--ink-soft` for copy, `--ink-faint`
+   for labels and notes. `--muted` is not a name this design system has.
+*/
 /* The pricing page's own parts, on top of marketing.css.
  *
  * Only what the home page does not already have: the calculator, the two
@@ -24,7 +31,7 @@
 .calc-inputs { display: grid; gap: var(--s-4); }
 .calc-field { display: grid; gap: var(--s-1); }
 .calc-field label { font-weight: 600; }
-.calc-field small { color: var(--muted); font-size: 13px; }
+.calc-field small { color: var(--ink-faint); font-size: 13px; }
 
 .calc-field input[type="range"] {
   width: 100%;
@@ -56,7 +63,7 @@
   font-size: 13px;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-faint);
 }
 .calc-plan { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 600; }
 /* Tabular figures so the number does not jump sideways as the slider moves. */
@@ -68,9 +75,9 @@
 }
 .calc-lines { margin: 0; display: grid; gap: var(--s-1); }
 .calc-lines > div { display: flex; justify-content: space-between; gap: var(--s-2); }
-.calc-lines dt { color: var(--muted); font-size: 14px; }
+.calc-lines dt { color: var(--ink-soft); font-size: 14px; }
 .calc-lines dd { margin: 0; font-variant-numeric: tabular-nums; font-size: 14px; }
-.calc-note { margin: 0; color: var(--muted); font-size: 13px; min-height: 1.4em; }
+.calc-note { margin: 0; color: var(--ink-faint); font-size: 13px; min-height: 1.4em; }
 
 /* ── Included / not included ──────────────────────────────────────────────
    The second list is the one that earns trust, so it is styled as an equal,
@@ -94,7 +101,7 @@ ul.tick-no li::before {
   background:
     linear-gradient(to bottom right, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
     linear-gradient(to bottom left, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
-  color: var(--muted);
+  color: var(--ink-faint);
   opacity: .8;
 }
 
@@ -127,7 +134,7 @@ ul.tick-no li::before {
 }
 .faq details[open] summary::after { content: "−"; }
 .faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.faq details p { margin: var(--s-2) 0 0; color: var(--muted); max-width: var(--measure); }
+.faq details p { margin: var(--s-2) 0 0; color: var(--ink-soft); max-width: var(--measure); }
 
 @media (prefers-reduced-motion: no-preference) {
   .faq details[open] p { animation: faq-in .18s ease-out; }

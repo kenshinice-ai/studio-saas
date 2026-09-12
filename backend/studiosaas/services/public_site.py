@@ -427,7 +427,13 @@ def render_plan_cards(rows: list[dict[str, Any]] | None) -> str:
             f'<p class="per"><span data-lang="en">{_LABELS["en"]["per"]}</span>'
             f'<span data-lang="zh">{_LABELS["zh"]["per"]}</span></p>'
             f"<ul>{items}</ul>"
-            f'<a class="btn btn-ghost" href="#contact">'
+            # The recommended plan carries the primary action; the others are
+            # secondary. All three were ghost buttons, so the section where a
+            # visitor decides what to buy had no primary action anywhere on it
+            # — three equally quiet outlines and nothing saying which one the
+            # page is for. The badge above already says which plan is
+            # recommended; the button should agree with it.
+            f'<a class="btn{"" if index == featured else " btn-ghost"}" href="#contact">'
             f'<span data-lang="en">{escape(_LABELS["en"]["cta"].format(name=name))}</span>'
             f'<span data-lang="zh">{escape(_LABELS["zh"]["cta"].format(name=name))}</span></a>'
             "</article>"

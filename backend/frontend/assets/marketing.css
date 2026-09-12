@@ -88,7 +88,7 @@
      featured plan's tint; `--art-frame` is the photo mount. */
   --wash-accent: rgba(245, 179, 53, .09);
   --art-frame: rgba(255, 253, 248, .96);
-  --shadow-btn: 0 13px 34px rgba(245, 179, 53, .28);
+  --shadow-btn: 0 13px 34px rgba(0, 0, 0, .38);
   /* Warm white rather than #fff for running text: on navy it measures
      15.9:1 and keeps the paper temperature the brand is built on. */
   --ink: var(--warm-paper);
@@ -145,8 +145,42 @@ section[id] { scroll-margin-top: 72px; }
    it is on, so elevation reads the same way in both. */
 .band-2 { background: var(--surface-2); }
 
+/* The single full-bleed amber ground in the product, and it is the closing
+   band — the place a visitor decides. Everything in this stylesheet is
+   written against five surface tokens, so redefining them here re-skins the
+   whole section, form included, with no second copy of any rule: the primary
+   button becomes navy with amber text, the cards become near-white, the input
+   borders darken to clear WCAG 1.4.11 against amber rather than against paper.
+   It does not follow the viewer's theme, because being the one warm thing on
+   the page is the entire point of it.
+   Measured on #F5B335: ink 9.70:1, ink-soft 6.16:1, ink-faint 4.99:1,
+   card 17.06:1, control-line 3.37:1. */
+.band-amber {
+  --surface: var(--family-amber);
+  --surface-2: var(--family-amber);
+  --card: rgba(255, 255, 255, .92);
+  --card-2: rgba(255, 255, 255, .92);
+  --card-line: rgba(14, 23, 41, .24);
+  --card-line-2: rgba(14, 23, 41, .24);
+  --ink: var(--family-navy);
+  --ink-soft: rgba(14, 23, 41, .78);
+  --ink-faint: rgba(14, 23, 41, .70);
+  --hairline: rgba(14, 23, 41, .24);
+  --control-line: rgba(14, 23, 41, .55);
+  --control-fill: var(--white);
+  --accent: var(--family-navy);
+  --shadow-strong: 0 21px 55px rgba(14, 23, 41, .18);
+  --shadow-btn: 0 13px 34px rgba(14, 23, 41, .28);
+  background: var(--family-amber); color: var(--ink);
+}
+
 /* ── type ──────────────────────────────────────────────────────────── */
-h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -.012em; margin: 0; }
+/* Georgia stays (decided 2026-09-12). The weight and the tracking do not:
+   the brand sheet asks for 600 and −0.015…−0.02em at display sizes, and this
+   was 500 at −0.035em on the hero — nearly twice the specified tightness,
+   which at 68px closes the counters in the Chinese cut. Georgia has no 600
+   master, so 600 resolves to its bold; that is the intended weight. */
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.018em; margin: 0; }
 h1 { font-size: clamp(2.058rem, 6.2vw, var(--f-6)); line-height: 1.06; }
 h2 { font-size: clamp(1.618rem, 4vw, var(--f-4)); line-height: 1.12; }
 h3 { font-size: var(--f-1); line-height: 1.25; margin-bottom: var(--s-1); }
@@ -167,10 +201,22 @@ p { margin: 0; color: var(--ink-soft); }
 .head { max-width: calc(var(--maxw) * .786); }
 
 /* ── buttons ───────────────────────────────────────────────────────── */
+/* The primary action is the page's own ink with the page's own ground on top
+   of it — warm paper on navy in the dark theme, navy on warm paper in the
+   light one, 16.45:1 either way. It used to be a filled amber pill, which was
+   legible (9.70:1) but made amber the colour of *every* button: three on the
+   home page, the nav call to action and the recommended-plan badge, five
+   filled amber grounds on one site. Amber's job is to mark one idea per
+   screen; a colour that marks five marks none. The one place it is still a
+   ground is the closing band, below.
+
+   Inside `.band-amber` the same rule paints a navy pill with amber text,
+   because `--ink` and `--surface` are redefined there — one declaration,
+   correct on three grounds. */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
   min-height: 48px; padding: var(--s-2) var(--s-4); border: 1px solid transparent;
-  border-radius: 999px; background: var(--family-amber); color: var(--family-navy);
+  border-radius: 999px; background: var(--ink); color: var(--surface);
   font-size: var(--f-0); font-weight: 600; cursor: pointer;
   transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
 }
@@ -208,8 +254,9 @@ p { margin: 0; color: var(--ink-soft); }
 .nav-links .lang, .nav-links .nav-cta { min-height: 44px; padding: 0 var(--s-3); border-radius: 999px; }
 .nav-links .lang { border: 1px solid var(--control-line); font-size: var(--f-xs); }
 .nav-links .lang:hover { border-color: var(--accent); color: var(--accent); }
-.nav-links .nav-cta { background: var(--family-amber); color: var(--family-navy); font-weight: 600; }
-.nav-links .nav-cta:hover { color: var(--family-navy); }
+/* Same treatment as the primary button: one look for "this is the action". */
+.nav-links .nav-cta { background: var(--ink); color: var(--surface); font-weight: 600; }
+.nav-links .nav-cta:hover { color: var(--surface); }
 .nav-links .lang::after, .nav-links .nav-cta::after { display: none; }
 .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .menu-btn { display: none; position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; place-items: center; }
@@ -269,7 +316,10 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
 .plan-badge {
   display: inline-flex; align-items: center; align-self: flex-start; min-height: 26px;
   margin-bottom: var(--s-2); padding: 2px 10px; border-radius: 999px;
-  background: var(--family-amber); color: var(--family-navy);
+  /* Amber as a mark, not as a ground: an outlined pill in the accent, which
+     is #A16207 on paper (4.52:1 text, and the same value clears 1.4.11 as a
+     border) and #F5B335 on navy (9.70:1). */
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
   font-size: var(--f-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
 .plan .amt { margin: 6px 0 0; font-family: var(--serif); font-size: var(--f-3); line-height: 1.1; color: var(--ink); }
@@ -423,7 +473,7 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
     --control-fill: var(--white);
     --shadow-strong: 0 21px 55px rgba(14, 23, 41, .12);
     --shadow-art: 0 24px 64px rgba(14, 23, 41, .22);
-    --shadow-btn: 0 13px 34px rgba(161, 98, 7, .26);
+    --shadow-btn: 0 13px 34px rgba(14, 23, 41, .26);
     --spark-opacity: .12;
     --nav-solid: rgba(247, 245, 242, .88);
     --nav-panel: rgba(247, 245, 242, .97);

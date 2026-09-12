@@ -565,3 +565,69 @@ def test_a_long_enquiry_still_opens_the_mail_app() -> None:
     # And the trim must say so in the message, in the reader's language.
     assert "Trimmed so your mail app would open it" in script
     assert "此处已截断" in script
+
+
+# ── prices ───────────────────────────────────────────────────────────────────
+
+
+def test_no_served_page_writes_a_monthly_price_by_hand() -> None:
+    """A monthly price is a row in the plan table, not a string in a file.
+
+    `pricing.html` said "monthly plans from AUD 49" in both meta descriptions.
+    49 is Starter's price, copied out of the table the page otherwise renders
+    from — so changing the plan changed the page and left the description
+    lying, in the one place nobody looks. The existing guard could not see it:
+    it forbade the `$49` spelling and only looked at product-home.html.
+
+    The setup fee is different and stays: it is a quoted range held as a
+    constant (`SETUP_FEE_AUD`), not a row anyone can edit in the console. It is
+    checked against that constant rather than against a literal.
+    """
+
+    import re
+    from studiosaas.services.public_site import SETUP_FEE_AUD
+
+    low, high = SETUP_FEE_AUD
+    setup_spellings = {f"AUD {low}–{high}", f"AUD {low}-{high}", f"{low}–{high}"}
+    monthly = re.compile(r"(?:AUD|A?\$)\s?(\d{2,4})\b")
+
+    for name in ("product-home.html", "pricing.html", "manual.html"):
+        source = (REPOSITORY_ROOT / name).read_text(encoding="utf-8")
+        body = re.sub(r"<!--.*?-->", "", source, flags=re.S)
+        for spelling in setup_spellings:
+            body = body.replace(spelling, "«setup»")
+        stray = sorted({match.group(0) for match in monthly.finditer(body)})
+        assert not stray, (
+            f"{name} writes a price by hand: {stray}. Monthly prices come from "
+            f"the plan table at render time; the setup fee comes from "
+            f"SETUP_FEE_AUD ({low}–{high})."
+        )
+
+    # And the range the pages do print has to be the constant's.
+    pricing = (REPOSITORY_ROOT / "pricing.html").read_text(encoding="utf-8")
+    assert f"AUD {low}–{high}" in pricing, (
+        f"SETUP_FEE_AUD says {low}–{high}; the pricing page prints something else"
+    )
+
+
+def test_the_product_page_and_the_demonstration_tenant_agree() -> None:
+    """One said "running in production", the other said "everything here is
+    invented", and a visitor reached the second by clicking the first.
+
+    Let's Paint Studio is a real studio and it runs on its own deployment;
+    `/lets-paint-showcase` is a demonstration tenant on this one. Both facts
+    are true and the page has to state which one it is linking to. Nothing
+    pinned the old claim, so it could have been deleted — or kept — silently.
+    """
+
+    source = (REPOSITORY_ROOT / "product-home.html").read_text(encoding="utf-8")
+    body = re.sub(r"<!--.*?-->", "", source, flags=re.S)
+
+    assert "Running in production for Let" not in body
+    assert "生产环境运行" not in body
+    for claim in ("demonstration tenant", "演示租户"):
+        assert claim in body, f"the page does not say what /lets-paint-showcase is ({claim})"
+
+    # And the tenant itself still carries the disclaimer the page relies on.
+    template = (REPOSITORY_ROOT / "tenant-template/index.html").read_text(encoding="utf-8")
+    assert 'id="demoNotice"' in template and "均为虚构" in template

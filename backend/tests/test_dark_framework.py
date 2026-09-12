@@ -439,7 +439,10 @@ PINNED_BLOCKS = {
     # Spelling the closer as a literal `"\n  }"` is the same mistake that made
     # test_cms_ui_contract.py raise ValueError when an unrelated rule was
     # deleted: it turns an indentation habit into a load-bearing landmark.
-    "backend/frontend/assets/marketing.css": [(":root {", None)],
+    # `.band-amber` is the third theme this sheet declares — the closing band
+    # re-skins the same five surface tokens so the section needs no second copy
+    # of any rule. It is a palette block, so it is pinned like the other two.
+    "backend/frontend/assets/marketing.css": [(":root {", None), (".band-amber {", None)],
     "backend/frontend/assets/manual.css": [(":root {", None)],
     "backend/frontend/assets/customer-resources.css": [(":root {", None)],
 }

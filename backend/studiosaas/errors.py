@@ -91,7 +91,8 @@ def _navigating_browser() -> bool:
 # 顺序决定谁在第一屏。
 _COPY = {
     404: {
-        "title": "找不到这个地址",
+        "title_zh": "找不到这个地址",
+        "title_en": "Address not found",
         "headline_zh": "这个地址不存在",
         "body_zh": "链接可能拼错了，或者这个页面已经搬走。工作室的公开地址是 "
                    "pwestudio.online/工作室名。",
@@ -100,14 +101,16 @@ _COPY = {
                    "public address is pwestudio.online/its-name.",
     },
     403: {
-        "title": "没有权限",
+        "title_zh": "没有权限",
+        "title_en": "No access",
         "headline_zh": "这个页面需要权限",
         "body_zh": "你登录的账号看不到这一页。换一个账号，或者请工作室管理员授权。",
         "headline_en": "You do not have access to this page.",
         "body_en": "Sign in with another account, or ask the studio owner to grant it.",
     },
     410: {
-        "title": "地址已停用",
+        "title_zh": "地址已停用",
+        "title_en": "Address retired",
         "headline_zh": "这个地址已经停用",
         "body_zh": "它曾经属于一个工作室，现在不再提供服务。",
         "headline_en": "This address has been retired.",
@@ -115,7 +118,8 @@ _COPY = {
     },
 }
 _DEFAULT_COPY = {
-    "title": "出错了",
+    "title_zh": "出错了",
+    "title_en": "Something went wrong",
     "headline_zh": "服务器上出了点问题",
     "body_zh": "这不是你操作的问题。稍后再试；如果一直这样，把这个地址发给我们。",
     "headline_en": "Something went wrong on our side.",
@@ -136,16 +140,21 @@ def _error_page(code: str, status: int, message: str) -> Response:
         _TEMPLATE_CACHE["page"] = template
 
     copy = _COPY.get(status, _DEFAULT_COPY)
-    chinese_first = request.path.startswith("/zh/")
+    # The address decides which language leads — the same rule the public pages
+    # follow. Both languages stay on the page; only the order and the <title>
+    # change, so a Chinese visitor is not reading English first and an English
+    # one is not looking at a tab labelled 找不到这个地址.
+    first, second = ("zh", "en") if request.path.startswith("/zh/") else ("en", "zh")
     page = template
     for token, value in {
-        "__LANG__": "zh-CN" if chinese_first else "en",
-        "__TITLE__": copy["title"],
+        "__LANG__": "zh-CN" if first == "zh" else "en",
+        "__OTHER_LANG__": "zh-CN" if second == "zh" else "en",
+        "__TITLE__": copy[f"title_{first}"],
         "__STATUS__": f"{status} · {code}",
-        "__HEADLINE_ZH__": copy["headline_zh"],
-        "__BODY_ZH__": copy["body_zh"],
-        "__HEADLINE_EN__": copy["headline_en"],
-        "__BODY_EN__": copy["body_en"],
+        "__HEADLINE__": copy[f"headline_{first}"],
+        "__BODY__": copy[f"body_{first}"],
+        "__OTHER_HEADLINE__": copy[f"headline_{second}"],
+        "__OTHER_BODY__": copy[f"body_{second}"],
         "__CTA_ZH__": "回到首页",
         "__CTA_EN__": "Product home",
         "__HELP_ZH__": "使用手册",
