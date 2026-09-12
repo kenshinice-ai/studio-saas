@@ -435,12 +435,13 @@ PINNED_BLOCKS = {
     # The L1 stylesheets declare their palettes in :root — once at the top for
     # the authored theme, once inside each `@media` that re-skins it. Those
     # blocks ARE the palette; everything outside them reads a token.
-    "backend/frontend/assets/marketing.css": [("\n:root {", "\n}"),
-                                              ("  :root {", "\n  }")],
-    "backend/frontend/assets/manual.css": [("\n:root {", "\n}"),
-                                           ("  :root {", "\n  }")],
-    "backend/frontend/assets/customer-resources.css": [("\n:root {", "\n}"),
-                                                       ("  :root {", "\n  }")],
+    # `None` as the closer means "balance the braces from the opening one".
+    # Spelling the closer as a literal `"\n  }"` is the same mistake that made
+    # test_cms_ui_contract.py raise ValueError when an unrelated rule was
+    # deleted: it turns an indentation habit into a load-bearing landmark.
+    "backend/frontend/assets/marketing.css": [(":root {", None)],
+    "backend/frontend/assets/manual.css": [(":root {", None)],
+    "backend/frontend/assets/customer-resources.css": [(":root {", None)],
 }
 
 
@@ -448,9 +449,27 @@ def _without_pinned_blocks(page: str, source: str) -> str:
     for opener, closer in PINNED_BLOCKS.get(page, ()):
         while opener in source:
             head = source.index(opener)
-            tail = source.index(closer, head) + len(closer)
+            if closer is None:
+                tail = _balanced_end(source, head)
+            else:
+                found = source.find(closer, head)
+                assert found >= 0, (
+                    f"{page}: the pinned block opening at {opener!r} has no "
+                    f"{closer!r} after it. The closer is a landmark, and the "
+                    f"landmark moved — fix the pin, do not widen the exemption."
+                )
+                tail = found + len(closer)
             source = source[:head] + source[tail:]
     return source
+
+
+def _balanced_end(source: str, start: int) -> int:
+    depth = 0
+    for position in range(source.index("{", start), len(source)):
+        depth += {"{": 1, "}": -1}.get(source[position], 0)
+        if depth == 0:
+            return position + 1
+    raise AssertionError(f"unbalanced block starting at offset {start}")
 
 
 @pytest.mark.parametrize("page", TOKENISED_SURFACES)

@@ -203,7 +203,8 @@ def test_every_foreground_on_its_own_background_is_legible_in_all_three_themes()
     colour, in each of the three themes the stylesheet defines, and divides.
     """
 
-    from _contrast import at_rule_block, composite, contrast, parse_colour, resolve_var
+    from _contrast import (at_rule_block, colour_rules, composite, contrast,
+                           parse_colour, resolve_var)
 
     style = _strip_comments(_style())
     tokens = TOKENS.read_text(encoding="utf-8")
@@ -231,7 +232,7 @@ def test_every_foreground_on_its_own_background_is_legible_in_all_three_themes()
         # Cascade within the theme: a base rule and the print block's override
         # of the same selector are one painted result, not two.
         painted: dict[str, dict[str, str]] = {}
-        for context, selector, declarations in _colour_rules(style):
+        for context, selector, declarations in colour_rules(style):
             if theme not in applies_in.get(context, set(scopes)):
                 continue
             painted.setdefault(selector, {}).update(declarations)
@@ -277,37 +278,3 @@ def test_every_foreground_on_its_own_background_is_legible_in_all_three_themes()
         f"not the palette: {checked}"
     )
     assert not failures, "\n".join(failures)
-
-
-def _colour_rules(css: str) -> list[tuple[str, str, dict[str, str]]]:
-    """Every rule as (enclosing at-rule prelude, selector, declarations)."""
-
-    rules: list[tuple[str, str, dict[str, str]]] = []
-    stack: list[str] = []
-    head, index = "", 0
-    while index < len(css):
-        character = css[index]
-        if character == "{":
-            selector = head.strip()
-            head = ""
-            if selector.startswith("@"):
-                stack.append(selector)
-                index += 1
-                continue
-            depth, cursor = 1, index + 1
-            while cursor < len(css) and depth:
-                depth += {"{": 1, "}": -1}.get(css[cursor], 0)
-                cursor += 1
-            rules.append((stack[-1] if stack else "", selector, {
-                match.group(1).strip(): match.group(2).strip()
-                for match in re.finditer(r"([-\w]+)\s*:\s*([^;{}]+)", css[index + 1:cursor - 1])
-            }))
-            index = cursor - 1
-        elif character == "}":
-            if stack:
-                stack.pop()
-            head = ""
-        else:
-            head += character
-        index += 1
-    return rules

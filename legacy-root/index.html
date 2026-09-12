@@ -1107,8 +1107,16 @@
 
         /* ── A11y: respect prefers-reduced-motion (2026-07 UI audit) ──
            Entry/exit and shimmer animations are decorative; users who ask the
-           OS for less motion get instant state changes instead. The .sp
-           loading spinner is kept (it conveys "busy"), everything else stops. */
+           OS for less motion get instant state changes instead.
+           2026-09-12: this block never touched .sp, but the claim that the
+           spinner was "kept" was still false — ui-tokens.css and
+           brand-system.css, both linked above, each carried
+           `animation-iteration-count: 1 !important` on `*`, which stops a
+           looping animation after one pass. The spinner beside "连接中…" sat
+           frozen from 2026-07 on, and a frozen spinner does not say "busy",
+           it says "hung". The carve-out now lives with the blanket that
+           caused it (ui-tokens.css), where the next person to widen the
+           blanket will see it. */
         @media (prefers-reduced-motion: reduce) {
             .anim, .toast, .img-skel { animation: none !important; }
             *, *::before, *::after { transition-duration: .01ms !important; }

@@ -411,7 +411,13 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
     --ink-soft: var(--slate-600);
     --ink-faint: var(--slate-muted);
     --hairline: rgba(14, 23, 41, .14);
-    --control-line: rgba(14, 23, 41, .34);   /* 3.90:1 on paper */
+    /* Was .34, commented "3.90:1 on paper" and measuring 2.14:1 — the dark
+       side's alpha copied across without re-measuring against a light ground.
+       .55 is the value that actually gives 3.90:1, which WCAG 1.4.11 requires
+       of a control boundary. It carries three consumers: the ghost button's
+       edge, the language switch, and the enquiry form's input borders — the
+       last of which already had a comment citing 1.4.11 by name. */
+    --control-line: rgba(14, 23, 41, .55);   /* 3.90:1 on paper */
     /* Paper takes a stronger tint than navy for the same apparent weight. */
     --wash-accent: rgba(245, 179, 53, .14);
     --control-fill: var(--white);
@@ -458,4 +464,21 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
   html { scroll-behavior: auto; }
   .js .reveal { opacity: 1 !important; transform: none !important; transition: none; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+/* ── Glass fallback ────────────────────────────────────────────────────────
+ * See backend/frontend/assets/ui-tokens.css for the full note. Short version:
+ * a translucent ground plus `backdrop-filter` has two failure modes — a
+ * browser without blur support keeps the transparency and loses the blur, and
+ * a person with Reduce Transparency on has told the operating system that
+ * this effect is the thing they cannot read. Both want an opaque ground.
+ * These are the sticky bars that carry navigation; nothing else on the page
+ * puts text over a blur. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root { --nav-solid: var(--surface); --nav-panel: var(--surface); }
+  .nav, .nav-links {
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --nav-solid: var(--surface); --nav-panel: var(--surface); }
 }

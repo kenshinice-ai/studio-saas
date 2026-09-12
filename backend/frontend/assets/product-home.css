@@ -759,3 +759,17 @@ html[lang="zh-Hans"] .product-home .hero h1 {
   .system-map-node:focus-visible,
   .system-map-node[data-active] { transform: none; }
 }
+/* ── Glass fallback ────────────────────────────────────────────────────────
+ * See backend/frontend/assets/ui-tokens.css for the full note. Short version:
+ * a translucent ground plus `backdrop-filter` has two failure modes — a
+ * browser without blur support keeps the transparency and loses the blur, and
+ * a person with Reduce Transparency on has told the operating system that
+ * this effect is the thing they cannot read. Both want an opaque ground.
+ * These are the sticky bars that carry navigation; nothing else on the page
+ * puts text over a blur. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .product-home .nav, .product-home .nav-links,
+  .system-core-label, .system-chip {
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+}

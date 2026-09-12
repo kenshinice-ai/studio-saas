@@ -56,7 +56,11 @@
   --ui-focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
 }
 
-:where(button, a, input, select, textarea):focus-visible {
+/* `summary` and `[tabindex]` were missing: a <details> toggle and any div
+   made focusable by hand are both Tab stops that had no focus style at all.
+   Still :where(), so a component can override without a specificity war —
+   but a component that overrides it has to put a ring back. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--ui-primary);
   outline-offset: 2px;
   box-shadow: var(--ui-focus);
@@ -69,7 +73,21 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  /* One carve-out, and it is not cosmetic. `animation-iteration-count: 1`
+     stops every looping animation after a single pass, which turns a busy
+     indicator into a frozen glyph — the CMS boot spinner sits beside
+     "连接中…" and is the only thing distinguishing "connecting" from "hung".
+     Reduce-motion is about vestibular triggers, and the trigger there is the
+     rotation, not the fact of animating: so the rotation is replaced by an
+     opacity pulse rather than removed. `[data-motion="essential"]` is the
+     hook for anything else that means "still working". */
+  .sp, [role="progressbar"], [data-motion="essential"] {
+    animation: essential-pulse 1.2s ease-in-out infinite !important;
+    animation-iteration-count: infinite !important;
+  }
 }
+
+@keyframes essential-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
 
 /* ── 主从分栏，只在放得下的时候才分 ────────────────────────────────
  *
@@ -91,4 +109,40 @@
   .ui-golden-split {
     grid-template-columns: var(--ui-golden-columns-reverse);
   }
+}
+
+/* ── Glass, and what happens when it is not available ──────────────────────
+ *
+ * 28 surfaces in this product paint a semi-transparent ground and blur what
+ * is behind it — sticky navigation, the totop button, sheet headers, the
+ * mobile submit bar. Not one of them had a fallback: no `@supports`, no
+ * `prefers-reduced-transparency`, no `prefers-contrast`, zero occurrences of
+ * any of the three repo-wide.
+ *
+ * Two ways that breaks. A browser without backdrop-filter keeps the
+ * translucent ground and no blur, so the page scrolls visibly through the
+ * navigation bar and its labels sit on moving text. And a person who has
+ * turned Reduce Transparency on has said, in the operating system, that this
+ * exact effect is the thing they cannot read — Windows contrast themes do the
+ * same. Both want the same answer: put the ground back and drop the blur.
+ *
+ * `--glass-opacity` is the hook. Pages mix their own surface colour with it
+ * rather than writing 88% / 90% / 92% / 94% / 96% by hand, which is what five
+ * different files were doing for one visual idea.
+ */
+:root {
+  --glass-opacity: 88%;          /* chrome that floats over content */
+  --glass-opacity-strong: 94%;   /* sheets and bars that carry controls */
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root { --glass-opacity: 100%; --glass-opacity-strong: 100%; }
+  *, *::before, *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-opacity: 100%; --glass-opacity-strong: 100%; }
 }

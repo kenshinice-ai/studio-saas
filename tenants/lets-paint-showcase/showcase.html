@@ -35,7 +35,7 @@
     a{color:var(--clay);text-decoration:none;font-weight:500}
     .skip-link{position:absolute;left:12px;top:-60px;z-index:100;padding:10px 14px;border-radius:var(--radius);background:var(--ink);color:var(--bg)}
     .skip-link:focus{top:12px}
-    nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) var(--glass-opacity), transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
     /* Bounded: a wide wordmark at a fixed height crowds the name and the
        menu button off a phone. See index.html for the full note. */
     /* A wordmark logo already says the studio's name; printing it again beside
@@ -88,7 +88,12 @@
     .lb-counter{color:var(--muted);font-size:13px}
     @media(max-width:900px){.showcase-grid{grid-template-columns:1fr 1fr}.sc-item:first-child{grid-row:auto;grid-column:1/-1}.sc-item:first-child .sc-frame{aspect-ratio:16/10}}
     @media(max-width:640px){main{padding:var(--space-phi-xl) var(--space-phi-sm) var(--space-phi-lg)}.showcase-grid{grid-template-columns:1fr}.sc-item:first-child .sc-frame{aspect-ratio:4/5}.foot{padding:0 var(--space-phi-sm)}.foot .fl{width:100%}.lb-head,.lb-foot{padding-inline:12px}}
-    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.sc-item:hover .sc-frame img{transform:none}}
+    /* `transition:none` removes the property; `transition-duration:0` removes
+       the wait. The first one takes the interface's colour feedback away from
+       the people who asked for less motion — hover, focus and the lightbox's
+       own state changes stop being anything at all — which is not what they
+       asked for. Zeroing the duration keeps every state change, instantly. */
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}.sc-item:hover .sc-frame img{transform:none}}
   </style>
 </head>
 <body data-tenant-slug="lets-paint-showcase">

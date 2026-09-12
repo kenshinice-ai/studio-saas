@@ -53,6 +53,17 @@
   --info-soft: #DEE8F4;
   --on-info-soft: #3B6AA1;
   --info-border: #ADC3DE;
+  /* Ink on a role's BORDER tone, which is what the tinted buttons swap to on
+     hover. The `--on-X-soft` colours are tuned to the soft ground and measure
+     ~3.1:1 on the darker one, so every tinted button became unreadable at the
+     moment you pointed at it — .btn-warning, .btn-danger and .btn-success in
+     both consoles. Measured against WCAG 1.4.3's 4.5 for small text. */
+  --on-success-border: #125939;   /* 4.62:1 on --success-border  */
+  --on-warning-border: #6D4509;   /* 4.65:1 on --warning-border  */
+  --on-danger-border:  #92261A;   /* 4.60:1 on --danger-border   */
+  --on-info-border:    #204F86;   /* 4.61:1 on --info-border     */
+  --on-accent-2-border: #764100;  /* 4.63:1 on --accent-2-border */
+
   --focus-ring: #5E81C8;
   --disabled-surface: #EAE5DD;
   --disabled-text: #7E838F;

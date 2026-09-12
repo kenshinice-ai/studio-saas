@@ -353,8 +353,13 @@ export function Tabs({idBase, label, items, value, onChange, className=''}) {
 export function TabPanel({idBase, name, active, children}) {
     if (!active) return null;
     return (
+        // tabIndex={0} makes this a stop on the Tab route (the panel must be
+        // reachable when its content is scrollable), and `focus:outline-none`
+        // then removed the only thing that said where you were. A keyboard
+        // user tabbing out of the tab strip landed nowhere visible.
         <div role="tabpanel" id={`${idBase}-panel-${name}`} aria-labelledby={`${idBase}-tab-${name}`}
-            tabIndex={0} className="space-y-3 focus:outline-none">
+            tabIndex={0}
+            className="space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-lg">
             {children}
         </div>
     );

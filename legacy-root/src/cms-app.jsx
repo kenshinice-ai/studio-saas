@@ -3761,7 +3761,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <input autoFocus type="text" placeholder="搜索学员姓名、电话、微信号..." value={gQ}
                                 onChange={e=>setGQ(e.target.value)}
                                 onKeyDown={e=>{ if(e.key==='Escape'){setGOpen(false);setGQ('');} }}
-                                className="flex-1 outline-none text-gray-800 text-sm bg-transparent placeholder-gray-400"/>
+                                className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 rounded text-gray-800 text-sm bg-transparent placeholder-gray-400"/>
                             <kbd className="hidden sm:inline text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono">ESC</kbd>
                             <button type="button" onClick={()=>{setGOpen(false);setGQ('');}} aria-label="关闭搜索"
                                 className="text-gray-400 active:text-gray-700 text-xl inline-flex items-center justify-center">×</button>

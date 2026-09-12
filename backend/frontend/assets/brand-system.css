@@ -132,7 +132,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-:where(input, select, textarea, button, a):focus-visible {
+/* summary and [tabindex] join the list — see ui-tokens.css. */
+:where(input, select, textarea, button, a, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
   box-shadow: var(--brand-focus-ring);
@@ -189,4 +190,18 @@
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+  /* One carve-out, and it is not cosmetic. `animation-iteration-count: 1`
+     stops every looping animation after a single pass, which turns a busy
+     indicator into a frozen glyph — the CMS boot spinner sits beside
+     "连接中…" and is the only thing distinguishing "connecting" from "hung".
+     Reduce-motion is about vestibular triggers, and the trigger there is the
+     rotation, not the fact of animating: so the rotation is replaced by an
+     opacity pulse rather than removed. `[data-motion="essential"]` is the
+     hook for anything else that means "still working". */
+  .sp, [role="progressbar"], [data-motion="essential"] {
+    animation: essential-pulse 1.2s ease-in-out infinite !important;
+    animation-iteration-count: infinite !important;
+  }
 }
+
+@keyframes essential-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }

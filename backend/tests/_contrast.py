@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 
 __all__ = ["contrast", "luminance", "resolve_var", "composite", "parse_colour",
-           "at_rule_block"]
+           "at_rule_block", "colour_rules"]
 
 
 def _channels(value: str) -> tuple[float, float, float]:
@@ -135,3 +135,37 @@ def resolve_var(expression: str, *sources: str) -> str:
         else:
             raise KeyError(f"{name} is not defined in any of the given stylesheets")
     return value
+
+
+def colour_rules(css: str) -> list[tuple[str, str, dict[str, str]]]:
+    """Every rule as (enclosing at-rule prelude, selector, declarations)."""
+
+    rules: list[tuple[str, str, dict[str, str]]] = []
+    stack: list[str] = []
+    head, index = "", 0
+    while index < len(css):
+        character = css[index]
+        if character == "{":
+            selector = head.strip()
+            head = ""
+            if selector.startswith("@"):
+                stack.append(selector)
+                index += 1
+                continue
+            depth, cursor = 1, index + 1
+            while cursor < len(css) and depth:
+                depth += {"{": 1, "}": -1}.get(css[cursor], 0)
+                cursor += 1
+            rules.append((stack[-1] if stack else "", selector, {
+                match.group(1).strip(): match.group(2).strip()
+                for match in re.finditer(r"([-\w]+)\s*:\s*([^;{}]+)", css[index + 1:cursor - 1])
+            }))
+            index = cursor - 1
+        elif character == "}":
+            if stack:
+                stack.pop()
+            head = ""
+        else:
+            head += character
+        index += 1
+    return rules

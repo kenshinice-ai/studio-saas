@@ -294,28 +294,28 @@
 
     .btn-danger {
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
     }
-    .btn-danger:hover { background: var(--danger-border); }
+    .btn-danger:hover { background: var(--danger-border); color: var(--on-danger-border); }
 
     .btn-danger-outline {
       background: var(--panel);
       color: var(--danger);
       border: 1px solid var(--danger-border);
     }
-    .btn-danger-outline:hover { background: var(--danger-soft); }
+    .btn-danger-outline:hover { background: var(--danger-soft); color: var(--on-danger-soft); }
 
     .btn-warning {
       background: var(--warning-soft);
       color: var(--on-warning-soft);
     }
-    .btn-warning:hover { background: var(--warning-border); }
+    .btn-warning:hover { background: var(--warning-border); color: var(--on-warning-border); }
 
     .btn-info {
       background: var(--accent-soft);
       color: var(--accent-hover);
     }
-    .btn-info:hover { background: var(--info-border); }
+    .btn-info:hover { background: var(--info-border); color: var(--on-info-border); }
 
     a.btn-secondary, a.btn-primary, a.btn-danger, a.btn-info {
       padding: 10px 16px;
@@ -486,7 +486,7 @@
       justify-content: center;
       border-radius: 999px;
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
       font-size: var(--f-min);
       font-weight: 800;
     }
@@ -579,7 +579,7 @@
     .inspector-alert.danger {
       border-color: var(--danger-border);
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
     }
     .inspector-alert strong { display: block; margin-bottom: 3px; }
     .inspector-meta-row,
@@ -833,7 +833,7 @@
       justify-content: center;
       background: var(--accent-soft);
       border-radius: 8px;
-      color: var(--accent);
+      color: var(--on-accent-soft);
       flex-shrink: 0;
     }
 
@@ -1505,7 +1505,7 @@
       outline-offset: 1px;
     }
     .action-menu-item.danger { color: var(--danger); border-color: var(--danger-border); }
-    .action-menu-item.danger:hover { background: var(--danger-soft); }
+    .action-menu-item.danger:hover { background: var(--danger-soft); color: var(--on-danger-soft); }
     .action-menu-item:disabled { cursor: not-allowed; opacity: .55; }
     .action-menu-arrow { color: var(--muted); font-size: var(--f-1); }
     .action-context-note {
@@ -1653,27 +1653,27 @@
 
     .pill.active, .pill.trialing, .pill.trial {
       background: var(--success-soft);
-      color: var(--on-success-soft); /* 4.84:1 on --green-light */
+      color: var(--on-success-soft); /* 4.54:1 on --success-soft */
     }
 
     .pill.past_due {
       background: var(--warning-soft);
-      color: var(--on-warning-soft); /* 6.37:1 on --amber-light */
+      color: var(--on-warning-soft); /* 4.52:1 on --warning-soft */
     }
 
     .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
       background: var(--bg2);
-      color: var(--ink2); /* 6.84:1 on --neutral-light */
+      color: var(--ink2); /* 8.02:1 on --bg2 */
     }
 
     .pill.warning {
       background: var(--warning-soft);
-      color: var(--on-warning-soft); /* 6.37:1 on --amber-light */
+      color: var(--on-warning-soft); /* 4.52:1 on --warning-soft */
     }
 
     .pill.fixture {
       background: var(--bg2);
-      color: var(--ink2); /* 6.84:1 on --neutral-light */
+      color: var(--ink2); /* 8.02:1 on --bg2 */
     }
 
     .pill-icon {
@@ -1868,7 +1868,7 @@
       border: 1px solid var(--danger-border);
       border-radius: var(--radius);
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
       font-size: var(--f-0);
       font-weight: 600;
     }
@@ -2200,7 +2200,7 @@
       padding: var(--space-2) var(--space-3);
       border-radius: var(--radius);
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
       font-size: var(--f-min);
       font-weight: 600;
     }
@@ -2290,7 +2290,7 @@
       color: var(--ink2);
     }
     .plan-change-impact[hidden] { display: none; }
-    .plan-change-impact.is-danger { border-color: var(--danger-border); border-left-color: var(--danger); background: var(--danger-soft); }
+    .plan-change-impact.is-danger { border-color: var(--danger-border); border-left-color: var(--on-danger-soft); background: var(--danger-soft); }
     .plan-change-impact > strong { display: block; margin-bottom: var(--space-2); color: var(--ink); }
     .plan-impact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
     .plan-impact-group { min-width: 0; }
@@ -2410,7 +2410,7 @@
     /* Amber and red here are text on their own wash, both measured. An
        expiry that has passed must not read as ordinary grey. */
     .date-rel.soon { color: var(--on-warning-soft); background: var(--warning-soft); }
-    .date-rel.overdue { color: var(--danger); background: var(--danger-soft); font-weight: 600; }
+    .date-rel.overdue { color: var(--on-danger-soft); background: var(--danger-soft); font-weight: 600; }
 
     /* Code/Slug */
     code {

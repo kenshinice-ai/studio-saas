@@ -292,15 +292,15 @@
 
     .btn-danger {
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
     }
-    .btn-danger:hover { background: var(--danger-border); }
+    .btn-danger:hover { background: var(--danger-border); color: var(--on-danger-border); }
 
     .btn-success {
       background: var(--success-soft);
-      color: var(--success);
+      color: var(--on-success-soft);
     }
-    .btn-success:hover { background: var(--success-border); }
+    .btn-success:hover { background: var(--success-border); color: var(--on-success-border); }
 
     .btn-info {
       background: var(--accent-soft);
@@ -357,7 +357,7 @@
       justify-content: center;
       background: var(--accent-soft);
       border-radius: 8px;
-      color: var(--accent);
+      color: var(--on-accent-soft);
     }
 
     .section-icon svg {
@@ -625,8 +625,8 @@
       letter-spacing: 0.3px;
     }
 
-    .pill.active, .pill.trialing { background: var(--success-soft); color: var(--success); }
-    .pill.pending { background: var(--warning-soft); color: var(--warning); }
+    .pill.active, .pill.trialing { background: var(--success-soft); color: var(--on-success-soft); }
+    .pill.pending { background: var(--warning-soft); color: var(--on-warning-soft); }
     .pill.cancelled, .pill.paused, .pill.inactive, .pill.archived, .pill.contacted { background: var(--bg); color: var(--muted); }
 
     /* Progress Bars */
@@ -735,9 +735,9 @@
       border: 1px solid var(--line);
     }
 
-    .surface-health.ok { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
-    .surface-health.warn { background: var(--warning-soft); color: var(--warning); border-color: var(--warning-border); }
-    .surface-health.fail { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+    .surface-health.ok { background: var(--success-soft); color: var(--on-success-soft); border-color: var(--success-border); }
+    .surface-health.warn { background: var(--warning-soft); color: var(--on-warning-soft); border-color: var(--warning-border); }
+    .surface-health.fail { background: var(--danger-soft); color: var(--on-danger-soft); border-color: var(--danger-border); }
 
     .handoff-note {
       background: var(--bg2);
@@ -1961,7 +1961,7 @@
       border: 1px solid var(--danger-border);
       border-radius: var(--radius);
       background: var(--danger-soft);
-      color: var(--danger);
+      color: var(--on-danger-soft);
       font-size: 13px;
       font-weight: 600;
     }
@@ -2017,9 +2017,9 @@
       font-weight: 700;
     }
 
-    .badge.green { background: var(--success-soft); color: var(--success); }
-    .badge.amber { background: var(--warning-soft); color: var(--warning); }
-    .badge.red { background: var(--danger-soft); color: var(--danger); }
+    .badge.green { background: var(--success-soft); color: var(--on-success-soft); }
+    .badge.amber { background: var(--warning-soft); color: var(--on-warning-soft); }
+    .badge.red { background: var(--danger-soft); color: var(--on-danger-soft); }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {

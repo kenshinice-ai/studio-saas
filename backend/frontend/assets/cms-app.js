@@ -3094,16 +3094,22 @@
   }
   function TabPanel({ idBase, name, active, children }) {
     if (!active) return null;
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        role: "tabpanel",
-        id: `${idBase}-panel-${name}`,
-        "aria-labelledby": `${idBase}-tab-${name}`,
-        tabIndex: 0,
-        className: "space-y-3 focus:outline-none"
-      },
-      children
+    return (
+      // tabIndex={0} makes this a stop on the Tab route (the panel must be
+      // reachable when its content is scrollable), and `focus:outline-none`
+      // then removed the only thing that said where you were. A keyboard
+      // user tabbing out of the tab strip landed nowhere visible.
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          role: "tabpanel",
+          id: `${idBase}-panel-${name}`,
+          "aria-labelledby": `${idBase}-tab-${name}`,
+          tabIndex: 0,
+          className: "space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-lg"
+        },
+        children
+      )
     );
   }
   function EmptyState({ icon = null, main = "暂无数据", sub = "", action = null, onAction = null }) {
@@ -10093,7 +10099,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
               setGQ("");
             }
           },
-          className: "flex-1 outline-none text-gray-800 text-sm bg-transparent placeholder-gray-400"
+          className: "flex-1 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 rounded text-gray-800 text-sm bg-transparent placeholder-gray-400"
         }
       ), /* @__PURE__ */ React.createElement("kbd", { className: "hidden sm:inline text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono" }, "ESC"), /* @__PURE__ */ React.createElement(
         "button",

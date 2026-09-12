@@ -35,7 +35,7 @@
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:var(--font-body); font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased; }
     a { color:var(--clay); text-decoration:none; font-weight:500; }
-    nav { position:sticky; top:0; left:0; right:0; z-index:50; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
+    nav { position:sticky; top:0; left:0; right:0; z-index:50; background:color-mix(in srgb, var(--bg) var(--glass-opacity), transparent); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
     /* Bounded: a wide wordmark at a fixed height crowds the name and the
        menu button off a phone. See index.html for the full note. */
     /* A wordmark logo already says the studio's name; printing it again beside
@@ -136,7 +136,17 @@
       .class-row { grid-template-columns:auto minmax(0,1fr); }
       .class-aside { grid-column:1/-1; justify-content:space-between; }
     }
-    @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
+    /* Durations, not properties. `transition:none` + `animation:none` removed
+       colour feedback and the loading skeleton outright for anyone who asked
+       for less motion — they got a page that never acknowledges anything. */
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after {
+        transition-duration:.01ms !important;
+        animation-duration:.01ms !important;
+        animation-iteration-count:1 !important;
+        scroll-behavior:auto !important;
+      }
+    }
   </style>
 </head>
 <body data-tenant-slug="lets-paint-studio">

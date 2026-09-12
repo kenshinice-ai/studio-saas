@@ -43,7 +43,7 @@
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:var(--font-body); font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased; }
     .serif { font-family:var(--font-display); }
-    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
+    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) var(--glass-opacity), transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
     .brand { display:flex; align-items:center; gap:12px; min-width:0; }
     .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius-xs); background:var(--surface); padding:4px; }
     .name { font-weight:500; font-size:15px; letter-spacing:.04em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -143,7 +143,7 @@
       .card { padding:var(--space-phi-md); }
       .row { grid-template-columns:1fr; }
       .done-actions { grid-template-columns:1fr; }
-      .submit-bar { position:sticky; bottom:0; z-index:2; margin-inline:calc(var(--space-phi-md) * -1); padding:var(--space-phi-sm) var(--space-phi-md) calc(var(--space-phi-sm) + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line); background:color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter:blur(12px); }
+      .submit-bar { position:sticky; bottom:0; z-index:2; margin-inline:calc(var(--space-phi-md) * -1); padding:var(--space-phi-sm) var(--space-phi-md) calc(var(--space-phi-sm) + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line); background:color-mix(in srgb, var(--surface) var(--glass-opacity-strong), transparent); backdrop-filter:blur(12px); }
     }
   </style>
 </head>
