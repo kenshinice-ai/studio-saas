@@ -358,7 +358,7 @@ export function StudentProfileModal(props) {
                                                         <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}{item.note?' ·':''}</p>
                                                     </div>
                                                     {item.public && (
-                                                        <span className="absolute top-1 left-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 shadow">
+                                                        <span className="absolute top-1 left-1 rounded-full bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 shadow">
                                                             官网
                                                         </span>
                                                     )}

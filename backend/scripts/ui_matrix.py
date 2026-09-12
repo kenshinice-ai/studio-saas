@@ -175,6 +175,48 @@ CMS_ASSERTIONS_JS = """
 """
 
 
+# A page still showing its boot state has nothing to assert, and every
+# assertion that finds nothing passes. So the first question is always whether
+# the thing rendered.
+#
+# Detecting that by scanning the body for "连接中" is what the first version of
+# this did, and it flagged the release-notes page — which *describes* the CMS,
+# boot message and all — at every width. A boot screen is not text that
+# mentions connecting; it is a page that consists of almost nothing else. So
+# the test is the pair: a boot marker AND a page too short to be the content.
+BOOT_MARKERS = ("连接中", "Connecting", "载入中", "Loading…")
+BOOT_TEXT_CEILING = 400     # the CMS boot screen is ~4 characters
+MINIMUM_TEXT = 40           # below this, nothing rendered at all
+
+
+def wait_until_rendered(page, is_app: bool, budget_ms: int = 8000) -> dict:
+    """Wait for the page to stop showing a boot state; report what happened."""
+
+    import time as _time
+
+    started = _time.monotonic()
+    last = {"text": 0, "boot": True}
+    while (_time.monotonic() - started) * 1000 < budget_ms:
+        last = page.evaluate(
+            """(config) => {
+                 const body = document.body;
+                 if (!body) return {text: 0, boot: true};
+                 const text = (body.innerText || '').trim();
+                 return {text: text.length,
+                         boot: text.length < config.ceiling
+                               && config.markers.some(m => text.includes(m))};
+               }""",
+            {"markers": list(BOOT_MARKERS), "ceiling": BOOT_TEXT_CEILING},
+        )
+        if last["text"] >= MINIMUM_TEXT and not last["boot"]:
+            waited = round((_time.monotonic() - started) * 1000)
+            return {"ok": True, "detail": f"rendered after {waited}ms, {last['text']} chars"}
+        page.wait_for_timeout(120)
+    reason = ("still on its boot screen" if last["boot"]
+              else f"only {last['text']} characters of text")
+    return {"ok": False, "detail": f"{reason} after {budget_ms}ms"}
+
+
 # One evaluate() per page: returns a list of {assertion, target, ok, detail}.
 NAV_BRAND_ASSERTIONS_JS = """
 (selectors) => {
@@ -369,12 +411,32 @@ def main() -> int:
                         # async content lands; give it a beat before measuring.
                         page.wait_for_timeout(600)
                         run_actions(page, spec.get("actions"))
+                        # Settle BEFORE the screenshot, not after. This used to
+                        # shoot first and wait second, so the CMS pages' saved
+                        # evidence was a picture of the boot screen while the
+                        # assertions ran against the settled page — two
+                        # different moments, one of them the one a human looks
+                        # at. (The boot itself is fast: 0.35s desktop, 0.54s
+                        # phone, measured 2026-09-12. The picture was lying,
+                        # not the product.)
+                        settled = wait_until_rendered(page, bool(spec.get("assert_cms")))
                         shot = shots_dir / f"{name}__w{width}__{lang}.png"
                         page.screenshot(path=str(shot), full_page=True)
+                        # And a page that never rendered is a FAILURE, not a
+                        # page with nothing to assert. `assert_cms` treats a
+                        # missing `.anim` as "not applicable" — correct for the
+                        # two panels that root elsewhere, catastrophic for a
+                        # page that is still showing a spinner, which passes
+                        # every check by having nothing to check.
+                        rendered = {**combo, "assertion": "page-rendered",
+                                    "target": "documentElement", "ok": settled["ok"],
+                                    "detail": settled["detail"]}
+                        results.append(rendered)
+                        if not settled["ok"]:
+                            failures += 1
+                            print(f"FAIL {name} w{width} {lang}: page-rendered "
+                                  f"[documentElement] {settled['detail']}")
                         if spec.get("assert_cms"):
-                            # The CMS mounts React after load; give it the same
-                            # beat the panels need before the first paint.
-                            page.wait_for_timeout(2200)
                             options = {"maxBlocks": int(spec.get("max_blocks", 8))}
                             for entry in page.evaluate(CMS_ASSERTIONS_JS, options):
                                 record = {**combo, **entry}

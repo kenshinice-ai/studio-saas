@@ -437,7 +437,7 @@ export function CmsNotificationCenter({
                 <Icon name="bell" className="w-5 h-5"/>
                 {unreadCount > 0 && (
                     <span aria-label={`${unreadCount} 条未读通知`}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[16px] leading-4 text-center">
+                        className="absolute -top-1 -right-1 bg-red-500 text-white text-[11px] font-bold px-1 rounded-full min-w-[16px] leading-4 text-center">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
@@ -464,7 +464,7 @@ export function CmsNotificationCenter({
                                     <span className="min-w-0 flex-1">
                                         <span className="flex items-center gap-2">
                                             <span className="font-bold text-sm truncate">{notification.title}</span>
-                                            <span className="text-[10px] text-gray-400 flex-shrink-0">{formatCreatedAt(notification.createdAt)}</span>
+                                            <span className="text-[11px] text-gray-400 flex-shrink-0">{formatCreatedAt(notification.createdAt)}</span>
                                         </span>
                                         <span className="block mt-1 text-xs text-gray-600 leading-relaxed break-words">{notification.summary}</span>
                                     </span>
@@ -1232,7 +1232,7 @@ export function LoginScreen({ onLogin, embedded = false }) {
                         {busy ? '验证中...' : '进入系统 →'}
                     </button>
                 </form>
-                <p className="mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400">
+                <p className="mt-6 pt-4 border-t border-gray-100 text-[11px] tracking-wide text-gray-400">
                     Powered by PWE
                 </p>
             </div>

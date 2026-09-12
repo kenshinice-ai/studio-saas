@@ -3917,7 +3917,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <button type="button" onClick={()=>{setGOpen(true);setGQ('');}} aria-label="搜索学员、手机号或功能"
                         className="flex-1 max-w-2xl min-h-[44px] px-4 rounded-xl border border-gray-200 bg-white text-left text-sm text-gray-400 shadow-sm hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                         <span className="inline-flex items-center gap-2"><Icon name="search" className="w-4 h-4"/>搜索学员、手机号或功能</span>
-                        <kbd className="float-right hidden lg:inline-flex rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-500">⌘K</kbd>
+                        <kbd className="float-right hidden lg:inline-flex rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-mono text-gray-500">⌘K</kbd>
                     </button>
                     <div className="ml-auto flex items-center gap-2">
                         {canViewCmsNotifications && <CmsNotificationCenter
@@ -4294,7 +4294,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {/* 页脚永远是内容列的最后一样东西。在设置还是覆盖层的时候，
                     它排在哪都看不出来；设置变成正常页面之后，它就夹在标签条
                     和面板中间了。 */}
-                <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
+                <footer className="mt-8 pb-6 text-center text-[11px] tracking-wide text-gray-400">
                     © 2026 {tenantDisplayName} · Powered by PWE
                 </footer>
             </main>
@@ -4312,8 +4312,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             aria-current={tab===k ? 'page' : undefined}
                             className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative cms-chrome-item ${['courses','works','logs','stats','pending','new_student','settings'].includes(tab)&&tab===k?'is-active':''}`}>
                             <Icon name={NAV_ICON[k]} className="w-[22px] h-[22px]"/>
-                            <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
-                            {badge>0 && <span className="absolute top-1 right-2 bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{badge}</span>}
+                            <span className="text-[11px] font-bold leading-none tracking-tight">{s}</span>
+                            {badge>0 && <span className="absolute top-1 right-2 bg-amber-400 text-white text-[11px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{badge}</span>}
                         </button>
                     ))}
                 </div>
@@ -4325,17 +4325,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         aria-current={tab===k ? 'page' : undefined}
                         className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab===k?'is-active':''}`}>
                         <Icon name={NAV_ICON[k]} className="w-[22px] h-[22px]"/>
-                        <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
+                        <span className="text-[11px] font-bold leading-none tracking-tight">{s}</span>
                         {k==='dashboard' && analytics.lowBalance.length>0 &&
-                            <span className="absolute top-1.5 right-[18%] bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{analytics.lowBalance.length}</span>}
+                            <span className="absolute top-1.5 right-[18%] bg-red-500 text-white text-[11px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{analytics.lowBalance.length}</span>}
                     </button>
                 ))}
                 {/* More button */}
                 <button onClick={()=>setMoreOpen(o=>!o)}
                     className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${moreOpen||['courses','works','logs','stats','pending','new_student','settings'].includes(tab)?'is-active':''}`}>
                     <span className="leading-none inline-flex items-center justify-center h-[22px]">{moreOpen?<Icon name="close" className="w-[22px] h-[22px]"/>:<Icon name="ellipsis" className="w-[22px] h-[22px]"/>}</span>
-                    <span className="text-[10px] font-bold leading-none tracking-tight">更多</span>
-                    {pendingCount>0 && !moreOpen && <span className="absolute top-1.5 right-[18%] bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{pendingCount}</span>}
+                    <span className="text-[11px] font-bold leading-none tracking-tight">更多</span>
+                    {pendingCount>0 && !moreOpen && <span className="absolute top-1.5 right-[18%] bg-amber-400 text-white text-[11px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{pendingCount}</span>}
                 </button>
             </nav>
         </div>

@@ -232,7 +232,11 @@ a:hover { color: var(--cr-link-hover); }
   background: var(--cr-card);
 }
 
-.card p { max-width: none; color: var(--cr-copy); }
+/* Card copy carries addresses and code paths; let the long ones break rather
+   than widen the card. `anywhere` (not `break-word`) so the token is also
+   allowed to shrink the min-content width the grid track is computed from. */
+.card p, .card li, .card strong { max-width: none; overflow-wrap: anywhere; }
+.card p { color: var(--cr-copy); }
 .card p:last-child { margin-bottom: 0; }
 .card strong { display: block; margin-bottom: .3rem; color: var(--cr-ink); }
 
@@ -352,7 +356,14 @@ tr:last-child td { border-bottom: 0; }
    loaded gun aimed at the Chinese page the day someone adds a marker back. */
 
 @media (max-width: 680px) {
-  .grid { grid-template-columns: 1fr; }
+  /* `minmax(0, …)`, not a bare `1fr`. `1fr` is `minmax(auto, 1fr)`, and `auto`
+     as a track minimum is the MIN-CONTENT width — so one unbreakable token in
+     a card (a long address, a `<code>` path) sets the track, and the track can
+     exceed its own container. Measured on a 375px phone: the container was
+     343px and the single track resolved to 663px, so every release-notes card
+     hung off the right edge and the whole page scrolled sideways. The desktop
+     rule above always had the guard; the mobile override silently dropped it. */
+  .grid { grid-template-columns: minmax(0, 1fr); }
   table { font-size: .86rem; }
   .band { padding: var(--ui-space-4, 21px); }
 }

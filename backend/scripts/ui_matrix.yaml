@@ -99,10 +99,15 @@ pages:
 
   # The self-service registration page. It has its own Tailwind build since
   # v10.17.0 and no site navigation by design.
+  # `max_blocks` defaults to 8 in the runner, and the registration page has 10
+  # top-level blocks by design — it is a form, not a CMS panel. An assertion
+  # fired on a page it was never written for is how people learn to ignore a
+  # gate, so the budget is stated for this page rather than inherited.
   - name: portal_register
     path: /_legacy/register
     assert_nav: false
     assert_cms: true
+    max_blocks: 11
     languages: [default]
 
   # ── L2 · tenant public surfaces ─────────────────────────────────────────

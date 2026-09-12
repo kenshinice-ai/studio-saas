@@ -72,8 +72,8 @@ function StatusChip({ invoice }) {
   const label = overdue ? '逾期' : (STATUS_LABEL[invoice.status] || invoice.status);
   return (
     <span className="inline-flex items-center gap-1">
-      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${cls}`}>{label}</span>
-      {financial.creditState !== 'none' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-200 bg-indigo-50 text-indigo-700 whitespace-nowrap">{CREDIT_STATE_LABEL[financial.creditState]}</span>}
+      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${cls}`}>{label}</span>
+      {financial.creditState !== 'none' && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded border border-indigo-200 bg-indigo-50 text-indigo-700 whitespace-nowrap">{CREDIT_STATE_LABEL[financial.creditState]}</span>}
     </span>
   );
 }
@@ -721,7 +721,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                       scroll, which is what that class was there for. */}
                   <table className="w-full min-w-[26rem] text-xs">
                     <thead>
-                      <tr className="text-[10px] uppercase tracking-wide text-gray-500">
+                      <tr className="text-[11px] uppercase tracking-wide text-gray-500">
                         <th className="text-left py-2">项目</th>
                         <th className="text-right py-2">数量</th>
                         <th className="text-right py-2">单价</th>
@@ -909,7 +909,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                         <p className="text-gray-500 py-2">本期没有账务往来。</p>
                       ) : (
                         <table className="w-full text-[11px]">
-                          <thead><tr className="text-[10px] uppercase tracking-wide text-gray-500">
+                          <thead><tr className="text-[11px] uppercase tracking-wide text-gray-500">
                             <th className="text-left py-1.5">日期</th><th className="text-left py-1.5">单据</th>
                             <th className="text-right py-1.5">应收</th><th className="text-right py-1.5">收款/贷记</th>
                             <th className="text-right py-1.5">余额</th>

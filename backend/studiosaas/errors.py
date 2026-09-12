@@ -162,7 +162,11 @@ def _error_page(code: str, status: int, message: str) -> Response:
         "__PATH__": escape(request.path),
     }.items():
         page = page.replace(token, value)
-    response = Response(page, mimetype="text/html; charset=utf-8")
+    # `mimetype=` appends its own charset, so putting one in the string ships
+    # `text/html; charset=utf-8; charset=utf-8`. Harmless — the duplicate is
+    # ignored — but it was in the first response of the new error page, which
+    # is not where you want a sloppy header.
+    response = Response(page, content_type="text/html; charset=utf-8")
     response.headers["Cache-Control"] = "no-store"
     return response
 

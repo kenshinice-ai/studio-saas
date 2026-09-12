@@ -116,7 +116,7 @@ export function TopupSection(props) {
                                             剩余 {source.availableCredits} 节 · 可退 ${(Number(source.availableAmountCents || 0) / 100).toFixed(2)} · 已退 {source.refundCount} 次
                                         </span>
                                     </span>
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${source.syncAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${source.syncAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
                                         {source.syncAvailable ? '可同步单据' : '无完整桥接'}
                                     </span>
                                 </div>

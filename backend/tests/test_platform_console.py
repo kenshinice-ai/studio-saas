@@ -326,12 +326,28 @@ def test_the_type_ladder_advances_by_the_golden_ratio() -> None:
 def test_no_font_size_is_written_as_a_raw_pixel_value() -> None:
     """Twelve ad-hoc sizes were what there was instead of a scale.
 
-    The producer credit is the one exemption and is capped by its own brand
-    spec at Latin-only 10px.
+    The producer credit used to be the one exemption, at 10px, "capped by its
+    own brand spec at Latin-only 10px". That reason expired in v10.18.0, when
+    the credit's wording became `PWE · 天域出品` — 天域出品 is not Latin, and
+    10px is where a Chinese character stops resolving its strokes. The
+    assertion did not notice, because it pinned the *number* and not the
+    *premise*: an exemption is only as good as its reason, and nothing was
+    checking the reason.
+
+    So the credit is 11px like everything else, and this now asserts the
+    premise as well — if a raw size comes back, the text it sets has to be
+    Latin-only for the argument to hold.
     """
 
-    sizes = re.findall(r"font-size: (\d+)px", console())
-    assert sizes == ["10"], f"raw font sizes outside the ladder: {sizes}"
+    source = console()
+    sizes = [int(size) for size in re.findall(r"font-size: (\d+)px", source)]
+    below = [size for size in sizes if size < 11]
+    assert not below, (
+        f"raw font sizes below the 11px floor: {below}. If one of them is "
+        f"deliberate, state the reason next to it AND make this assertion "
+        f"check that the reason is still true."
+    )
+    assert "PWE · 天域出品" in source and "font-size: 10px" not in source
 
 
 def test_the_split_is_the_golden_section() -> None:

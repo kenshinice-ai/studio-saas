@@ -139,15 +139,31 @@ export function StudentsSection(props) {
                     ))}
                     <p className="text-gray-400 text-sm mt-0.5 flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/> {fmtDate(s.lastActive)}{daysSince(s.lastActive)<9999?` · ${daysSince(s.lastActive)}天前`:''}</p>
                 </div>
+                {/* One loud control per page, and on a *browsing* list it is not a
+                    row action. Measured in production (owner, 1280px,
+                    2026-09-12): this page painted 14 controls loud enough to
+                    separate from the paper, and 12 of them were this row's
+                    `加入排课 / 查看排课` in solid indigo — twelve equally
+                    urgent-looking calls to write to today's roster, on a page
+                    you came to in order to *find* someone. Meanwhile 详情 —
+                    the one action that only reads — was the quietest thing in
+                    the row.
+
+                    Nothing is removed and nothing moves. The weights are
+                    ranked: 详情 leads (it is what a card of a person is for),
+                    the two writes sit below it, and the page's single loud
+                    control is 新建 at the top. The check-in list is the
+                    opposite case and keeps its loud row button — there the
+                    repeated action IS the task. */}
                 <div className="flex gap-2 mt-3">
                     <button onClick={()=>{setSelS(s);setEditP(false);}}
-                        className="flex-1 bg-gray-50 active:bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold min-h-[44px]">详情</button>
+                        className="flex-1 bg-indigo-50 active:bg-indigo-100 border border-indigo-200 text-indigo-800 py-3 rounded-xl text-sm font-bold min-h-[44px]">详情</button>
                     {!s.archived && (<>
                         {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
                             title="快速充值" aria-label="快速充值" className="px-3.5 py-3 rounded-xl font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px] flex items-center justify-center"><Icon name="money"/></button>
                         }
                         {canWriteAttendance && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
-                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 inline-flex items-center justify-center gap-1.5">{/* Same wording as the profile sheet's primary action: the label says
+                            className="flex-1 py-3 rounded-xl text-sm font-bold min-h-[44px] bg-white active:bg-indigo-50 text-indigo-700 border border-indigo-300 disabled:text-gray-400 disabled:border-gray-200 inline-flex items-center justify-center gap-1.5">{/* Same wording as the profile sheet's primary action: the label says
     what the tap does, not where it goes. It used to read 去排课 when the
     student was ALREADY on today's roster and 排课 when they were not,
     which is the opposite of how both read. */}
@@ -378,8 +394,8 @@ export function PendingSection(props) {
                                 命中与否都完全一致 —— 否则那个表单就成了「这个
                                 号码是不是你们的学员」的查询接口。 */}
                             {bk.isExistingStudent
-                                ? <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5">已是学员{bk.matchedStudent?` · ${bk.matchedStudent}`:''}</span>
-                                : <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5">新访客</span>}
+                                ? <span className="ml-2 align-middle inline-block text-[11px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5">已是学员{bk.matchedStudent?` · ${bk.matchedStudent}`:''}</span>
+                                : <span className="ml-2 align-middle inline-block text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5">新访客</span>}
                         </p>
                         <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{bk.contactPhone}</p>
                         <p className="text-sm text-gray-600 mt-1">{bk.date} {bk.startTime} · {bk.title||'未命名班次'}</p>
@@ -448,7 +464,7 @@ export function PendingSection(props) {
                     }
                     <div className="flex-1 min-w-0">
                         <p className="text-lg font-bold text-gray-800">{fullName}
-                            {isDupPending && <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5" title="另有一条待审核申请使用相同手机号">疑似重复</span>}
+                            {isDupPending && <span className="ml-2 align-middle inline-block text-[11px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5" title="另有一条待审核申请使用相同手机号">疑似重复</span>}
                         </p>
                         <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{pen.mobile||'—'}{pen.wechat ? ` · ${pen.wechat}` : ''}{pen.email ? ` · ${pen.email}` : ''}</p>
                         {pen.birthday && <p className="inline-flex items-center gap-1.5 text-xs text-pink-500 mt-0.5"><Icon name="cake" className="w-4 h-4"/>{fmtDate(pen.birthday)}</p>}

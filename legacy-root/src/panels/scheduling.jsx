@@ -155,11 +155,11 @@ export function RosterSection(props) {
                     aria-current={isSel?'date':undefined}
                     aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
                     className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''} ${outside?'is-outside':''}`}>
-                    <p className="text-[10px] opacity-70">{monthOpen ? '' : WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
+                    <p className="text-[11px] opacity-70">{monthOpen ? '' : WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
                     <p className="text-sm font-bold">{d.getDate()}</p>
                     {/* 0 人不显示徽标。「排过又清空」的残留是真实存在的，
                         否则整月会铺满一片没有意义的「0」。 */}
-                    <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
+                    <p className="text-[11px] font-bold opacity-80">{n>0?n:'—'}</p>
                 </button>
             );
         };
@@ -291,7 +291,12 @@ export function RosterSection(props) {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
             <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
-                <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">{`（课表 ${scheduledForDate.length} 班）`}</span>}</p>
+                {/* 这一行原本是「12/09/2026 · 10 人（课表 2 班）」。日期在它上面
+                    140px 处的日期选择器里，人数在它上面 60px 处的汇总条里
+                    （今日 · 10 人 / 已签到 0 / 待上课 10）——实测（生产 owner，
+                    2026-09-12）这一屏上「10」出现 7 次，其中三次就是这三处。
+                    留下的是这一行**独有**的那件事：今天由几个固定班次排出来。 */}
+                <p className="font-bold text-sm text-gray-800">今日名单{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">{`（课表 ${scheduledForDate.length} 班）`}</span>}</p>
                 {dayIds.length>0 && <details className="cms-day-actions-mobile">
                     <summary><Icon name="ellipsis" className="w-4 h-4"/>当日操作</summary>
                     <div className="cms-roster-menu" onClick={closeMenu}>
@@ -319,7 +324,19 @@ export function RosterSection(props) {
                     {canWriteAttendance && dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
                         <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok}
                             title={checkInWindow.ok ? undefined : checkInWindow.reason}
-                            className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 disabled:opacity-40 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
+                            /* The comment two rules below already states the
+                               house rule — one solid primary per page — and the
+                               phone build honours it by folding this into the
+                               「当日操作」menu. Desktop did not: measured in
+                               production (owner, 1280px, 2026-09-12) this page
+                               painted 13 controls loud, and 10 of them were the
+                               per-row 签到并扣 1 课时. Those ten are the task —
+                               you press each one as a person walks in — so they
+                               keep their weight. This one is the exception path
+                               AND the riskier one (it checks in everybody,
+                               including whoever did not come), and it was
+                               shouting just as loudly from above them. */
+                            className="inline-flex items-center gap-1.5 bg-white active:bg-indigo-50 disabled:opacity-40 text-indigo-700 border border-indigo-300 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
                     )}
                 </div>
             </div>
@@ -359,7 +376,20 @@ export function RosterSection(props) {
                                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                         <p className="font-bold text-gray-900 truncate">{s.name}</p>
                                         {entry.oneToOne && <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
-                                        <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':rosterStatus==='未签到'?'bg-amber-50 border-amber-200 text-amber-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
+                                        {/* Only the states that are NOT the
+                                            default for this day. On a fresh day
+                                            every row is 待上课, so the badge
+                                            appeared 10 times out of 10 and said
+                                            nothing — measured in production,
+                                            2026-09-12. A marker on everything
+                                            marks nothing, and it was competing
+                                            with the amber 未签到 that genuinely
+                                            needs to be seen. Checking someone in
+                                            now visibly changes their row from
+                                            "no badge" to 已签到. */}
+                                        {rosterStatus !== '待上课' && (
+                                        <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':'bg-amber-50 border-amber-200 text-amber-700'}`}>{rosterStatus}</span>
+                                        )}
                                     </div>
                                     <p className="text-xs text-gray-400 truncate">{[s.mobile||'未填写手机', slot, entry.note].filter(Boolean).join(' · ')}</p>
                                 </div>

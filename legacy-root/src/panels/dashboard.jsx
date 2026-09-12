@@ -27,15 +27,23 @@ export function DashboardSection(props) {
         {student: name},
     );
     /* 一份表，两个消费者：上面的「今日重点」按角色排它，下面的指挥台
-       用它来避开重复。写两份就会漂移——这个文件的隔壁正因此有过一次。 */
+       用它来避开重复。写两份就会漂移——这个文件的隔壁正因此有过一次。
+
+       第四列是**等着你处理的件数**，不是统计值。v10.15.0 去掉了重复的
+       **目的地**，重复的**数字**留了下来：实测（生产 owner，2026-09-12）
+       `todayEffectiveCount` 在首屏渲染三次（这里的「查看今日课程」、指挥台的
+       「应到」、统计卡的「今日排课」），`analytics.totalStudents` 渲染两次。
+       同一个变量在一屏上出现三遍，读者会当成三件事去核对。
+       规则：**门上的数字只表示「有东西在等你」。** 待处理是等着的，今天几个人
+       来、一共几个学员不是——那两个归下面那块专门放数字的地方。 */
     const actionsByRole = {
-        owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-        platform_super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-        super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
-        manager:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['topup','充值与退款',null,'money'],['stats','查看经营统计',null,'trend']],
-        teacher:[['roster','今日课程名单',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','上传作品',null,'image'],['logs','查看操作记录',null,'scroll']],
-        front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money']],
-        staff:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','管理作品',null,'image']],
+        owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','搜索学员',null,'users'],['stats','查看经营统计',null,'trend']],
+        platform_super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','搜索学员',null,'users'],['stats','查看经营统计',null,'trend']],
+        super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','搜索学员',null,'users'],['stats','查看经营统计',null,'trend']],
+        manager:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['topup','充值与退款',null,'money'],['stats','查看经营统计',null,'trend']],
+        teacher:[['roster','今日课程名单',null,'calendar'],['students','查找学员',null,'users'],['works','上传作品',null,'image'],['logs','查看操作记录',null,'scroll']],
+        front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money']],
+        staff:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','查找学员',null,'users'],['works','管理作品',null,'image']],
     };
 
     return (
@@ -171,7 +179,11 @@ export function DashboardSection(props) {
           {l:'全部剩余课时',  v:`${analytics.totalBalance} 课时`,             c:'text-indigo-600',  action:()=>{setSortBy('bal-desc');setFilterBy('active');setTab('students');}},
           /* 今日排课在这一屏已经有入口了（今日重点或指挥台，二选一）。这里是
              一个数字，不是第三扇通往同一页的门。 */
-          {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:null},
+          /* In SaaS mode the command post above already shows this exact
+             variable as 「应到」, and it is clickable there. Standalone has no
+             command post, so this is the only place the number appears and it
+             stays. Third rendering of one value removed. */
+          ...(TENANT_SLUG ? [] : [{l:'今日排课', v:`${analytics.todayRoster.length} 人`, c:'text-gray-700', action:null}]),
           canViewFinancialAnalytics
             ? {l:'历史总营收', v:`$${analytics.totalRevenue.toFixed(0)}`, c:'text-emerald-600', action:()=>setTab('stats')}
             : {l:'本月出勤', v:`${bizStats?.attended_month || 0} 人次`, c:'text-emerald-600', action:()=>setTab('roster')},
@@ -418,7 +430,7 @@ export function DashboardSection(props) {
                     <div key={l} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                         <p className="text-[11px] text-gray-400">{l}</p>
                         <p className={`text-xl font-bold ${c}`}>{v}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
                     </div>
                 ))}
             </div>

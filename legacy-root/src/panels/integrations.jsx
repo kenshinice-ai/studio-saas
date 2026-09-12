@@ -272,11 +272,11 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
             按此对待」——正是 Beta 要说的话。**移除触发条件**：X4 出口达成
             （一个自然月 0 人工修账）后转 X5 GA，这个 span 随之删掉。 */}
         {!preview && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap bg-amber-50 text-amber-800 border-amber-200">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap bg-amber-50 text-amber-800 border-amber-200">
             Beta
           </span>
         )}
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
+        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
           ${preview ? 'bg-blue-50 text-blue-700 border-blue-200' : state.pushEnabled ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
           {preview ? '预览状态 · 不发送数据' : state.pushEnabled ? '推送已开启' : '推送未开启'}
         </span>
@@ -334,14 +334,14 @@ export function IntegrationsPanel({ api, showToast, confirm, canManage }) {
                 : cx.status === 'error' ? 'Xero 连接出错，需要重新授权'
                 : cx.status === 'revoked' ? 'Xero 已断开' : '尚未连接 Xero'}
             </p>
-            {cx.lastError && <p className="mb-2 text-[10px] opacity-80">{cx.lastError}</p>}
+            {cx.lastError && <p className="mb-2 text-[11px] opacity-80">{cx.lastError}</p>}
             <p className="mb-2">授权后本工作室即与你的 Xero 组织建立连接（建议先选 Demo Company）；连接本身不推送任何数据。</p>
             {canManage
               ? <button type="button" onClick={connectNow} disabled={busy}
                         className="min-h-[44px] px-4 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">
                   {cx.status === 'expired' || cx.status === 'error' || cx.status === 'revoked' ? '重新连接 Xero' : '连接 Xero'}
                 </button>
-              : <p className="text-[10px] text-gray-500">需要 Owner / Manager 权限发起连接。</p>}
+              : <p className="text-[11px] text-gray-500">需要 Owner / Manager 权限发起连接。</p>}
           </div>
         );
       })()}

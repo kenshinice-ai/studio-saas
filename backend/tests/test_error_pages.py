@@ -99,3 +99,13 @@ def test_the_contract_covers_every_exit_not_one_handler() -> None:
         "api_error no longer negotiates; the other 47 call sites just went back "
         "to answering a browser with JSON"
     )
+
+
+def test_the_content_type_is_stated_once(client) -> None:
+    """`Response(mimetype="text/html; charset=utf-8")` ships the charset twice —
+    Flask appends its own. Shipped in v10.19.0 and caught by reading the
+    response headers of the deployed page rather than the code."""
+
+    header = client.get("/nope", headers=DOCUMENT).headers["Content-Type"]
+    assert header.count("charset") == 1, header
+    assert header == "text/html; charset=utf-8"

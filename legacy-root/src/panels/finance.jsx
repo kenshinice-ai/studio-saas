@@ -129,7 +129,7 @@ function PayrollView({ api, showToast, range, onRange }) {
                 <span className="block text-[11px] text-gray-500">{t.sessions} 节 · {Math.round((t.paid_minutes || 0) / 60)} 小时</span>
               </span>
               <span className="ml-auto flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${eng.cls}`}>{eng.label}</span>
+                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${eng.cls}`}>{eng.label}</span>
                 <span className="text-xs font-bold tabular-nums">{aud(t.cost_cents)}</span>
               </span>
             </button>
@@ -168,14 +168,14 @@ function PayrollView({ api, showToast, range, onRange }) {
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
                 <span className="text-xs font-bold">{current?.full_name} · {range.from} → {range.to}</span>
-                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}`}>
+                <span className={`ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}`}>
                   {engagement.label}
                 </span>
               </div>
               <div className="p-4 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-[10px] uppercase tracking-wide text-gray-500">
+                    <tr className="text-[11px] uppercase tracking-wide text-gray-500">
                       <th className="text-left py-2">日期</th>
                       <th className="text-left py-2">课程</th>
                       <th className="text-right py-2">时长</th>
@@ -300,7 +300,7 @@ function ReportsView({ api, range }) {
           <div className="p-4 overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wide text-gray-500">
+                <tr className="text-[11px] uppercase tracking-wide text-gray-500">
                   <th className="text-left py-2">来源</th>
                   <th className="text-right py-2">张数</th>
                   <th className="text-right py-2">不含税</th>
