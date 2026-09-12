@@ -62,20 +62,32 @@ def test_the_floor_is_actually_being_looked_for() -> None:
     )
 
 
-def test_no_status_light_is_wired_to_nothing() -> None:
+def test_every_status_claim_is_bound_to_state() -> None:
     """The CMS sidebar carried a hardcoded green 「已连接」.
 
-    Not bound to any state — it said 已连接 while disconnected. The header's
+    Not bound to anything — it said 已连接 while disconnected. The header
     indicator on the same screen is real (`conn ? '已同步' : '连接中'`), so the
-    fake one was both a duplicate and a lie. A status light that is always
+    fake one was a duplicate and a lie at once. A status light that is always
     green trains people not to read status lights.
+
+    The rule is not "never write 已连接" — the Xero panel says it, correctly,
+    behind `if (cx.connected)`. The rule is that a claim about state has a
+    guard near it. Checked across the whole CMS source rather than one file,
+    so a panel that moves keeps its coverage.
     """
 
-    source = (REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx").read_text(encoding="utf-8")
-    body = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
-    body = re.sub(r"\{/\*.*?\*/\}", "", body, flags=re.S)
-    assert "已连接" not in body, (
-        "a hardcoded 已连接 is back in the CMS; bind it to `conn` or delete it"
+    from _cms_sources import cms_source_text
+
+    source = re.sub(r"\{?/\*.*?\*/\}?", "", cms_source_text(), flags=re.S)
+    guards = ("?", "&&", "if (", "if(", "===", "!==")
+    unguarded = []
+    for match in re.finditer(r"已连接|已同步", source):
+        window = source[max(0, match.start() - 220):match.start()]
+        if not any(guard in window for guard in guards):
+            line = source.count("\n", 0, match.start()) + 1
+            unguarded.append(f"line ~{line}: …{source[match.start()-60:match.start()+12].strip()}")
+    assert not unguarded, (
+        "a connection status with nothing behind it:\n  " + "\n  ".join(unguarded)
     )
-    # The real one, which is bound, must still be there.
+    # And the one that IS bound must still be there.
     assert "conn?'已同步':'连接中'" in source.replace(" ", "")
