@@ -76,7 +76,12 @@ SUPER_ADMIN = REPOSITORY_ROOT / "super-admin.html"
 LEGAL_ENTITY = "PWE GROUP PTY LTD"
 ABN = "ABN 55 606 664 546"
 ACN = "ACN 606 664 546"
-CONTACT_EMAIL = "lee.liu.melbourne@gmail.com"
+# The one public contact address. It was a private Gmail — on the privacy
+# policy's data-breach line, on the terms' notice line, and on the support
+# policy's incident line — while /pricing.md advertised a third address on a
+# domain with no MX record at all. `pwestudio.site` routes through Cloudflare
+# Email Routing; `info@` is a role, so it survives the person.
+CONTACT_EMAIL = "info@pwestudio.site"
 
 # A placeholder is fine in a working draft; a placeholder that reads like a real
 # value is not. These are the shapes this round introduced and removed.
@@ -221,9 +226,30 @@ def test_compliance_page_carries_its_draft_qualifier(page_name: str) -> None:
     assert "not legal advice" in source
     assert "不构成法律意见" in source
     assert "Australian lawyer" in source
+
+
+@pytest.mark.parametrize(
+    "page_name",
+    # Support_Policy.html was outside the old parametrisation, and it is the
+    # page that tells a studio where to report a suspected breach. All three
+    # name a contact; all three must name the same reachable one.
+    ["Privacy_Policy.html", "Terms_of_Service.html", "Support_Policy.html"],
+)
+def test_the_legal_documents_name_one_reachable_contact(page_name: str) -> None:
+    """A tel/postal-only page is not a complaints channel, and three different
+    addresses across three documents is not one either."""
+
+    source = (CUSTOMER_RESOURCES / page_name).read_text(encoding="utf-8")
     assert CONTACT_EMAIL in source
-    # A reachable complaints channel is the point; a tel/postal-only page is not.
     assert f'href="mailto:{CONTACT_EMAIL}"' in source
+    others = {
+        match for match in re.findall(r"mailto:([^\"\'>\s]+)", source)
+        if match != CONTACT_EMAIL
+    }
+    assert not others, (
+        f"{page_name} offers a second contact address: {sorted(others)}. "
+        f"One document, one channel — a visitor should not have to guess."
+    )
 
 
 def test_privacy_policy_covers_children_and_publication_consent() -> None:
@@ -432,3 +458,24 @@ def test_the_chinese_document_never_links_into_the_english_one(
             (".csv", ".xlsx")
         ), f"{page_name} (zh) links to the English {path}"
         assert path != "/", f"{page_name} (zh) links to the English home page"
+
+
+def test_the_bare_directory_address_reaches_the_release_notes(client) -> None:
+    """`<path:filename>` never matches an empty segment.
+
+    So `/customer-resources/` was a 404 — a slug this application reserves,
+    that three legal documents link into, and that a person typing the address
+    they half-remember will land on. It is now a permanent redirect to the
+    page they were looking for, in the language of the address they used.
+    """
+
+    for address, target in (
+        ("/customer-resources", "/customer-resources/Release_Notes.html"),
+        ("/customer-resources/", "/customer-resources/Release_Notes.html"),
+        ("/zh/customer-resources/", "/zh/customer-resources/Release_Notes.html"),
+    ):
+        response = client.get(address)
+        assert response.status_code == 301, f"{address} is still a {response.status_code}"
+        assert response.headers["Location"].endswith(target), (
+            f"{address} -> {response.headers['Location']}"
+        )

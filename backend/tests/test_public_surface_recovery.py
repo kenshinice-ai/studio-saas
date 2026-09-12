@@ -240,3 +240,44 @@ def test_every_template_function_reaches_the_generated_pages() -> None:
                 "改完 tenant-template/ 之后没有跑 regenerate_tenant_workspaces.py。"
                 "线上健康检查不会报这件事。"
             )
+
+
+# ── 脚本抛了，页面还在不在 ──────────────────────────────────────────────
+
+
+def test_the_tenant_portal_does_not_hide_itself_before_any_script_runs() -> None:
+    """`.reveal{opacity:0}` 不带 `.js` 门控 = 脚本一抛，整页空白。
+
+    营销页 2026-07 就修过这条（marketing.css:369 + marketing-shell.js:33，
+    `test_product_home_brand.py` 钉着），租户模板没有。而两边的风险不对等：
+    营销页的脚本是一个 51 行的 IIFE，租户模板的是 ~1,570 行**没有任何
+    try 包裹的顶层语句**，第一句就读 `document.body.dataset` 和
+    `window.StudioSaaS.esc`。任一处抛错，30 个内容块里 29 个永远停在
+    opacity:0 —— 四个线上客户站是从这个模板生成的。
+    """
+
+    for name in ("index.html", "timetable.html", "showcase.html"):
+        source = (TEMPLATE / name).read_text(encoding="utf-8")
+        for line in _strip_css_comments(source).splitlines():
+            stripped = line.strip()
+            if ".reveal" not in stripped or "opacity:0" not in stripped.replace(" ", ""):
+                continue
+            assert stripped.startswith(".js "), (
+                f"tenant-template/{name} 在任何脚本跑之前就把内容藏起来了：{stripped}"
+            )
+
+    portal = (TEMPLATE / "index.html").read_text(encoding="utf-8")
+    assert "document.documentElement.classList.add('js')" in portal, (
+        "没有人给 <html> 加 js —— 门控加了，开关没加，那是把整页永久显示"
+    )
+    # 开关必须挨着 reveal 的接线，不能挪到脚本顶部：挪上去，中间任何一处抛错
+    # 又会把页面藏回去，而这正是这条断言要防的那件事。
+    switch = portal.index("document.documentElement.classList.add('js')")
+    wiring = portal.index("var io=new IntersectionObserver")
+    assert 0 < switch - wiring < 700, (
+        "js 开关离 reveal 接线太远；它必须在同一段里，否则中间抛错=空白页"
+    )
+
+
+def _strip_css_comments(source: str) -> str:
+    return re.sub(r"/\*.*?\*/", "", source, flags=re.S)

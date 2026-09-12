@@ -462,7 +462,7 @@ def render_pricing_markdown(rows: list[dict[str, Any]] | None) -> str:
         "",
     ]
     if not rows:
-        lines += ["Pricing is temporarily unavailable. Contact hello@pwestudio.online.", ""]
+        lines += ["Pricing is temporarily unavailable. Contact info@pwestudio.site.", ""]
     for row in rows or []:
         students = int(row.get("student_limit") or 0)
         users = int(row.get("user_limit") or 0)
@@ -495,7 +495,7 @@ def render_pricing_markdown(rows: list[dict[str, Any]] | None) -> str:
         " own name, courses and work.",
         "- Each campus is operated as an isolated tenant by design.",
         "- Final terms follow the signed order form.",
-        "- Contact: hello@pwestudio.online · +61 488 885 850 · Melbourne, Australia",
+        "- Contact: info@pwestudio.site · +61 488 885 850 · Melbourne, Australia",
         "",
     ]
     return "\n".join(lines)

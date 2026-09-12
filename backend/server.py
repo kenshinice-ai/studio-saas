@@ -1528,6 +1528,23 @@ def serve_customer_resource_zh(filename):
     return _serve_customer_resource_page(safe, 'zh')
 
 
+@app.route('/customer-resources')
+@app.route('/customer-resources/')
+@app.route('/zh/customer-resources')
+@app.route('/zh/customer-resources/')
+def serve_customer_resources_index():
+    """The directory address itself.
+
+    `<path:filename>` does not match an empty segment, so `/customer-resources/`
+    was a 404 — a slug this application reserves, links to from three legal
+    documents' navigation, and answers with nothing. The release notes are the
+    page a visitor typing the bare address is looking for.
+    """
+
+    prefix = '/zh' if request.path.startswith('/zh/') else ''
+    return redirect(f'{prefix}/customer-resources/Release_Notes.html', code=301)
+
+
 @app.route('/customer-resources/<path:filename>')
 def serve_customer_resource(filename):
     """Serve the small, reviewed set of customer-facing delivery resources."""

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="__LANG__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1729" media="(prefers-color-scheme: dark)">
+<title>__TITLE__ · PWE Studio</title>
+<!-- Self-contained on purpose. An error page that loads /assets is a page
+     that cannot render when /assets is what went wrong, and this one also
+     answers requests that never reached a tenant workspace. The palette is
+     the family's, stated literally here because there is nothing to inherit
+     from: same five values as deploy/aws/nginx/maintenance.html, which is
+     the other page in this product that has to stand on its own. -->
+<style>
+  :root{
+    --family-navy:#0e1729; --family-amber:#f5b335; --warm-paper:#f7f5f2;
+    --slate-600:#475569; --hairline:rgba(14,23,41,.14);
+    --surface:var(--warm-paper); --ink:var(--family-navy); --muted:var(--slate-600);
+    --accent:#a16207;                     /* 4.52:1 on warm paper */
+    font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",
+                "PingFang SC","Source Han Sans SC",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --surface:var(--family-navy); --ink:var(--warm-paper);
+      --muted:rgba(255,255,255,.72);      /* 9.68:1 on navy */
+      --hairline:rgba(255,255,255,.14);
+      --accent:var(--family-amber);       /* 9.70:1 on navy */
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;
+       background:var(--surface);color:var(--ink);padding:34px 21px;line-height:1.618}
+  .card{max-width:34rem}
+  .mark{width:3rem;height:3rem;margin:0 0 21px;border-radius:.75rem;
+        background:var(--ink);display:grid;place-items:center}
+  .mark span{color:var(--surface);font-size:1.5rem;font-weight:800;line-height:1}
+  .code{font-variant-numeric:tabular-nums;font-size:.786rem;font-weight:700;
+        letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:1.618rem;line-height:1.2;margin:0 0 13px;text-wrap:balance;
+     font-family:Georgia,"Times New Roman","Songti SC",serif;font-weight:600;
+     letter-spacing:-.018em}
+  p{color:var(--muted);margin:0 0 8px}
+  p.en{font-size:.94rem}
+  .actions{display:flex;flex-wrap:wrap;gap:13px;margin-top:34px}
+  a.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 21px;
+        border:1px solid transparent;border-radius:999px;background:var(--ink);
+        color:var(--surface);font-weight:600;text-decoration:none}
+  a.btn.ghost{background:transparent;color:var(--ink);border-color:var(--hairline)}
+  a.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .path{margin-top:34px;padding-top:13px;border-top:1px solid var(--hairline);
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.786rem;
+        color:var(--muted);word-break:break-all}
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true"><span>P</span></div>
+    <p class="code">__STATUS__</p>
+    <h1>__HEADLINE_ZH__</h1>
+    <p>__BODY_ZH__</p>
+    <p class="en">__HEADLINE_EN__ __BODY_EN__</p>
+    <div class="actions">
+      <a class="btn" href="/studio">__CTA_ZH__ · __CTA_EN__</a>
+      <a class="btn ghost" href="/manual/">__HELP_ZH__ · __HELP_EN__</a>
+    </div>
+    <p class="path">__PATH__</p>
+  </main>
+</body>
+</html>

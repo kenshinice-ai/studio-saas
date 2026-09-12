@@ -513,3 +513,55 @@ def test_the_other_product_pages_point_home_at_studio(client) -> None:
     assert 'href="/studio">&larr; PWE Studio home</a>' in faq
     faq_zh = client.get("/zh/customer-resources/FAQ.html").get_data(as_text=True)
     assert 'href="/zh/studio/">&larr; 返回 PWE Studio 首页</a>' in faq_zh
+
+
+# ── the enquiry form ─────────────────────────────────────────────────────────
+
+
+def test_the_enquiry_actions_address_somebody() -> None:
+    """`mailto:?subject=` opens a composer addressed to nobody.
+
+    Both of the product home page's conversion actions did that — the mail
+    button and the messages button — so the page's single call to action was a
+    blank window the visitor had to address themselves. Nothing pinned it,
+    because the tests only asserted that the form element existed.
+    """
+
+    script = (REPOSITORY_ROOT / "backend/frontend/assets/product-home.js").read_text(
+        encoding="utf-8")
+    body = "\n".join(line.split("//", 1)[0] for line in script.splitlines())
+
+    assert "mailto:?" not in body, "the mail action has no recipient"
+    assert "sms:?" not in body, "the messages action has no recipient"
+    assert "mailto:${CONTACT_EMAIL}?" in body
+    assert "sms:${CONTACT_SMS}?" in body
+
+    # The address has to be the one the legal documents name; two public
+    # contact addresses is the defect this replaced, not a smaller version of it.
+    from test_customer_resources_brand import CONTACT_EMAIL
+    assert f"'{CONTACT_EMAIL}'" in body, (
+        f"the enquiry form does not use {CONTACT_EMAIL}, which is the address "
+        f"the privacy policy, terms and support policy all name"
+    )
+
+
+def test_a_long_enquiry_still_opens_the_mail_app() -> None:
+    """A mailto: URL past roughly 1,300 bytes does not fail — it does nothing.
+
+    The textarea allows 1,500 characters. In Chinese that is ~13,500 bytes
+    once percent-encoded, ten times the point where the mail window stops
+    appearing, and the visitor sees no error of any kind. maxlength cannot
+    express the limit because the cost per character is 1 in English and 9 in
+    Chinese, so the URL is measured and the body trimmed to fit.
+    """
+
+    script = (REPOSITORY_ROOT / "backend/frontend/assets/product-home.js").read_text(
+        encoding="utf-8")
+    assert "URL_BUDGET" in script and "trimToBudget" in script
+    assert "encodeURIComponent(body).length" in script, (
+        "the budget has to be measured on the ENCODED length; counting "
+        "characters is the assumption that produced the bug"
+    )
+    # And the trim must say so in the message, in the reader's language.
+    assert "Trimmed so your mail app would open it" in script
+    assert "此处已截断" in script
