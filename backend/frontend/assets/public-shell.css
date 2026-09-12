@@ -42,6 +42,15 @@
   display:none;
   height:40px;
   width:auto;
+  /* The row still moves once when the logo arrives, and width/height
+     attributes cannot prevent it: the reflow is not the image decoding, it is
+     the swap from the text name to the logo (`.brand.has-logo .bn` hides the
+     text). Bounding the slot at a square is the whole of what CSS can do
+     here. Removing the last of it needs the logo's real dimensions, and
+     `/v1/public/<slug>` returns `settings->>'logo_url'`, a bare URL — no
+     width, no height, nowhere on the record to read them from. That is a data
+     change, not a style one, and it is not in this round. */
+  min-width:40px;
   max-width:140px;
   object-fit:contain;
   flex-shrink:0;

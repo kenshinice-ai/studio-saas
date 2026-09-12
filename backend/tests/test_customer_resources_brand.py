@@ -479,3 +479,65 @@ def test_the_bare_directory_address_reaches_the_release_notes(client) -> None:
         assert response.headers["Location"].endswith(target), (
             f"{address} -> {response.headers['Location']}"
         )
+
+
+HOUSE_CREDIT = "PWE · <b>天域</b>出品"
+
+PRODUCT_SURFACES = [
+    "manual.html",
+    "product-home.html",
+    "pricing.html",
+    "customer-resources/FAQ.html",
+    "customer-resources/Privacy_Policy.html",
+    "customer-resources/Release_Notes.html",
+    "customer-resources/Support_Policy.html",
+    "customer-resources/Terms_of_Service.html",
+]
+
+
+@pytest.mark.parametrize("page", PRODUCT_SURFACES)
+def test_a_product_surface_credits_the_house(page: str) -> None:
+    """`01 BRAND ASSETS/BRAND_ARCHITECTURE.md` names the product site — the
+    home, pricing and `/manual/` — as carrying `PWE · 天域出品` linked to `/`.
+
+    The manual and all five customer documents did not, and no test could have
+    said so: the architecture document is prose and nothing read it. A third
+    wording is also in the wild (`Powered by PWE · 天域`, five files), which is
+    the tenant footer's phrase on a product surface.
+    """
+
+    root = Path(__file__).resolve().parents[2]
+    source = (root / page).read_text(encoding="utf-8")
+    assert HOUSE_CREDIT in source, f"{page} does not credit the house"
+    assert f'<a href="/">{HOUSE_CREDIT}' in source or 'href="/"' in source, (
+        f"{page} states the credit but does not link it to the house"
+    )
+
+
+def test_there_are_only_two_house_wordings() -> None:
+    """`PWE · 天域出品` on the product's own surfaces, `Powered by PWE` on a
+    tenant's. A third — `Powered by PWE · 天域` — was in the wild on the
+    password-setup page, which is a tenant surface using the product's voice.
+    """
+
+    import subprocess
+
+    root = Path(__file__).resolve().parents[2]
+    # `grep` on the development machines here is a ugrep wrapper that silently
+    # obeys .gitignore, so a sweep written as `grep -r` would be blind to
+    # exactly the generated tenant workspaces this is about. git's own file
+    # list is the honest one.
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z", "*.html", "*.js", "*.jsx"],
+        cwd=root, capture_output=True, text=True, check=True).stdout.split("\0")
+
+    stray = []
+    for name in filter(None, tracked):
+        if name.startswith("docs/"):
+            continue
+        source = (root / name).read_text(encoding="utf-8", errors="ignore")
+        if "Powered by PWE · 天域" in source or "Powered by PWE ·天域" in source:
+            stray.append(name)
+    assert not stray, (
+        "these mix the tenant footer's phrase with the house name: " + str(stray)
+    )
