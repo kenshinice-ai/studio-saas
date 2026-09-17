@@ -92,3 +92,12 @@ docs/sales/clients/
 # keeping.
 docs/security/
 node_modules/
+
+# Browser-matrix run output. A single 2026-09-06 run (37 files, 31 MB) had been
+# committed — nothing referenced it, and the matrix is re-runnable by design.
+# Evidence that is worth keeping gets cited from a handoff and lives under
+# docs/design/, like docs/design/ux-review-2026-09-06/.
+ui_matrix_out/
+
+# pytest's own cache.
+.pytest_cache/

@@ -13,18 +13,39 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.20.1，2026-09-17 · 源码候选，未发布）
+## 当前四层身份（v10.20.1，2026-09-17 · **已发布、已部署**）
 
-> 本表是 runbook 第 3 步的 prepared ledger。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 分支 `main`，**未推送**（提交哈希 closure 时回填）。内容：**生产在 2026-09-17 迁到 Oracle ARM**（Cloudflare 橙云 + Caddy）之后，仓库里没有任何一条通往它的脚本路径——runbook 里是散文，而 `deploy/aws/pwestudio_remote.sh` 默认指向仍在运行的旧 Lightsail 机。本版补上：`deploy/oracle/pwestudio_arm.sh`（status / verify-target / health / logs / deploy / ssh），带与 AWS 路径同样的两道守卫；两条路径都加了「上传前证明目标机就是公开地址所指的那台」与「部署后断言公开边缘报出刚构建的版本」。文档层把 runbook、README、Deployment、Roadmap、deploy/aws 的说明全部对齐到新拓扑，并保留带日期的历史记录不动。README 的三行状态表此前**全错**（sed 盲替所致），已改写并补上守卫。**零迁移**，schema 仍至 `0047_xero_transport.sql`；**零运行时代码改动**。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz`（未构建；Oracle 路径不消费它，仍作归档与 Edition 的同源产物）。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.1.tar.gz`（未构建）。 |
-| Production | **仍是 v10.20.0**（Oracle ARM，commit `e5140571`）。本版部署走 `deploy/oracle/pwestudio_arm.sh deploy <commit>`：在机器上 checkout + 构建镜像，不传包。部署后复核 `appVersion=10.20.1`。 |
-| Backup / migration | 本版零迁移。Oracle 上的备份目录见 `production.env` 的 `STUDIOSAAS_BACKUP_DIR`。 |
+| Source | 部署的是 `147458b14ee7579eb9eacdfa9548af729341778b`。`main` 目前领先它两个**只改本机工具**的提交（`87896ec` 修矩阵登录），未重新部署——那两个提交不进运行时，为它们重启生产没有道理。内容：**生产在 2026-09-17 迁到 Oracle ARM**（Cloudflare 橙云 + Caddy）之后，仓库里没有任何一条通往它的脚本路径——runbook 里是散文，而 `deploy/aws/pwestudio_remote.sh` 默认指向仍在运行的旧 Lightsail 机。本版补上：`deploy/oracle/pwestudio_arm.sh`（status / verify-target / health / logs / deploy / ssh），带与 AWS 路径同样的两道守卫；两条路径都加了「上传前证明目标机就是公开地址所指的那台」与「部署后断言公开边缘报出刚构建的版本」。文档层把 runbook、README、Deployment、Roadmap、deploy/aws 的说明全部对齐到新拓扑，并保留带日期的历史记录不动。README 的三行状态表此前**全错**（sed 盲替所致），已改写并补上守卫。**零迁移**，schema 仍至 `0047_xero_transport.sql`；**零运行时代码改动**。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz`，SHA-256 `c36b8a19c93baea37377fdd6b89133b3fc4d38c9b191f11ced3719a5ce6fcf37`。Oracle 路径不消费它（镜像在机器上从 commit 构建），保留作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.1.tar.gz`，SHA-256 `6a23d84a0e53ca118b7db7166ff2c629a3fb551748357904617218226375b2d3`。两个包通过 `verify_release_bundles.sh`。 |
+| Production | `pwestudio.online` = **v10.20.1**（Oracle ARM，commit `147458b`）。实测 `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 7.6%。部署走 `deploy/oracle/pwestudio_arm.sh deploy 147458b`。 |
+| Backup / migration | **本版零迁移。** 新主机的备份是 systemd timer 驱动的**加密异地备份到 Cloudflare R2**（`pwe-backup@db` / `pwe-backup@full`），比旧主机「同机 cron」的安排好——那一条正是 2026-08-16 体检点名的「不能叫灾备」。当天 18:32 / 18:33 各手工跑过一次，`exit=0`；下一次定时 2026-09-18 03:19。 |
+
+### 部署后验收（生产实测，2026-09-17）
+
+| 验的东西 | 结果 |
+|---|---|
+| 浏览器矩阵 | **642 条断言、0 失败、21/22 页**。唯一跳过的 `cms_roster_teacher` 现在**被诊断出来而不是被掩盖**：直连 403（边缘），换浏览器登录 401 —— teacher 账号的口令确实不是共享的演示口令。此前两种不同的失败报的是同一句话 |
+| 公开面 | `/`、`/studio`、`/zh/studio/`、`/pricing`、`/manual/`、`/lets-paint-showcase`、`/customer-resources/Release_Notes.html` 全 200；`/nope` + `Sec-Fetch-Dest: document` → 404 `text/html` |
+| 部署路径本身 | 第一次真跑**失败**（compose 少 `--profile local-db`），生产全程未受影响：容器 uptime 没断、公开仍报 v10.20.0。修好后重跑成功 |
+| 守卫（两个方向） | `pwestudio_remote.sh verify-target` **拒绝**（旧机证不出服务该域名）；`pwestudio_arm.sh verify-target` 通过（两侧磁盘 6.5%，同一台） |
+
+### 这次收口不声称的
+
+- **`deploy/oracle/pwestudio_arm.sh` 不做部署前备份。** 旧的 AWS 路径在切换前会跑一次
+  `lightsail_ctl.sh backup`；新脚本没有对应动作。本版零迁移，没有任何数据处于风险中，
+  但**带迁移的版本不能就这样发**。异地备份由 systemd timer 覆盖，那是定时的，不是
+  部署触发的。
+- **生产运行的不是 `main` 的头。** `main` 领先两个只改本机工具的提交。为不进运行时的
+  改动重启生产没有道理；这一行就是记录它。
+- **Cloudflare 的 bot 检查会挡住任何非浏览器客户端。** 本版把矩阵的登录改成走真实
+  浏览器；其它以 `urllib` 打生产的脚本还没查过。
+- `cms_roster_teacher` 一页仍未检查（teacher 口令未提供）。
 
 ## 上一版四层身份（v10.20.0，2026-09-12 · 已发布；2026-09-17 随迁移在 Oracle 上重建）
 
@@ -397,7 +418,7 @@
 
 ## 最新轮次
 
-- **2026-09-17（Claude）v10.20.1 给现在的生产主机补一条有守卫的发布路径**（**源码候选，未发布**）：
+- **2026-09-17（Claude）v10.20.1 给现在的生产主机补一条有守卫的发布路径**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。生产 9-17 迁到
   Oracle ARM 之后，仓库里通往它的只有散文；而默认的部署脚本指着仍在运行的旧机，
   跑下去会「成功」且不改变任何人看到的东西。本版补 `deploy/oracle/pwestudio_arm.sh`

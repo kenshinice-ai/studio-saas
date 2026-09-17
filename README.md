@@ -27,9 +27,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.1 candidate on `main`, not yet pushed** | Infrastructure only — a guarded deployment path for the Oracle ARM host, plus documentation aligned to it. **Zero migrations, zero runtime code change.** Round handoff: `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`. Commit hash filled in at the step-9 closure. |
-| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz` and `dist/PWE-Studio-Edition-10.20.1.tar.gz`. The Oracle host does not consume the SaaS bundle — it builds the image from a commit — so that one is an archival artefact and the Edition tarball is the deliverable. |
-| Production | **still v10.20.0** (`pwestudio.online`, Oracle ARM, commit `e5140571`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. See `docs/Release_Runbook.md` § *Where production runs*. |
+| Source | **v10.20.1, released** — deployed commit `147458b` | Infrastructure only: a guarded deployment path for the Oracle ARM host plus documentation aligned to it. **Zero migrations, zero runtime code change.** `main` is two tooling-only commits ahead of what is deployed, deliberately — they do not enter the runtime. Round handoff: `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz` SHA-256 `c36b8a19c93baea37377fdd6b89133b3fc4d38c9b191f11ced3719a5ce6fcf37` (archival — the Oracle host builds its image from a commit and does not consume it); `dist/PWE-Studio-Edition-10.20.1.tar.gz` SHA-256 `6a23d84a0e53ca118b7db7166ff2c629a3fb551748357904617218226375b2d3`. |
+| Production | **v10.20.1** (`pwestudio.online`, Oracle ARM, commit `147458b`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 7.6%. Browser matrix 642 assertions, 0 failed, 21/22 pages. Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
