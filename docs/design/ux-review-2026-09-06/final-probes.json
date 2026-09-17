@@ -1,0 +1,61 @@
+{
+  "fresh_en_admin": {
+    "browserLocale": "en-AU",
+    "loginHeading": "工作室管理员登录",
+    "language": null
+  },
+  "followup": {
+    "storedBefore": "Wed, 09 Sep 2026 23:00:00 GMT",
+    "inputBefore": "",
+    "patch": {
+      "status": "contacted",
+      "nextFollowUpAt": "",
+      "reviewNote": "Studio contacted this lead."
+    },
+    "storedAfter": null
+  },
+  "invoice_deeplink": {
+    "invoiceNumber": "INV-0004",
+    "invoiceIdEqualsAccountId": false,
+    "text": "STUDIO CMS\n\n账单发票\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n只看这个账单账户\n显示全部\n\n已开票\n\n$0.00\n\n0 张 · 含 GST\n\n净收款（扣除退款）\n\n$0.00\n\n暂无已开具发票\n\n逾期\n\n$0.00\n\n0 个家庭\n\n待发草稿\n\n0\n\n没有待发的\n\n起\n止\n本月\n上月\n近 30 天\n全部 0\n逾期 0\n未付清 0\n草稿 0\n共 0 张\n发票\n会计导出不含草稿 · 当前筛选范围\n发票汇总 CSV\n行项目 CSV\n会计流水 CSV\n新建发票\n\n还没有发票。点击“新建发票”创建草稿，复核后再开具。\n\n选择左边的一张发票查看明细。\n© 2026 Let's Paint Studio · Powered by Paradise Production"
+  },
+  "account_filter_count": 1,
+  "admin_css_diagnostic": {
+    "before": {
+      "x": 16,
+      "y": 656,
+      "width": 2,
+      "height": 6986.671875
+    },
+    "after": {
+      "x": 16,
+      "y": 656,
+      "width": 343,
+      "height": 3317.953125
+    }
+  },
+  "teacher": {
+    "headings": [
+      "Let's Paint Studio",
+      "工作台",
+      "工作台",
+      "今日重点",
+      "需要注意"
+    ],
+    "overflow": 0
+  },
+  "front_desk": {
+    "headings": [
+      "Let's Paint Studio",
+      "工作台",
+      "工作台",
+      "今日重点",
+      "需要注意"
+    ],
+    "overflow": 0
+  },
+  "music_actual_scheme": {
+    "os": "dark",
+    "actual": "light"
+  }
+}

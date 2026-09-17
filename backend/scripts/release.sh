@@ -158,8 +158,20 @@ bump() {
     replace_all "$f" "v$OLD" "v$NEW"
   done
 
-  # 4. README release rows.
-  replace_all README.md "$OLD" "$NEW"
+  # 4. README release rows — NOT rewritten here any more.
+  #
+  # This used to be `replace_all README.md "$OLD" "$NEW"`, a blind substitution
+  # over the whole file. The three rows are CLAIMS ABOUT REALITY — what is on
+  # main, what was built, what production is serving — and sed cannot know any
+  # of that. What it did instead was advance whichever rows happened to carry
+  # the outgoing version and leave the others frozen, so by v10.20.0 the table
+  # read "Source: v10.20.0 candidate, not pushed" directly above "Production:
+  # still v10.17.0", with a STOP GATE sentence about nginx that belonged to
+  # v10.18.0. Every row false, and looking freshly updated.
+  #
+  # The rows are written by a human at step 3 (prepared) and step 9 (closure),
+  # exactly like the handoff, and test_release_ledger.py now checks that the
+  # README and the handoff agree about Production.
 
   # 5. Edition delivery documents — package names and candidate labels.
   for f in standalone-edition/*.md; do
@@ -186,7 +198,7 @@ deployment state, and where the acceptance evidence lives, before releasing."
 
   echo
   echo "  changed files:"
-  git diff --stat -- VERSION backend/server.py sw.js docs/guides README.md \
+  git diff --stat -- VERSION backend/server.py sw.js docs/guides \
     standalone-edition customer-resources/Release_Notes.html \
     docs/customer/Release_Notes.md | sed 's/^/  /'
   echo
@@ -194,7 +206,9 @@ deployment state, and where the acceptance evidence lives, before releasing."
   cat <<EOF
   bump done — two things remain HUMAN before this can pass preflight:
     1. write the v$NEW section at the TOP of docs/HANDOFF_LATEST.md (runbook step 3);
-    2. fill in both release-notes skeletons (they currently say so themselves).
+    2. fill in both release-notes skeletons (they currently say so themselves);
+    3. update README.md's three status rows — bump no longer rewrites them,
+       because they are claims about reality and sed cannot check one.
 EOF
   printf '%b' "$NC"
 }

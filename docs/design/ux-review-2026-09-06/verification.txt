@@ -1,0 +1,9 @@
+........................................................................ [ 47%]
+....................s................................................... [ 94%]
+........                                                                 [100%]
+151 passed, 1 skipped in 0.83s
+
+terminology check: OK
+
+Document links: all referenced local targets exist.
+Product changes: none.

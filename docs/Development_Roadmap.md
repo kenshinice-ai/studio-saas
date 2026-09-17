@@ -108,13 +108,22 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 - Support backend
 - System monitoring and alerting
 
-**Current boundary:** product marketing, public pricing, AWS Lightsail
-production, subscriptions as data, guarded deployment and customer resources
+**Current boundary:** product marketing, public pricing, production on an
+Oracle ARM instance behind Caddy and Cloudflare (moved off AWS Lightsail
+2026-09-17), subscriptions as data, guarded deployment and customer resources
 are live. Stripe subscription charging, self-service onboarding, off-instance
 backup copies, uptime/backup-failure alerts, on-call ownership, contractual
 SLA and privileged MFA remain open.
 
-**AWS Deployment Target:**
+> **Note (updated 2026-09-17, v10.20.0):** production is no longer on AWS at
+> all. `https://pwestudio.online` runs on an Oracle ARM instance behind Caddy,
+> with Cloudflare proxying in front — no Lightsail, no host nginx, no certbot.
+> The "AWS (Target)" column below is now a *historical* target, not a plan:
+> RDS, S3, SES, CloudFront and Secrets Manager were never adopted and the
+> provider has changed. Where production actually runs, and how to deploy to
+> it, is `docs/Release_Runbook.md` § **Where production runs**.
+
+**AWS Deployment Target (historical):**
 
 | Component | Local (Current) | AWS (Target) |
 |---|---|---|

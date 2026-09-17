@@ -2,6 +2,13 @@
 
 Version: v10.13.0 documentation baseline
 Date: 2026-08-23（Stage 2 上线记录：2026-07-30）
+> **2026-09-17 起本文的 Stage 2 描述不再是生产。** `pwestudio.online` 已迁至
+> Oracle ARM 实例，前面是 Caddy 与 Cloudflare 橙云 —— 没有 Lightsail、没有
+> host nginx、没有 certbot。**旧 Lightsail 实例仍在运行**，所以指向它的脚本会
+> 「部署成功」而不改变任何人看到的东西；`deploy/aws/pwestudio_remote.sh` 现在会
+> 拦住这件事。生产在哪、怎么发，见 `docs/Release_Runbook.md` 的
+> 「Where production runs」。以下各节保留为迁移前的记录。
+
 Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
 当前 SaaS 发布基线 v10.13.0；Source、Package、Production 的独立证据以
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) 顶部记录为准。

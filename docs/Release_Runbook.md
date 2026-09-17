@@ -1,8 +1,10 @@
 # StudioSaaS Release And Recovery Runbook
 
-This runbook is deployment-neutral. It applies to a local pilot, a virtual
-machine, a container, or a managed platform. Provider-specific deployment is
-deliberately outside this document.
+The sequence below is deployment-neutral: it applies to a local pilot, a
+virtual machine, a container, or a managed platform. Step 8 is the exception
+and always was — a release has to land somewhere specific. **Where production
+runs** records that, because from 2026-09-17 the command no longer implies the
+host, and the retained old host still answers.
 
 ## Non-negotiable boundaries
 
@@ -47,6 +49,72 @@ with `STUDIOSAAS_DB_CONNECT_TIMEOUT` (seconds, default 5),
 `STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` (default 30000), and
 `STUDIOSAAS_DB_LOCK_TIMEOUT_MS` (default 10000).
 
+## Where production runs
+
+**2026-09-17: `pwestudio.online` moved off AWS Lightsail.** It now runs on an
+Oracle ARM box (`130.162.197.219`) behind Caddy, with Cloudflare proxying in
+front. The app binds `127.0.0.1:8899`; Caddy owns 80/443 and terminates TLS.
+
+The old Lightsail instance **is still running**, and `~/.ssh/config` still
+resolves `pwestudio` — the alias `deploy/aws/pwestudio_remote.sh` defaults to —
+to it. Before this was noticed, the whole release path would have deployed
+there and reported success: the box comes up healthy, the public-edge check
+curls `pwestudio.online` and gets 200 from the *other* machine, and the
+three-way commit guard passes because it compares commits, not machines.
+
+Two guards now make that loud instead of silent:
+
+- **before the upload** — `pwestudio_remote.sh` asks the target box for its own
+  deep health and compares machine state (disk) with the public edge's. Two
+  boxes running the same release are identical in everything the app says
+  about itself, so only machine state can tell them apart. Cheap, heuristic,
+  and it fires before anything has moved.
+- **after the deploy** — the public edge must report the version just built.
+  That version exists nowhere else at that moment, so a mismatch is
+  unambiguous. This is the half that no future migration can slip past.
+
+`bash deploy/aws/pwestudio_remote.sh verify-target` answers "am I pointed at
+the right box?" on its own, changing nothing.
+
+### Step 8, by host
+
+| Host | Command |
+|---|---|
+| Oracle ARM (current production) | build on the box from a commit, not from a bundle — see below |
+| AWS Lightsail (retained, not serving) | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` |
+
+The Oracle procedure's source of truth is
+`~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`, outside
+this repository. Recorded here so this repo is not useless without it:
+
+```bash
+ssh pwe-arm && cd /srv/pwestudio
+sudo git -C app fetch && sudo git -C app checkout <commit>
+sudo docker build -f app/deploy/aws/Dockerfile -t studiosaas:<version> app/
+sudo docker compose up -d
+```
+
+**Not exercised from this repository.** What has been verified here is the link
+(Cloudflare → Caddy → Oracle) and that v10.20.0's own changes are live on it.
+Three constraints the new link adds, all of which fail silently:
+
+- **Caddy needs `route` blocks to keep source order** — it reorders directives
+  by its own priority table, and the previous nginx behaviour depended on the
+  order as written.
+- **Real client IP arrives via `CF-Connecting-IP`.** Site blocks must use
+  `header_up X-Real-IP {client_ip}`, not `{remote_host}` — under the orange
+  cloud that is a Cloudflare node. After any Caddyfile change, send a request
+  and compare the address in the application log with your own egress IP.
+- **Anything touching login must be tested over HTTPS.** `SESSION_COOKIE_SECURE`
+  means a plain-HTTP login returns 200 with no session — indistinguishable from
+  a wrong password. Use `https://pwe.130.162.197.219.nip.io/`.
+
+Caching is now two layers (Cloudflare plus the browser): changed content needs
+a changed URL, and a same-URL change needs a Cloudflare purge.
+
+`pwestudio.site` is a different system — Cloudflare Pages, serving the PWE app
+update checks and seat registry. Do not point these scripts at it.
+
 ## The sequence
 
 Nine steps, in this order. Each one exists because skipping it has cost a
@@ -63,7 +131,7 @@ passed.
 | 5 | Commit | everything, including docs — the bundle is `git archive HEAD` |
 | 6 | Build | `bash deploy/aws/build_aws_bundle.sh <version>` and `… --edition` |
 | 7 | Verify bundles | `bash deploy/aws/verify_release_bundles.sh` |
-| 8 | Deploy | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` |
+| 8 | Deploy | see **Where production runs** below — the command depends on the host |
 | 9 | Evidence closure | after public acceptance, record exact Production/Backup evidence in README and the handoff as a clearly labelled docs-only closure commit |
 
 ### release.sh — the orchestration shell
@@ -214,9 +282,11 @@ every reported asset before opening public traffic.
 5. Run the media backfill and its `--check` mode.
 6. Start or restart the application with the required configuration.
 7. Run the full release gate against the deployed database.
-8. Verify `/v1/health`, `/platform-admin`, the optional Access-protected
-   `/super-admin` alias, one tenant portal, CMS, Studio Admin,
-   and `/<slug>/register`; confirm `/register` is still 404.
+8. Verify `/v1/health` **reports the version just deployed** — a 200 from the
+   public URL only proves that some healthy machine serves that domain. Then
+   `/platform-admin`, the optional Access-protected `/super-admin` alias, one
+   tenant portal, CMS, Studio Admin, and `/<slug>/register`; confirm
+   `/register` is still 404.
 9. Reopen traffic and watch errors, storage usage, registration conversion,
    and audit logs.
 
@@ -226,7 +296,8 @@ Prefer a forward fix when the migrated database is healthy. Reverting code
 while retaining compatible additive migrations is safer than restoring an old
 database and losing new transactions.
 
-For the current Lightsail release controller, code rollback is automatic when
+For the Lightsail release controller — retained but no longer serving, see
+**Where production runs** — code rollback is automatic when
 either internal deep health or public HTTPS deep health fails. Before changing
 the `current` symlink or production environment, the controller must capture a
 safe previous version. Rollback is successful only when all four checks pass:
@@ -273,7 +344,9 @@ details in release notes. When releasing the containerized form, the
 reproducible bundle (with checksum and build info) is produced by
 `deploy/aws/build_aws_bundle.sh`.
 
-For Lightsail, also record the release directory, previous version, image tag,
+Record **which host** was deployed to; since 2026-09-17 that is no longer
+implied by the command. For Lightsail, also record the release directory,
+previous version, image tag,
 internal and public health payloads, rollback-controller result and the host's
 daily backup-cron entry. Off-instance copying remains a separately tracked
 operation until implemented; same-instance cron output must not be described

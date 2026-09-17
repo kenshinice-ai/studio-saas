@@ -1,0 +1,262 @@
+{
+  "register_consent": {
+    "rect": {
+      "x": 39,
+      "y": 803.1875,
+      "width": 20,
+      "height": 20,
+      "top": 803.1875,
+      "right": 59,
+      "bottom": 823.1875,
+      "left": 39
+    },
+    "style": "",
+    "parent": "<label class=\"consent\"><input id=\"consent\" type=\"checkbox\"><span data-zh=\"我同意工作室仅将这些资料用于联系与课程管理。\" data-en=\"I agree that my details are used only for studio contact and class management.\">我同意工作室仅将这些资料用于联系与课程管理。</span></label>"
+  },
+  "register_empty": {
+    "focus": "firstName",
+    "invalid": 3
+  },
+  "register_language": {
+    "name": "UX Test",
+    "phone": "0400000000"
+  },
+  "booking_empty": {
+    "focus": "bookSubmit",
+    "invalid": 0,
+    "error": "Please enter the full name and a mobile number."
+  },
+  "booking_error_response": "validation_error",
+  "course_context": {
+    "url": "http://127.0.0.1:8917/lets-paint-showcase#join",
+    "form": "预约体验 · 报名咨询\n\n说说你想画什么\n\n填完之后 Janet 会亲自回你，通常一两天内。不必解释自己没有基础——多数人都没有，这不是需要说明的事。\n\n先填写必要信息\n姓名和手机号足够让工作室开始为你安排。\n\n姓 选填\n名字 *\n手机号 *\n补充信息（选填）\n 我同意信息仅用于教学联系与管理。\n\n阅读隐私说明 →\n\n提交预约",
+    "fields": [
+      {
+        "id": "j-last",
+        "value": ""
+      },
+      {
+        "id": "j-name",
+        "value": ""
+      },
+      {
+        "id": "j-phone",
+        "value": ""
+      },
+      {
+        "id": "j-email",
+        "value": ""
+      },
+      {
+        "id": "profile-experience",
+        "value": ""
+      },
+      {
+        "id": "profile-goals",
+        "value": ""
+      },
+      {
+        "id": "profile-availability",
+        "value": ""
+      },
+      {
+        "id": "j-msg",
+        "value": ""
+      },
+      {
+        "id": "j-publication-consent",
+        "value": "on"
+      },
+      {
+        "id": "j-publication-by",
+        "value": ""
+      },
+      {
+        "id": "j-web",
+        "value": ""
+      },
+      {
+        "id": "j-consent",
+        "value": "on"
+      }
+    ]
+  },
+  "family_language": {
+    "resultBefore": true,
+    "resultAfter": false,
+    "nameAfter": "Priya Raman",
+    "codeCleared": false
+  },
+  "admin_layout": [
+    {
+      "id": "",
+      "cls": "workbench-layout",
+      "w": 343,
+      "x": 16,
+      "y": 185,
+      "display": "grid",
+      "grid": "343px"
+    },
+    {
+      "id": "",
+      "cls": "settings-shell",
+      "w": 343,
+      "x": 16,
+      "y": 656,
+      "display": "grid",
+      "grid": "1.98438px 320px"
+    },
+    {
+      "id": "",
+      "cls": "settings-panel",
+      "w": 2,
+      "x": 16,
+      "y": 656,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "tab-brand",
+      "cls": "tab-panel active",
+      "w": 44,
+      "x": 17,
+      "y": 657,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "",
+      "cls": "brand-step",
+      "w": 101.171875,
+      "x": 39,
+      "y": 1066.65625,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "presetGrid",
+      "cls": "preset-grid",
+      "w": 71.171875,
+      "x": 54,
+      "y": 1387.0625,
+      "display": "grid",
+      "grid": "31.5781px 31.5938px"
+    },
+    {
+      "id": "",
+      "cls": "brand-step",
+      "w": 101.171875,
+      "x": 39,
+      "y": 3777.171875,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "",
+      "cls": "brand-step",
+      "w": 101.171875,
+      "x": 39,
+      "y": 6283.375,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "",
+      "cls": "preview-panel",
+      "w": 320,
+      "x": 38.984375,
+      "y": 656,
+      "display": "block",
+      "grid": "none"
+    },
+    {
+      "id": "previewDevice",
+      "cls": "preview-device mode-portal",
+      "w": 286,
+      "x": 55.984375,
+      "y": 1004,
+      "display": "block",
+      "grid": "none"
+    }
+  ],
+  "admin_mobile_scrollheight": 8050,
+  "admin_768": {
+    "overflow": 0,
+    "brand": {
+      "x": 17,
+      "y": 621,
+      "width": 393,
+      "height": 2871.59375
+    }
+  },
+  "admin_1024": {
+    "overflow": 0,
+    "brand": {
+      "x": 252.90625,
+      "y": 155,
+      "width": 749.625,
+      "height": 1886.40625
+    }
+  },
+  "admin_1440": {
+    "overflow": 0,
+    "brand": {
+      "x": 330.796875,
+      "y": 98,
+      "width": 653.359375,
+      "height": 1923.109375
+    }
+  },
+  "pending_followup_inputs": [
+    {
+      "value": "",
+      "w": 167
+    },
+    {
+      "value": "",
+      "w": 167
+    },
+    {
+      "value": "",
+      "w": 167
+    },
+    {
+      "value": "",
+      "w": 167
+    }
+  ],
+  "pending_filters": [
+    {
+      "type": "date",
+      "placeholder": ""
+    },
+    {
+      "type": "number",
+      "placeholder": "0"
+    },
+    {
+      "type": "date",
+      "placeholder": ""
+    },
+    {
+      "type": "number",
+      "placeholder": "0"
+    },
+    {
+      "type": "date",
+      "placeholder": ""
+    },
+    {
+      "type": "number",
+      "placeholder": "0"
+    },
+    {
+      "type": "date",
+      "placeholder": ""
+    },
+    {
+      "type": "number",
+      "placeholder": "0"
+    }
+  ]
+}

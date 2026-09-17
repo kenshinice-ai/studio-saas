@@ -13,9 +13,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.0 candidate on branch `release/10.20.0-pwe-house`, not pushed** | Local PostgreSQL-required gate and pytest counts are recorded in the round handoff; **zero migrations** — schema stays at `0047_xero_transport.sql`. The runtime commit hash is filled in at the step-9 closure. |
-| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz` and `dist/PWE-Studio-Edition-10.20.0.tar.gz` from runbook step 6; hashes recorded at closure. |
-| Production | **still v10.17.0** (`pwestudio.online`) | Last verified deployment: v10.17.0, runtime commit `cb72f69f30252e700bb8567490310f46a29a6592`; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The pre-deploy STOP GATE for v10.20.0 is in the round handoff (nginx must match `/zh/` exactly, not as a prefix; production tenant slugs must not collide with the new reserved names). |
+| Source | **v10.20.0, released** — commit `8d92995` on `main` | Local gate `All checks passed`, pytest 2489 passed / 41 skipped; **zero migrations** — schema stays at `0047_xero_transport.sql`. Round handoff: `docs/handoff/claude/2026-09-12-back-office-hierarchy.md`. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz` SHA-256 `6e3bd5519e03fc77b502d6a4bcd387adc4b8516c0233feba2ca2cbac5fbe619f`; `dist/PWE-Studio-Edition-10.20.0.tar.gz` SHA-256 `728aa97d3c76034693f7209df587165c4f8c1b39bb8580262acd1f1f8e040bc7`. Three-way guard equal at build time. |
+| Production | **v10.20.0** (`pwestudio.online`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. **Host changed 2026-09-17**: Oracle ARM behind Caddy and Cloudflare, no longer AWS Lightsail — the retained Lightsail instance still answers, so see `docs/Release_Runbook.md` § *Where production runs* before deploying anything. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
@@ -429,10 +429,10 @@ It provides a lightweight SaaS-style platform for managing:
 - platform-level tenant management
 
 **Status:** public pilot stage, deployed. The multi-tenant SaaS runtime serves
-`https://pwestudio.online` from a single AWS Lightsail instance in
-`ap-southeast-2` (Ubuntu 24.04, 2 vCPU / 1.9 GB), live since 2026-07-30. Host
-nginx terminates TLS with a Let's Encrypt certificate covering the apex and
-`www`; the application binds to loopback only. Daily PostgreSQL logical dumps
+`https://pwestudio.online` from an Oracle ARM instance behind Caddy, with
+Cloudflare proxying in front (moved 2026-09-17; previously a single AWS
+Lightsail instance in `ap-southeast-2`, live from 2026-07-30). Caddy terminates
+TLS and owns 80/443; the application binds to loopback only. Daily PostgreSQL logical dumps
 and a media-volume archive run under cron, and the restore rehearsal passes.
 **Cloudflare Tunnel is no longer the production path** — it is retained for
 local development only and must not be reintroduced for this hostname. The

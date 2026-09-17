@@ -141,3 +141,81 @@ def test_every_runtime_dependency_is_pinned_in_the_production_lock() -> None:
         f"deploy/aws/requirements.lock is missing pins for {sorted(missing)} — "
         "production installs the lock, so this dependency would not exist in the image."
     )
+
+
+# ── the README's three rows ──────────────────────────────────────────────────
+#
+# This module's own docstring has always claimed to cover "the README's three
+# rows". It did not, and the rows are where the drift actually happened:
+# `release.sh bump` ran `replace_all README.md "$OLD" "$NEW"` over the whole
+# file, which advanced whichever rows carried the outgoing version and froze
+# the rest. By v10.20.0 the table read
+#
+#     Source     | v10.20.0 candidate on branch release/10.20.0-pwe-house, not pushed
+#     Package    | not built
+#     Production | still v10.17.0
+#
+# with a STOP GATE sentence about nginx belonging to v10.18.0 — every row
+# false, on a released version, and looking freshly updated because a number in
+# it had just been rewritten. Nothing checked any of it.
+
+def _readme_status_table() -> str:
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    start = readme.index("| Layer | Verified state | Evidence |")
+    return readme[start:readme.index("\n\n", start)]
+
+
+def test_the_readme_source_row_names_this_release() -> None:
+    table = _readme_status_table()
+    source_row = next(line for line in table.splitlines() if line.startswith("| Source |"))
+    assert VERSION in source_row, (
+        f"README's Source row does not name {VERSION}:\n  {source_row.strip()}"
+    )
+
+
+def test_the_readme_and_the_handoff_agree_about_production() -> None:
+    """Two ledgers that disagree mean one of them is stale, and the reader has
+    no way to tell which. A static test cannot verify what production actually
+    serves — but it can refuse to let the two documents contradict each other.
+    """
+
+    import re
+
+    table = _readme_status_table()
+    readme_row = next(line for line in table.splitlines() if line.startswith("| Production |"))
+    readme_versions = set(re.findall(r"\bv?(\d+\.\d+\.\d+)\b", readme_row))
+
+    handoff = (PROJECT_ROOT / "docs/HANDOFF_LATEST.md").read_text(encoding="utf-8")
+    current = handoff[handoff.index("## 当前四层身份"):]
+    current = current[: current.index("## 上一版四层身份")]
+    production_row = next(
+        line for line in current.splitlines() if line.startswith("| Production |")
+    )
+    handoff_versions = set(re.findall(r"\bv?(\d+\.\d+\.\d+)\b", production_row))
+
+    assert readme_versions, f"README's Production row names no version:\n  {readme_row.strip()}"
+    assert handoff_versions, f"the handoff's Production row names no version"
+    assert readme_versions & handoff_versions, (
+        "README and HANDOFF_LATEST disagree about what production is serving.\n"
+        f"  README : {sorted(readme_versions)}\n"
+        f"  handoff: {sorted(handoff_versions)}\n"
+        "One of them was not written at step 9."
+    )
+
+
+def test_bump_does_not_rewrite_the_readme_by_substitution() -> None:
+    """The rows are claims about reality; sed cannot check one, and a blind
+    substitution is what made them look current while being wrong."""
+
+    import re
+
+    # Strip comments first. The comment that replaced this call quotes the old
+    # line verbatim to explain it, and an assertion that reads comments is the
+    # same defect in the other direction — here it fails on prose, elsewhere it
+    # has passed on prose.
+    release = (PROJECT_ROOT / "backend/scripts/release.sh").read_text(encoding="utf-8")
+    release = re.sub(r"^[^\S\n]*#.*$", "", release, flags=re.M)
+    assert 'replace_all README.md' not in release, (
+        "bump rewrites README.md by substitution again — that is how "
+        "'Source: v10.20.0 candidate' ended up above 'Production: still v10.17.0'"
+    )

@@ -23,7 +23,7 @@
 | Source | 提交 `e5140571725671a3e08c4ddb9c8accac36eef99f`，已在 `origin/main`。内容：后台三个面的层级整理，按 `jobs-simple-design` + `apple-design` 走查后实测下刀 —— 学员档案的响控件 14 → 2（十二个行内写操作降级，页面只留 `新建` 一个实心）；课程安排保留十个行内签到（那是任务本身）而把更危险的批量签到降级；平台控制台的 `Refresh` 从 `btn-primary` 降为 secondary（此前四个最响的控件全是 chrome）；工作台同一个变量渲染三次改为一次（`todayEffectiveCount` 4→1、`totalStudents` 3→1）；每行都有的 `待上课` 徽章与同名 pill 下的订阅状态都改为「只在非默认态出现」；CMS 侧栏写死的绿色「已连接」删除（顶栏那个才是接状态的）；41 处 11px 以下字号归零；课时徽章补可访问名。另修客户发布说明在手机上整页横向溢出（`1fr` 丢了 `minmax(0,…)`）与 v10.19.0 发出的重复 charset。**零迁移**，schema 仍至 `0047_xero_transport.sql`。本机 `verify_local.sh` **All checks passed**，pytest `2489 passed, 41 skipped`。 |
 | Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz`，SHA-256 `6e3bd5519e03fc77b502d6a4bcd387adc4b8516c0233feba2ca2cbac5fbe619f`。 |
 | Package / Edition | `dist/PWE-Studio-Edition-10.20.0.tar.gz`，SHA-256 `728aa97d3c76034693f7209df587165c4f8c1b39bb8580262acd1f1f8e040bc7`。三方守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
-| Production | `pwestudio.online` = **v10.20.0**。2026-09-12 实测 `/v1/health?deep=1`：`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 18.2%。 |
+| Production | `pwestudio.online` = **v10.20.0**。2026-09-12 部署到 AWS Lightsail 时实测 `/v1/health?deep=1`：`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 18.2%。**2026-09-17 生产迁到 Oracle ARM**（Cloudflare 橙云 + Caddy，`130.162.197.219`），同一个提交在 ARM 上重建；当天实测该版本三处独有改动在线上仍然成立，磁盘 6.2%。迁移方案与发布方式见 `docs/Release_Runbook.md` 的「Where production runs」。 |
 | Backup / migration | 部署前 dump `studiosaas_studiosaas_20260912T080929Z.dump` + 同名 manifest。schema 仍至 `0047_xero_transport.sql`（**本版零迁移**）。 |
 
 ### 部署后验收（生产实测，2026-09-12）
@@ -408,8 +408,10 @@
   顺手修了定价页语言切换指向首页、跳过链接跨页两个既有缺陷。
 - **2026-09-06（Claude）v10.16.0 两份审计的交叉核实与 0–G 八批修复**（**已发布**）：
   方案 `docs/design/Consolidated_Improvement_Plan_2026-09-06.md`（含生产实测附录 A
-  与执行记录附录 B）；两份原始审计 `UX_Review_2026-09-06.md`、
-  `User_Experience_Review_Verified_2026-09-06.md`（证据目录 `ux-review-2026-09-06/`）。
+  与执行记录附录 B）；两份原始审计 `docs/design/UX_Review_2026-09-06.md`、
+  `docs/design/User_Experience_Review_Verified_2026-09-06.md`，证据目录
+  `docs/design/ux-review-2026-09-06/`（33 张截图）。**这三样此前只在一台笔记本上
+  存在，从未提交** —— 一份只有一个人打得开的证据不是证据；2026-09-17 补交。
   51 条裁决、8 个提交、17 个新测试文件。F 与 G 同版发布是对本方案自己「G 独占窗口」
   一条的**明确偏离**：那条规则的理由是当时没有任何门禁能看见构建期编译的失败，
   所以先建了 `test_tailwind_build.py`（去掉一个 content 路径 → 570 个类缺失、

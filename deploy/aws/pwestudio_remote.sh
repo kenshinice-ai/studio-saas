@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
-# Operate the live pwestudio.online instance from a development machine.
+# Operate the pwestudio.online instance from a development machine.
+#
+# 2026-09-17: production moved to an Oracle ARM box behind Caddy and
+# Cloudflare, and the OLD Lightsail instance is still running. The alias below
+# still points at the old one. Every command here that only reads is harmless
+# against either; `deploy` now proves the target is the machine
+# pwestudio.online actually reaches before it uploads anything, and asserts the
+# public edge reports the version just built afterwards. Run `verify-target` if
+# you want that answer without deploying. The Oracle procedure is in
+# ~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md — it
+# builds on the box from a commit, not from a bundle.
 #
 #   bash deploy/aws/pwestudio_remote.sh <command>
 #
@@ -32,6 +42,8 @@
 #   certs             Certificate names, domains, expiry, and the renew timer.
 #   deploy <tarball>  Upload a release bundle, switch `current`, rebuild, verify,
 #                     and roll back automatically if deep health fails.
+#   verify-target     Prove the box this script targets is the one $PUBLIC_URL
+#                     reaches. Changes nothing. Run it when in doubt.
 #   ssh               Interactive shell on the instance.
 #
 # Deliberately absent: any command that removes a volume, drops a database, or
@@ -67,6 +79,68 @@ wait_internal_health() {
   exit 1"
 }
 
+# ── does this box actually serve $PUBLIC_URL? ────────────────────────────────
+#
+# 2026-09-17: production moved from AWS Lightsail to an Oracle ARM box behind
+# Cloudflare and Caddy, and the OLD machine is still running. `~/.ssh/config`
+# still resolves the alias this script defaults to (`pwestudio`) to the old
+# one. Nothing in this script noticed: it would deploy, the box would come up
+# healthy, the public-edge check below would `curl $PUBLIC_URL` and get a 200
+# from the OTHER machine, and the release would report success with production
+# untouched. The three-way commit guard cannot catch it either — it compares
+# commits, not machines.
+#
+# Two boxes running the same release are identical in everything the app says
+# about itself, so content cannot tell them apart. Only machine state can, and
+# disk usage is the one machine fact the deep health payload always carries.
+#
+# This is an EARLY WARNING, deliberately cheap and deliberately before the
+# upload. The PROOF is the post-deploy assertion that the public edge reports
+# the version we just shipped: at that moment the version is new and exists
+# nowhere else, so a mismatch there is unambiguous. Both are needed — this one
+# so the failure arrives before anything has moved, that one so no future
+# migration can slip through a heuristic.
+assert_box_serves_public_url() {
+  local box public
+  box="$(remote "curl -fsS --max-time 10 'http://127.0.0.1:8899/v1/health?deep=1'" 2>/dev/null || true)"
+  public="$(curl -fsS --max-time 20 "$PUBLIC_URL/v1/health?deep=1" 2>/dev/null || true)"
+  [ -n "$box" ]    || die "$SSH_HOST does not answer its own health on 127.0.0.1:8899 — cannot prove it serves $PUBLIC_URL"
+  [ -n "$public" ] || die "$PUBLIC_URL does not answer deep health — refusing to deploy blind"
+
+  BOX_HEALTH="$box" PUBLIC_HEALTH="$public" PUBLIC_URL="$PUBLIC_URL" SSH_HOST="$SSH_HOST" \
+  python3 - <<'PYEOF' || die "the deploy target is not the machine serving $PUBLIC_URL"
+import json, os, sys
+
+box = json.loads(os.environ["BOX_HEALTH"])
+public = json.loads(os.environ["PUBLIC_HEALTH"])
+host, url = os.environ["SSH_HOST"], os.environ["PUBLIC_URL"]
+
+def disk(payload):
+    return (payload.get("disk") or {}).get("percentUsed")
+
+box_disk, public_disk = disk(box), disk(public)
+if box_disk is None or public_disk is None:
+    print(f"  deep health carries no disk reading — cannot compare machines", file=sys.stderr)
+    sys.exit(1)
+
+print(f"  {host:<22} disk {box_disk}%  v{box.get('appVersion')}")
+print(f"  {url:<22} disk {public_disk}%  v{public.get('appVersion')}")
+
+# A percentage point of drift between two reads seconds apart is generous; two
+# different machines are not within one point of each other by accident.
+if abs(float(box_disk) - float(public_disk)) > 1.0:
+    print(
+        f"\n  {host} reports {box_disk}% disk used; {url} reports {public_disk}%.\n"
+        f"  These are different machines. Deploying here would succeed and change\n"
+        f"  nothing that anybody visits.\n\n"
+        f"  If production has moved, this script is not the way to deploy to it —\n"
+        f"  see docs/Release_Runbook.md, step 8.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+PYEOF
+}
+
 usage() { sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 cmd="${1:-}"
@@ -76,6 +150,16 @@ shift || true
 case "$cmd" in
   status)
     ctl status
+    ;;
+
+  verify-target)
+    # Answers one question without changing anything: is the box this script is
+    # pointed at the box $PUBLIC_URL actually reaches? Run it any time the
+    # answer is in doubt — after a migration, after an ssh config edit, or
+    # before trusting a deploy that "succeeded".
+    say "Is $SSH_HOST the machine behind $PUBLIC_URL?"
+    assert_box_serves_public_url
+    say "Yes — same machine"
     ;;
 
   health)
@@ -142,6 +226,9 @@ case "$cmd" in
     fi
     tar xzOf "$tarball" "$name/BUILD_INFO" | sed 's/^/  /'
 
+    say "Checking this box is the one $PUBLIC_URL reaches"
+    assert_box_serves_public_url
+
     previous="$(remote "readlink -f $CURRENT")"
     previous_version="$(remote "sudo sed -n 's/^STUDIOSAAS_VERSION=//p' /opt/pwestudio/shared/production.env | tail -1")"
     [ -n "$previous_version" ] || die "production.env carries no current STUDIOSAAS_VERSION — refusing an unrollbackable deploy"
@@ -202,6 +289,21 @@ case "$cmd" in
         say "Deep health passed — verifying from the public edge"
         if edge=$(curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"); then
           echo "$edge"
+          # The exact one. `$version` was just built and exists nowhere else,
+          # so if the public edge does not report it, whatever we deployed to
+          # is not what the public URL reaches. This check used to be absent:
+          # the edge only had to return 200, which it does from any healthy
+          # machine serving that domain — including one we did not touch.
+          edge_version="$(sed -n 's/.*"appVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$edge")"
+          if [ "$edge_version" != "$version" ]; then
+            say "WRONG TARGET: deployed $version, but $PUBLIC_URL still reports ${edge_version:-nothing}"
+            echo "  The deploy succeeded on $SSH_HOST and did not reach anybody." >&2
+            echo "  See docs/Release_Runbook.md, step 8." >&2
+            deployed=false
+            edge=""
+          fi
+        fi
+        if [ -n "$edge" ]; then
           # A green health check is not the same as a rendered tenant.
           #
           # v8.5.2 retired one visual style id. Every check above passed, the

@@ -1,5 +1,27 @@
 # StudioSaaS — AWS 部署包说明 (Stage 2)
 
+> **2026-09-17 — production moved off AWS.** `pwestudio.online` now runs on an
+> Oracle ARM box (`130.162.197.219`) behind Caddy and Cloudflare's proxy; the
+> app binds `127.0.0.1:8899` and Caddy terminates TLS. The **old Lightsail
+> instance is still running**, and `~/.ssh/config` still resolves the alias
+> `pwestudio` — the one this directory's scripts default to — to it. Deploying
+> with them today succeeds on a machine nobody visits.
+>
+> `pwestudio_remote.sh` now refuses that: it proves the target box is the one
+> `pwestudio.online` reaches before uploading, and asserts the public edge
+> reports the version just built afterwards. `pwestudio_remote.sh verify-target`
+> answers the question on its own, without deploying.
+>
+> The procedure for the Oracle host is recorded outside this repository, in
+> `~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`. In
+> short it builds on the box from a commit rather than uploading a tarball:
+> `ssh pwe-arm && cd /srv/pwestudio && sudo git -C app checkout <commit> &&
+> sudo docker build -f app/deploy/aws/Dockerfile -t studiosaas:<version> app/ &&
+> sudo docker compose up -d`. **That procedure has not been exercised from this
+> repository** — what has been verified here is the link (Cloudflare → Caddy →
+> Oracle) and that v10.20.0's own changes are live on it.
+
+
 本目录是随代码一起发布的 AWS 部署套件。目标架构与成本估算见
 `docs/Deployment.md` §3。生产有两条明确路径：RDS PostgreSQL，或
 `pwestudio.online` 首发采用的 Lightsail 单机 PostgreSQL 拓扑。

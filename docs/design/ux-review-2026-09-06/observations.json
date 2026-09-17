@@ -1,0 +1,3619 @@
+[
+  {
+    "title": "工作室管理系统 · 报名、排课、课时账本 | PWE Studio",
+    "headings": [
+      "把时间还给创作",
+      "你的才华，不该耗在台账和聊天记录里",
+      "被打断的排练",
+      "深夜的对账表",
+      "经不起丢的纸条",
+      "看不见的作品墙",
+      "四个界面，同一个工作室在其中流动",
+      "一扇打开就像你工作室的门",
+      "每一次意向，都带着完整来路抵达",
+      "把工作室的一天真正跑完的地方",
+      "品牌可以改变，不必每次都找开发者",
+      "行业模版换的是术语和表单，不只是颜色。",
+      "美术工作室",
+      "音乐学校",
+      "舞蹈工作室",
+      "补习机构",
+      "创意科技",
+      "钱和信任，写进系统，不写在人情里",
+      "账本不可篡改",
+      "权限写死在后端",
+      "未成年人隐私",
+      "透明定价，随工作室一起成长",
+      "Starter",
+      "Studio",
+      "Growth",
+      "从签约到开幕，只需四步",
+      "品牌配置",
+      "数据导入",
+      "团队培训",
+      "正式上线",
+      "签字之前，通常会问的几件事",
+      "这里没有什么需要先通话才能看到",
+      "管理退到幕后，作品站上台前。"
+    ],
+    "overflow": 0,
+    "text": "跳到主要内容\nPWE Studio\n痛点\n产品\n关键设计\n定价\n上线\n答疑\nEN\n预约演示\n\n一个系统 · 四个相连界面\n\n把时间还给创作\n\n品牌在台前迎接每个人，报名、排课、课时与日常运营，在同一个工作室系统里连起来。\n\n面向美术、音乐、舞蹈工作室与培训机构——琐事交给系统，你回到教室与作品。\n\n走进这个系统\n预约 30 分钟演示\n\n已在 Let’s Paint Studio 的生产环境运行——那是我们自己团队任教的工作室，所以这套系统的第一个用户是我们自己。完整走一遍 →\n\n工作室生命系统\n一个工作室核心\n一套事实 · 一条审计链\n品牌门户\n迎接家庭\n快速报名\n接住意向\n运营 CMS\n跑完日常\n品牌工作台\n管理品牌\n\n现状与痛点\n\n你的才华，不该耗在台账和聊天记录里\n\n开工作室是因为热爱创作与教学。没有人是为了对账、催费、翻聊天记录才创业的。\n\n被打断的排练\n\n「还剩几节课？」一句询问，要翻三个月的群记录才答得上。\n\n深夜的对账表\n\n白天上课，晚上核 Excel，吃掉的是备课和新作品的时间。\n\n经不起丢的纸条\n\n收据在抽屉、承诺在口头，家长的信任不该系在一张纸上。\n\n看不见的作品墙\n\n作品攒了一屋子，线上无处可看，新学员只能靠转介绍。\n\n台前是你的品牌，幕后是一个系统\n\n四个界面，同一个工作室在其中流动\n\n台前始终是你的品牌，背后流动的是同一套事实——从第一次访问走到每天上课，不再是四套断开的工具，也不再共用一个权限过大的账号。\n\n一个工作室\n品牌 · 人员 · 账本\n品牌门户\n快速报名\n运营 CMS\n品牌工作台\n01\n一扇打开就像你工作室的门\n\n门户用你的身份呈现课程、精选作品与常见问题。家庭可以先了解工作室、不离开页面直接报名，之后再从学员区回来。\n\n已发布品牌 → 课程 → 作品 → 学员区\n访问工作室门户\n02\n每一次意向，都带着完整来路抵达\n\n快速报名可以放在二维码或推广链接后面，使用工作室自己的问题，与门户进入同一条审核队列，并保留来源与语言。\n\n二维码或推广 → 同一字段 → 同一审核队列\n开始一次报名\n03\n把工作室的一天真正跑完的地方\n\n运营 CMS 把学员、排课、签到、课时、收款、报名跟进、作品与报表接在一起。每个角色只看到自己真正能完成的工作。\n\n店主 · 店长 · 老师 · 前台 · 助教\n进入运营 CMS\n04\n品牌可以改变，不必每次都找开发者\n\n品牌工作台管理 Logo、配色、双语文案、公开版块与报名字段。先预览草稿，再明确发布，也能回到一个已知版本。\n\n草稿 → 预览 → 发布 → 恢复\n进入品牌工作台\n05\n\n四个界面之外，另有平台侧 Super Admin：租户开通、套餐与账单、用量监控、审计日志。平台方不持有工作室账号，也不读取学员资料；进店必须走留痕的支持模式。\n\n行业模版\n\n行业模版换的是术语和表单，不只是颜色。\n美术工作室\n\n作品成长、发布授权、学期课程与材料导向的课程叙事。\n\n音乐学校\n\n乐器、级别、练习目标、课程节奏与演出里程碑。\n\n舞蹈工作室\n\n舞种、级别、课表、出勤与排练沟通。\n\n补习机构\n\n科目、年级、学习目标、课时与进度证据。\n\n创意科技\n\n项目、工作坊、编程路径与可分享成果。\n\n三个关键设计\n\n钱和信任，写进系统，不写在人情里\n\n下面三件事没有一件是功能清单上的卖点，它们是决定这套系统能不能被托付的地方。\n\n账本不可篡改\n\n余额 = 每一笔流水之和。不是一个可以随手改掉的数字，每次变动都记录操作人、时间与原因。签到自动扣课时，余额不足当场拦截并提醒。\n\n权限写死在后端\n\n店主 / 店长 / 老师 / 前台 / 员工，五级权限。前台能收费不能退费，退费与对外分享仅限店主店长，不是在界面上藏起来，是系统层面直接拒绝——把人情压力从员工身上移到系统上。\n\n未成年人隐私\n\n两百多项租户隔离测试每次发版全绿才允许上线；作品公开须记录监护人同意，同意与撤回是只增不改的事件链；分享链接 1–90 天强制到期，可随时撤销。\n\n定价\n\n透明定价，随工作室一起成长\n\n下面每个数字都取自产品实际执行的套餐表，页面不会写出系统并不承认的额度。\n\nStarter\n\n$49\n\nAUD / 月\n\n最多 50 名学员\n1 个团队账号\n2 GB 存储额度\n官网展示 15 件工作室作品\n从 Starter 开始\n主推套餐\nStudio\n\n$99\n\nAUD / 月\n\n最多 250 名学员\n5 个团队账号\n10 GB 存储额度\n官网展示 60 件工作室作品\n从 Studio 开始\nGrowth\n\n$189\n\nAUD / 月\n\n最多 500 名学员\n20 个团队账号\n50 GB 存储额度\n官网展示 150 件工作室作品\n从 Growth 开始\n\n一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持。算一算你该选哪一档，以及 Setup 费用包含与不包含什么 →\n\n上线流程\n\n从签约到开幕，只需四步\n01\n品牌配置\n\n套用行业模版，配好 Logo、配色、双语文案与报名问题。\n\n02\n数据导入\n\n学员名单与课时余额，从 Excel 一次性迁入，迁移结果经复核。\n\n03\n团队培训\n\n按角色各教各的：前台收费、老师签到、店长看账。\n\n04\n正式上线\n\n官网、报名、运营同日切换，上线首周伴随支持。\n\n四步全部包含在一次性 Setup 服务费内。机构不需要懂技术。\n\n决定之前\n\n签字之前，通常会问的几件事\n\n写在这里，不留到通话里说——包括那些答案并不好听的问题。\n\n有免费试用吗？\n\n没有。我们不给一个空着的十四天账号，而是用一次 30 分钟的演示：现场用你工作室的名字、课程和作品，生成一个可预览的门户。你在决定之前看到的是自己的工作室，不是样板间。\n\nSetup 费用不包含什么？\n我们团队没有懂技术的人，行不行？\n如果我们不用了，数据还是我们的吗？\n学员资料存放在哪里？\n我们有多个校区。\n这里没有什么需要先通话才能看到\n\n上面的价格取自产品实际执行的套餐表。完整的用户手册是公开的。服务 FAQ 里逐条写明了我们还没做到的部分。\n\n先看这些。想看到自己的工作室长什么样时，再来约演示。\n\n预约 30 分钟演示\n\n开始\n\n管理退到幕后，作品站上台前。\n\n预约一次 30 分钟演示：用你工作室的名字、作品和课程，现场生成一个可预览的门户。\n\n主题\nProduct demonstration\nOnboarding and migration\nTechnical support\nPricing and contract\nProduct feedback\n工作室名称\n内容\n\n按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。发送前请再次检查，请勿包含密码、付款信息或敏感学员资料。\n\n打开邮件\n打开信息\n0488 885 850\n\n从表格迁移？先下载导入模版：CSV · Excel。\n\nPWE Studio\n\n面向美术、音乐、舞蹈工作室与培训机构的管理系统。澳大利亚 · 墨尔本。\n\n资料\n用户手册\n常见问题\n隐私政策\n支持政策\n服务条款\n联系\n© 2026 PWE Group Pty Ltd · PWE Studio\nA Paradise Production · 天域文创出品",
+    "buttons": [
+      {
+        "text": "走进这个系统",
+        "w": 172,
+        "h": 56
+      },
+      {
+        "text": "预约 30 分钟演示",
+        "w": 202,
+        "h": 56
+      },
+      {
+        "text": "从 Starter 开始",
+        "w": 277,
+        "h": 56
+      },
+      {
+        "text": "从 Studio 开始",
+        "w": 277,
+        "h": 56
+      },
+      {
+        "text": "从 Growth 开始",
+        "w": 277,
+        "h": 56
+      },
+      {
+        "text": "预约 30 分钟演示",
+        "w": 202,
+        "h": 56
+      },
+      {
+        "text": "打开邮件",
+        "w": 138,
+        "h": 56
+      },
+      {
+        "text": "打开信息",
+        "w": 138,
+        "h": 56
+      },
+      {
+        "text": "0488 885 850",
+        "w": 187,
+        "h": 56
+      }
+    ],
+    "name": "product-desktop",
+    "path": "/zh/",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "工作室管理系统 · 报名、排课、课时账本 | PWE Studio",
+    "headings": [
+      "把时间还给创作",
+      "你的才华，不该耗在台账和聊天记录里",
+      "被打断的排练",
+      "深夜的对账表",
+      "经不起丢的纸条",
+      "看不见的作品墙",
+      "四个界面，同一个工作室在其中流动",
+      "一扇打开就像你工作室的门",
+      "每一次意向，都带着完整来路抵达",
+      "把工作室的一天真正跑完的地方",
+      "品牌可以改变，不必每次都找开发者",
+      "行业模版换的是术语和表单，不只是颜色。",
+      "美术工作室",
+      "音乐学校",
+      "舞蹈工作室",
+      "补习机构",
+      "创意科技",
+      "钱和信任，写进系统，不写在人情里",
+      "账本不可篡改",
+      "权限写死在后端",
+      "未成年人隐私",
+      "透明定价，随工作室一起成长",
+      "Starter",
+      "Studio",
+      "Growth",
+      "从签约到开幕，只需四步",
+      "品牌配置",
+      "数据导入",
+      "团队培训",
+      "正式上线",
+      "签字之前，通常会问的几件事",
+      "这里没有什么需要先通话才能看到",
+      "管理退到幕后，作品站上台前。"
+    ],
+    "overflow": 0,
+    "text": "跳到主要内容\nPWE Studio\n菜单\n\n一个系统 · 四个相连界面\n\n把时间还给创作\n\n品牌在台前迎接每个人，报名、排课、课时与日常运营，在同一个工作室系统里连起来。\n\n面向美术、音乐、舞蹈工作室与培训机构——琐事交给系统，你回到教室与作品。\n\n走进这个系统\n预约 30 分钟演示\n\n已在 Let’s Paint Studio 的生产环境运行——那是我们自己团队任教的工作室，所以这套系统的第一个用户是我们自己。完整走一遍 →\n\n一个工作室核心\n一套事实 · 一条审计链\n品牌门户\n快速报名\n运营 CMS\n品牌工作台\n\n现状与痛点\n\n你的才华，不该耗在台账和聊天记录里\n\n开工作室是因为热爱创作与教学。没有人是为了对账、催费、翻聊天记录才创业的。\n\n被打断的排练\n\n「还剩几节课？」一句询问，要翻三个月的群记录才答得上。\n\n深夜的对账表\n\n白天上课，晚上核 Excel，吃掉的是备课和新作品的时间。\n\n经不起丢的纸条\n\n收据在抽屉、承诺在口头，家长的信任不该系在一张纸上。\n\n看不见的作品墙\n\n作品攒了一屋子，线上无处可看，新学员只能靠转介绍。\n\n台前是你的品牌，幕后是一个系统\n\n四个界面，同一个工作室在其中流动\n\n台前始终是你的品牌，背后流动的是同一套事实——从第一次访问走到每天上课，不再是四套断开的工具，也不再共用一个权限过大的账号。\n\n一个工作室\n品牌 · 人员 · 账本\n品牌门户\n快速报名\n运营 CMS\n品牌工作台\n01\n一扇打开就像你工作室的门\n\n门户用你的身份呈现课程、精选作品与常见问题。家庭可以先了解工作室、不离开页面直接报名，之后再从学员区回来。\n\n已发布品牌 → 课程 → 作品 → 学员区\n访问工作室门户\n02\n每一次意向，都带着完整来路抵达\n\n快速报名可以放在二维码或推广链接后面，使用工作室自己的问题，与门户进入同一条审核队列，并保留来源与语言。\n\n二维码或推广 → 同一字段 → 同一审核队列\n开始一次报名\n03\n把工作室的一天真正跑完的地方\n\n运营 CMS 把学员、排课、签到、课时、收款、报名跟进、作品与报表接在一起。每个角色只看到自己真正能完成的工作。\n\n店主 · 店长 · 老师 · 前台 · 助教\n进入运营 CMS\n04\n品牌可以改变，不必每次都找开发者\n\n品牌工作台管理 Logo、配色、双语文案、公开版块与报名字段。先预览草稿，再明确发布，也能回到一个已知版本。\n\n草稿 → 预览 → 发布 → 恢复\n进入品牌工作台\n05\n\n四个界面之外，另有平台侧 Super Admin：租户开通、套餐与账单、用量监控、审计日志。平台方不持有工作室账号，也不读取学员资料；进店必须走留痕的支持模式。\n\n行业模版\n\n行业模版换的是术语和表单，不只是颜色。\n美术工作室\n\n作品成长、发布授权、学期课程与材料导向的课程叙事。\n\n音乐学校\n\n乐器、级别、练习目标、课程节奏与演出里程碑。\n\n舞蹈工作室\n\n舞种、级别、课表、出勤与排练沟通。\n\n补习机构\n\n科目、年级、学习目标、课时与进度证据。\n\n创意科技\n\n项目、工作坊、编程路径与可分享成果。\n\n三个关键设计\n\n钱和信任，写进系统，不写在人情里\n\n下面三件事没有一件是功能清单上的卖点，它们是决定这套系统能不能被托付的地方。\n\n账本不可篡改\n\n余额 = 每一笔流水之和。不是一个可以随手改掉的数字，每次变动都记录操作人、时间与原因。签到自动扣课时，余额不足当场拦截并提醒。\n\n权限写死在后端\n\n店主 / 店长 / 老师 / 前台 / 员工，五级权限。前台能收费不能退费，退费与对外分享仅限店主店长，不是在界面上藏起来，是系统层面直接拒绝——把人情压力从员工身上移到系统上。\n\n未成年人隐私\n\n两百多项租户隔离测试每次发版全绿才允许上线；作品公开须记录监护人同意，同意与撤回是只增不改的事件链；分享链接 1–90 天强制到期，可随时撤销。\n\n定价\n\n透明定价，随工作室一起成长\n\n下面每个数字都取自产品实际执行的套餐表，页面不会写出系统并不承认的额度。\n\nStarter\n\n$49\n\nAUD / 月\n\n最多 50 名学员\n1 个团队账号\n2 GB 存储额度\n官网展示 15 件工作室作品\n从 Starter 开始\n主推套餐\nStudio\n\n$99\n\nAUD / 月\n\n最多 250 名学员\n5 个团队账号\n10 GB 存储额度\n官网展示 60 件工作室作品\n从 Studio 开始\nGrowth\n\n$189\n\nAUD / 月\n\n最多 500 名学员\n20 个团队账号\n50 GB 存储额度\n官网展示 150 件工作室作品\n从 Growth 开始\n\n一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持。算一算你该选哪一档，以及 Setup 费用包含与不包含什么 →\n\n上线流程\n\n从签约到开幕，只需四步\n01\n品牌配置\n\n套用行业模版，配好 Logo、配色、双语文案与报名问题。\n\n02\n数据导入\n\n学员名单与课时余额，从 Excel 一次性迁入，迁移结果经复核。\n\n03\n团队培训\n\n按角色各教各的：前台收费、老师签到、店长看账。\n\n04\n正式上线\n\n官网、报名、运营同日切换，上线首周伴随支持。\n\n四步全部包含在一次性 Setup 服务费内。机构不需要懂技术。\n\n决定之前\n\n签字之前，通常会问的几件事\n\n写在这里，不留到通话里说——包括那些答案并不好听的问题。\n\n有免费试用吗？\n\n没有。我们不给一个空着的十四天账号，而是用一次 30 分钟的演示：现场用你工作室的名字、课程和作品，生成一个可预览的门户。你在决定之前看到的是自己的工作室，不是样板间。\n\nSetup 费用不包含什么？\n我们团队没有懂技术的人，行不行？\n如果我们不用了，数据还是我们的吗？\n学员资料存放在哪里？\n我们有多个校区。\n这里没有什么需要先通话才能看到\n\n上面的价格取自产品实际执行的套餐表。完整的用户手册是公开的。服务 FAQ 里逐条写明了我们还没做到的部分。\n\n先看这些。想看到自己的工作室长什么样时，再来约演示。\n\n预约 30 分钟演示\n\n开始\n\n管理退到幕后，作品站上台前。\n\n预约一次 30 分钟演示：用你工作室的名字、作品和课程，现场生成一个可预览的门户。\n\n主题\nProduct demonstration\nOnboarding and migration\nTechnical support\nPricing and contract\nProduct feedback\n工作室名称\n内容\n\n按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。发送前请再次检查，请勿包含密码、付款信息或敏感学员资料。\n\n打开邮件\n打开信息\n0488 885 850\n\n从表格迁移？先下载导入模版：CSV · Excel。\n\nPWE Studio\n\n面向美术、音乐、舞蹈工作室与培训机构的管理系统。澳大利亚 · 墨尔本。\n\n资料\n用户手册\n常见问题\n隐私政策\n支持政策\n服务条款\n联系\n© 2026 PWE Group Pty Ltd · PWE Studio\nA Paradise Production · 天域文创出品",
+    "buttons": [
+      {
+        "text": "菜单",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "走进这个系统",
+        "w": 166,
+        "h": 54
+      },
+      {
+        "text": "预约 30 分钟演示",
+        "w": 194,
+        "h": 54
+      },
+      {
+        "text": "从 Starter 开始",
+        "w": 263,
+        "h": 54
+      },
+      {
+        "text": "从 Studio 开始",
+        "w": 263,
+        "h": 54
+      },
+      {
+        "text": "从 Growth 开始",
+        "w": 263,
+        "h": 54
+      },
+      {
+        "text": "预约 30 分钟演示",
+        "w": 194,
+        "h": 54
+      },
+      {
+        "text": "打开邮件",
+        "w": 134,
+        "h": 54
+      },
+      {
+        "text": "打开信息",
+        "w": 134,
+        "h": 54
+      },
+      {
+        "text": "0488 885 850",
+        "w": 182,
+        "h": 54
+      }
+    ],
+    "name": "product-mobile",
+    "path": "/zh/",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio · 墨尔本成人绘画小班",
+    "headings": [
+      "颜色会把人放慢下来。",
+      "一间朝南的后院画室",
+      "Janet M",
+      "教画的人，自己也在画",
+      "风过果园",
+      "陶罐与柠檬",
+      "港口的形状",
+      "月下荚果",
+      "南岸，三点钟",
+      "金色的田",
+      "先挑一个能坚持的时间",
+      "人像专题 Portrait Intensive",
+      "周六儿童创作 Saturday Kids",
+      "水彩与速写 Watercolour & Sketching",
+      "油画基础 Foundation Oil",
+      "在这里学，能学成什么样",
+      "课时、作品、报名，都在这里",
+      "学员私人专区",
+      "我的作品集",
+      "预约体验 · 报名",
+      "来之前会想问的",
+      "欢迎来画室坐坐"
+    ],
+    "overflow": 0,
+    "text": "跳到主要内容\n\nCaulfield North, Melbourne VIC\n\n颜色会把人放慢下来。\n\n墨尔本 Caulfield North 的一间小画室。成人小班，一次不超过八个人，从握笔开始也来得及。\n\n预约体验\n看看作品\n学员登录 →\nLET'S PAINT STUDIO\n\n这里不赶进度，也不比谁画得快。每周两小时，或者只来一次看看合不合适，都可以。\n\n空间\n\n一间朝南的后院画室\n\n画室在一栋 1920 年代砖房的后院，原本是马厩改的车库，屋顶掀高了，南墙换成一整面玻璃。我们没有装射灯——南边的光一整天不变色，这是画画的人唯一挑不出毛病的光。 门口有两棵梧桐，风大的时候能听见。颜料、亚麻布、画架、围裙都在，你带一件不怕脏的衣服就行。\n\n01\n八张画架，不多放\n\n八个人是上限，不是目标。两小时里老师能在每个人身后站三次——小班值钱的地方只有这一条。\n\n02\n材料我们备好\n\n油画颜料、亚麻布、松节油、围裙都由画室准备。第一次来，什么都不用买，也不用问要带什么。\n\n03\n没干的画留下来\n\n油画干得慢，架子上有你的位置。走的时候不必迁就一张还没想好的画。\n\nJanet M\n\n创办人 · 主理人\n\nJanet M\n\nJanet 在北京学的画，来墨尔本之后做了八年广告。2019 年她把 Caulfield North 那栋房子后院的旧马厩收拾出来，刷成白色，摆了八张画架——最初只是想有个地方自己画画，后来邻居敲门问能不能一起。 她的课没有进度表，也不排名次。第一节课通常在调色盘上度过：先弄清楚你眼睛里的灰到底是什么颜色，剩下的都好说。\n\n你眼睛里的灰，永远不是灰色。\n\n主理人作品\n\n教画的人，自己也在画\n\n下面这些是 Janet 自己的画。看老师的画，比看老师的简历更能判断要不要来上课。\n\n全部\n城市与风景\n静物\n写生与素描\n风过果园\n\n布面油画与炭笔，90 × 90 cm，2025。风停之后那半小时，树还没缓过来。\n\n陶罐与柠檬\n\n布面油画，60 × 60 cm，2025。柠檬是课上剩下的，摆了一周才画。\n\n港口的形状\n\n布面油画，刮刀，75 × 75 cm，2024。桅杆先画，剩下的都是为了托住它们。\n\n月下荚果\n\n布面丙烯与油彩，80 × 80 cm，2025。夜里画的，第二天看颜色全对，很少这样。\n\n南岸，三点钟\n\n布面油画，刮刀，60 × 60 cm，2024。风大的那种下午，海是灰绿的，草是热的。\n\n金色的田\n\n布面油画，70 × 70 cm，2024。开车去 Castlemaine 的路上，停了二十分钟。\n\n查看全部作品\n\n课程与班次\n\n先挑一个能坚持的时间\n\n四门课，每周固定时间。买课包，按实际上课扣课时，余额随时能查。\n\n01\n人像专题 Portrait Intensive\n\n人像 PORTRAIT\n\n人像\n\n画人。需要一点基础，一次两个半小时，只收六个人。 / Painting people. Some experience needed; six places, two and a half hours.\n\n年龄 有基础 EXPERIENCED · 150 分钟\n\n报名 →\n02\n周六儿童创作 Saturday Kids\n\n儿童 CHILDREN\n\n儿童\n\n6 到 11 岁，材料随便用，画什么都行。 / Ages 6 to 11. Any material, any subject.\n\n年龄 6–11 · 90 分钟\n\n报名 →\n03\n水彩与速写 Watercolour & Sketching\n\n水彩 WATERCOLOUR\n\n水彩\n\n轻装上阵：一支笔、一盒颜料、一个半小时。 / Light equipment: one brush, one box, ninety minutes.\n\n年龄 18+ · 90 分钟\n\n报名 →\n04\n油画基础 Foundation Oil\n\n油画 OIL\n\n油画\n\n从调色开始，两小时画一张。没画过也从这里开始。 / Start at the palette and paint for two hours. This is where beginners begin.\n\n年龄 18+ · 120 分钟\n\n报名 →\n\n学员作品\n\n在这里学，能学成什么样\n\n学员的画，每一张都经本人同意才放上来。\n\nApple and Cup\nGarden Path\nBlue Vase\nSeaside Boat\nA Bunch of Flowers\nShapes and Leaves\nSun and Moon\n登录查看我的作品集 →\n\n学员专区\n\n课时、作品、报名，都在这里\n\n无需注册邮箱账号——使用画室发放的访问码及学员姓名、手机号，即可查看私人课时与作品记录。\n\n学员私人专区\n\n姓名 + 手机号 + 访问码安全验证\n\n→\n我的作品集\n\n每一次课的作品记录\n\n→\n预约体验 · 报名\n\n填写基本信息，老师会在 24 小时内与您联系\n\n→\n\n常见问题\n\n来之前会想问的\n完全没画过，可以来吗？\n要自己买材料吗？\n一节课多久？\n请假了怎么办？\n小孩可以来吗？\n可以只上一次吗？\n画完的画归谁？\n会把我的画发到网上吗？\n\n联系我们\n\n欢迎来画室坐坐\n地址\nCaulfield North, Melbourne VIC\n邮箱\nhello@pwe-studio.invalid\n电话\n0400 000 000\n咨询\n预约体验 · 课程咨询——请使用报名表\nLet's Paint Studio\n\n© 2026 Let's Paint Studio · Powered by Paradise Production\n\n演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。\n\n首页\n主理人作品\n课程与班次\n课程安排\n学员作品\n常见问题\n学员专区\n预约体验\n隐私说明\n↑",
+    "buttons": [
+      {
+        "text": "打开导航菜单",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "预约体验",
+        "w": 108,
+        "h": 52
+      },
+      {
+        "text": "查看空间照片 1",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "查看空间照片 2",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "查看空间照片 3",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "查看空间照片 4",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "查看空间照片 5",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "查看空间照片 6",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "全部",
+        "w": 54,
+        "h": 44
+      },
+      {
+        "text": "城市与风景",
+        "w": 93,
+        "h": 44
+      },
+      {
+        "text": "静物",
+        "w": 54,
+        "h": 44
+      },
+      {
+        "text": "写生与素描",
+        "w": 93,
+        "h": 44
+      },
+      {
+        "text": "查看：风过果园",
+        "w": 333,
+        "h": 416
+      },
+      {
+        "text": "查看：陶罐与柠檬",
+        "w": 333,
+        "h": 333
+      },
+      {
+        "text": "查看：港口的形状",
+        "w": 333,
+        "h": 333
+      },
+      {
+        "text": "查看：月下荚果",
+        "w": 333,
+        "h": 416
+      },
+      {
+        "text": "查看：南岸，三点钟",
+        "w": 333,
+        "h": 333
+      },
+      {
+        "text": "查看：金色的田",
+        "w": 333,
+        "h": 333
+      },
+      {
+        "text": "查看全部作品",
+        "w": 135,
+        "h": 52
+      },
+      {
+        "text": "Apple and Cup",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "Garden Path",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "Blue Vase",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "Seaside Boat",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "A Bunch of Flowers",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "Shapes and Leaves",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "Sun and Moon",
+        "w": 160,
+        "h": 160
+      },
+      {
+        "text": "登录查看我的作品集 →",
+        "w": 194,
+        "h": 52
+      },
+      {
+        "text": "↑",
+        "w": 42,
+        "h": 42
+      }
+    ],
+    "name": "art-portal-mobile",
+    "path": "/lets-paint-showcase?lang=zh",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio — adult painting classes in Melbourne",
+    "headings": [
+      "Colour is a slower way to spend an afternoon.",
+      "A garden studio facing south",
+      "Janet M",
+      "The person teaching also paints",
+      "Orchard, After the Storm",
+      "Ceramic and Lemon",
+      "Harbour Forms",
+      "Moonlit Seedpods",
+      "Southern Coast, Three O'Clock",
+      "Golden Field",
+      "Start with an hour you can actually keep",
+      "人像专题 Portrait Intensive",
+      "周六儿童创作 Saturday Kids",
+      "水彩与速写 Watercolour & Sketching",
+      "油画基础 Foundation Oil",
+      "What people make here",
+      "Classes, works and enrolment, all in one place",
+      "Student private area",
+      "My works",
+      "Book a Trial · Enrol",
+      "Things people ask first",
+      "Come and see the studio"
+    ],
+    "overflow": 0,
+    "text": "Skip to content\nPrincipal\nWork by Janet\nCourses & Classes\nTimetable\nStudent Work\nQuestions\nStudent Login\nBook a trial\n中\nEN\n\nCAULFIELD NORTH, MELBOURNE VIC\n\nColour is a slower way to spend an afternoon.\n\nA small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.\n\nBook a trial\nSee the work\nStudent login →\nLET'S PAINT STUDIO\n\nNothing here is a race. Two hours a week, or one afternoon to see whether it suits you — both are a reasonable way to start.\n\nTHE ROOM\n\nA garden studio facing south\n\nThe studio is the old stable at the back of a 1920s brick house — the roof lifted, the south wall replaced with glass. We didn't put in spotlights: south light doesn't change colour all day, which is the only light a painter never argues with. Two plane trees by the gate, loud in a westerly. Paint, linen, easels and aprons are here. Bring a shirt you don't mind ruining.\n\n01\nEight easels, and no ninth\n\nEight is a ceiling, not a target. In two hours the teacher can stand behind each person three times, which is the only thing a small class is really for.\n\n02\nThe materials are ours\n\nOils, linen, solvent and aprons belong to the studio. Come once and buy nothing — there is no list to ask about.\n\n03\nWet canvases stay\n\nOil takes its time and there is a shelf with your name on it. Nobody has to finish a painting because it is half past eight.\n\nJanet M\n\nFOUNDER & PRINCIPAL\n\nJanet M\n\nJanet studied painting in Beijing and spent eight years in advertising after moving to Melbourne. In 2019 she cleared out the old stable behind a house in Caulfield North, painted it white and put in eight easels — at first only so she would have somewhere to paint, then because a neighbour knocked and asked to join her. Her classes have no syllabus and no ranking. The first one usually happens on the palette: work out what colour the grey in front of you actually is, and the rest follows.\n\nThe grey you're looking at is never grey.\n\nWORK BY JANET\n\nThe person teaching also paints\n\nThese are Janet's own paintings. Looking at a teacher's work tells you more than reading their CV.\n\nAll\nCity & Landscape\nStill life\nDrawing & Studies\nOrchard, After the Storm\n\nOil and charcoal on canvas, 90 × 90 cm, 2025. The half hour after the wind drops, when the trees have not caught up yet.\n\nCeramic and Lemon\n\nOil on canvas, 60 × 60 cm, 2025. The lemon was left over from a class and sat there a week before I painted it.\n\nHarbour Forms\n\nOil on canvas, palette knife, 75 × 75 cm, 2024. The masts went in first; everything else is there to hold them up.\n\nMoonlit Seedpods\n\nAcrylic and oil on canvas, 80 × 80 cm, 2025. Painted at night, and the colour still read true the next morning — which is rare.\n\nSouthern Coast, Three O'Clock\n\nOil on canvas, palette knife, 60 × 60 cm, 2024. One of those windy afternoons — the sea grey-green, the grass still warm.\n\nGolden Field\n\nOil on canvas, 70 × 70 cm, 2024. Twenty minutes at the side of the road on the way to Castlemaine.\n\nView all work\n\nCOURSES & CLASSES\n\nStart with an hour you can actually keep\n\nFour classes, same time every week. Buy a pack, spend it as you attend, and check the balance whenever you like.\n\n01\n人像专题 Portrait Intensive\n\n人像 PORTRAIT\n\n人像\n\n画人。需要一点基础，一次两个半小时，只收六个人。 / Painting people. Some experience needed; six places, two and a half hours.\n\nAGES 有基础 EXPERIENCED · 150 MIN\n\nEnrol →\n02\n周六儿童创作 Saturday Kids\n\n儿童 CHILDREN\n\n儿童\n\n6 到 11 岁，材料随便用，画什么都行。 / Ages 6 to 11. Any material, any subject.\n\nAGES 6–11 · 90 MIN\n\nEnrol →\n03\n水彩与速写 Watercolour & Sketching\n\n水彩 WATERCOLOUR\n\n水彩\n\n轻装上阵：一支笔、一盒颜料、一个半小时。 / Light equipment: one brush, one box, ninety minutes.\n\nAGES 18+ · 90 MIN\n\nEnrol →\n04\n油画基础 Foundation Oil\n\n油画 OIL\n\n油画\n\n从调色开始，两小时画一张。没画过也从这里开始。 / Start at the palette and paint for two hours. This is where beginners begin.\n\nAGES 18+ · 120 MIN\n\nEnrol →\n\nSTUDENT WORK\n\nWhat people make here\n\nStudent work, published one piece at a time and only with the artist's consent.\n\nApple and Cup\nGarden Path\nBlue Vase\nSeaside Boat\nA Bunch of Flowers\nShapes and Leaves\nSun and Moon\nSign in to see your works →\n\nSTUDENT AREA\n\nClasses, works and enrolment, all in one place\n\nNo account, no password. The student's name, your mobile and the code from the studio are enough to see classes and works.\n\nStudent private area\n\nName, mobile and access code\n\n→\nMy works\n\nEvery one of them, class by class\n\n→\nBook a Trial · Enrol\n\nTell us a little about the student and we'll call within 24 hours\n\n→\n\nQUESTIONS\n\nThings people ask first\nI've never painted. Can I come?\nDo I need to buy materials?\nHow long is a class?\nWhat happens if I miss a class?\nDo you teach children?\nCan I just come once?\nWho keeps the paintings?\nWill my work be posted online?\n\nCONTACT\n\nCome and see the studio\nLOCATION\nCaulfield North, Melbourne VIC\nEMAIL\nhello@pwe-studio.invalid\nPHONE\n0400 000 000\nENQUIRY\nTo book a trial or ask about classes, use the enrolment form\nLet's Paint Studio\n\n© 2026 Let's Paint Studio · Powered by Paradise Production\n\nDemonstration site. Everyone and everything on this page is invented, and the data is reset by hand.\n\nHome\nWork by Janet\nCourses & Classes\nTimetable\nStudent Work\nQuestions\nStudent Login\nBook a trial\nPrivacy\n↑",
+    "buttons": [
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Book a trial",
+        "w": 130,
+        "h": 52
+      },
+      {
+        "text": "Show space photo 1",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 2",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 3",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 4",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 5",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 6",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "All",
+        "w": 43,
+        "h": 44
+      },
+      {
+        "text": "City & Landscape",
+        "w": 136,
+        "h": 44
+      },
+      {
+        "text": "Still life",
+        "w": 73,
+        "h": 44
+      },
+      {
+        "text": "Drawing & Studies",
+        "w": 140,
+        "h": 44
+      },
+      {
+        "text": "View: Orchard, After the Storm",
+        "w": 690,
+        "h": 956
+      },
+      {
+        "text": "View: Ceramic and Lemon",
+        "w": 427,
+        "h": 427
+      },
+      {
+        "text": "View: Harbour Forms",
+        "w": 427,
+        "h": 427
+      },
+      {
+        "text": "View: Moonlit Seedpods",
+        "w": 365,
+        "h": 457
+      },
+      {
+        "text": "View: Southern Coast, Three O'Clock",
+        "w": 365,
+        "h": 365
+      },
+      {
+        "text": "View: Golden Field",
+        "w": 365,
+        "h": 365
+      },
+      {
+        "text": "View all work",
+        "w": 141,
+        "h": 52
+      },
+      {
+        "text": "Apple and Cup",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Garden Path",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Blue Vase",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Seaside Boat",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "A Bunch of Flowers",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Shapes and Leaves",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Sun and Moon",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Sign in to see your works →",
+        "w": 239,
+        "h": 52
+      },
+      {
+        "text": "↑",
+        "w": 46,
+        "h": 46
+      }
+    ],
+    "name": "art-portal-desktop",
+    "path": "/lets-paint-showcase?lang=en",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Zhiyin Music — music lessons in Glen Waverley, Melbourne",
+    "headings": [
+      "Find your rhythm. Make every practice count.",
+      "Four rooms, and one that fits the whole ensemble",
+      "Vivian H",
+      "What gets played here",
+      "Jasmine Flower (Jiangsu folk song, arranged for the ensemble here)",
+      "Waltzing Matilda (words by A. B. Paterson; arranged here for Chinese and Western instruments)",
+      "Horse Racing, erhu solo (Huang Haihuai)",
+      "Prelude for a Pensive Pupil, Peggy Glanville-Hicks",
+      "White Cockatoo Spirit Dance, Ross Edwards",
+      "Au bord de l'eau, Gabriel Fauré",
+      "Pick the instrument, then pick the hour",
+      "VCE 音乐辅导 VCE Music Support",
+      "乐理与视唱练耳 Musicianship & Aural",
+      "少年乐团 Youth Ensemble",
+      "音乐启蒙小组 Early Music Group",
+      "声乐一对一 Voice One-on-One",
+      "小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments",
+      "弦乐一对一 Strings One-on-One",
+      "民乐一对一 Chinese Instruments One-on-One",
+      "What people play after a while here",
+      "Classes, pieces and enrolment, all in one place",
+      "Student private area",
+      "My pieces",
+      "Book a Trial · Enrol",
+      "Before the first lesson",
+      "Come and see the studio"
+    ],
+    "overflow": 0,
+    "text": "Skip to content\nPrincipal\nRepertoire & Concerts\nLessons & Classes\nTimetable\nStudent Performances\nQuestions\nStudent Login\nBook a trial\n中\nEN\n\nGLEN WAVERLEY, MELBOURNE VIC\n\nFind your rhythm. Make every practice count.\n\nA teaching studio in Glen Waverley, Melbourne. Piano, violin and voice; guzheng, erhu and pipa. One-on-one lessons, groups of four to six, and an ensemble that rehearses on Saturday afternoons.\n\nBook a trial\nHave a listen\nStudent login →\nZHIYIN MUSIC\n\nThe first lesson is mostly playing and listening, so everyone can see whether this fits. If it doesn't, say so — nobody has to commit to a term first.\n\nTHE ROOMS\n\nFour rooms, and one that fits the whole ensemble\n\nThe studio is a 1970s brick house on a side street in Glen Waverley — six minutes from the station, two hours' free parking at the door. The front of the house is divided into four teaching rooms with rockwool in the walls and seals on the doors, so an erhu next door does not turn up in a piano lesson. The largest room holds a dozen people and the grand piano, and belongs to the ensemble on Saturday afternoons. There are two sofas in the front room for waiting parents, and you are welcome in for the last ten minutes of any lesson.\n\n01\nThe soundproofing is in the walls\n\nThe four teaching rooms were rebuilt with insulated stud walls and sealed doors. An erhu lesson and a piano lesson can run at the same time without either being in the other's way — less a renovation detail than the reason a timetable is possible at all.\n\n02\nTwo pianos, tuned twice a year\n\nAn upright in Studio 1 and a grand in the big room — the two that get tuned — where exam run-throughs and the June concert happen. Studio 2 has a digital piano for the early-years group. Five guzheng in the guzheng room, restrung once a term, plus a practice erhu and a practice pipa.\n\n03\nSomewhere for parents to wait\n\nTwo sofas, wifi, and coffee ten minutes' walk away. In the last ten minutes of each lesson the teacher goes through the week's practice points with the parent in the room — not a report, just so whoever supervises practice has heard it too.\n\n04\nLessons in English or Mandarin\n\nMost teachers work in either language; say which you would prefer when you enrol. Lesson notes and the end-of-term report are written in both, which covers the school and the grandparents at once.\n\n05\nSaturday afternoons are the ensemble\n\nEight to twelve players, Chinese and Western instruments in the same room. A year of lessons is the only way in — no grade required. They play twice a year: June in the studio, December in a community hall.\n\n06\nThe exam dates are on the wall\n\nAMEB session dates and entry deadlines go up in the front room, and we book the run-through slots as a studio. VCE students play their whole program in the big room once a term — not marked, just so the standing-up part has already happened once.\n\nVivian H\n\nFOUNDER & PRINCIPAL TEACHER\n\nVivian H\n\nVivian started guzheng in Shanghai at six, came to Melbourne with her family at fourteen and carried on here on piano, stopping after Grade 8. She studied accounting, spent six years at a firm, and taught two or three students every weekend throughout — for a while she could not have told you which was the job. In 2020 she took the lease on the Glen Waverley house and divided the front rooms into four studios. The name comes from zhiyin, the listener who hears what you meant: in the old story Boya plays and Zhong Ziqi hears the mountain and the river in it. Most of teaching, she says, is that — work out what the student is actually playing, then say what comes next.\n\nPractise one phrase until you want to play it again — that is the day done.\n\nREPERTOIRE & CONCERTS\n\nWhat gets played here\n\nTerm concerts, exam programs, and whatever the ensemble is working on. Where there is a recording we publish it; where there is not, a photograph. We never publish a recording nobody agreed to.\n\nAll\nEnsemble\nChinese instruments\nPiano\nStrings\nVoice\nJasmine Flower (Jiangsu folk song, arranged for the ensemble here)\n\nThe Youth Ensemble at the December community concert. Guzheng, erhu, violin and piano hand the same line to each other in turn. A full term of rehearsal.\n\nWaltzing Matilda (words by A. B. Paterson; arranged here for Chinese and Western instruments)\n\nThe Youth Ensemble at the community garden concert. Erhu on the tune, guzheng standing in for a guitar, piano only in the chorus. People in the audience sang along.\n\nHorse Racing, erhu solo (Huang Haihuai)\n\nPlayed by our Chinese-instruments teacher at the community Lunar New Year concert. The recording that day was the organiser's, not ours, so all we publish is the photograph.\n\nPrelude for a Pensive Pupil, Peggy Glanville-Hicks\n\nVivian, solo, at the December community concert. An Australian composer, and the quietest thing on the programme — put after the ensemble so the hall had somewhere to settle.\n\nWhite Cockatoo Spirit Dance, Ross Edwards\n\nHannah, solo violin, at the December community concert. It sits on the VCE prescribed list and students ask about it every year, so she played it to them first.\n\nAu bord de l'eau, Gabriel Fauré\n\nSung by our voice teacher at the end-of-term singing afternoon, with Vivian at the piano. She speaks a French song slowly as a poem before singing it, which is also how she teaches it.\n\nView all work\n\nLESSONS & CLASSES\n\nPick the instrument, then pick the hour\n\nOne-on-one by instrument, groups of four to six. Fees are billed by the term, and a lesson cancelled with notice becomes a make-up rather than a loss.\n\n01\nVCE 音乐辅导 VCE Music Support\n\nVCE\n\nVCE\n\n11–12 年级，每周一小时：选曲、排练与演出准备，Repertoire 与 Contemporary Performance 两条路径都做；中乐学员另办替代乐器申请。 / Year 11 and 12, one hour a week: choosing the program, rehearsing it and getting it performance-ready, for either the Repertoire or Contemporary Performance sequence. Students on a Chinese instrument also work through the alternative instrument application.\n\nAGES YEAR 11–12 · 60 MIN\n\nEnrol →\n02\n乐理与视唱练耳 Musicianship & Aural\n\n乐理与考级 THEORY & EXAMS\n\n乐理与考\n\n在读学员的小组课，八人以内：乐理、听觉与视奏，对应 AMEB 六级以上实技要配的笔试科目；考期前加一次模拟。 / A group of up to eight for students already having lessons: theory, aural and sight-reading, covering the written subject AMEB pairs with practical Grade 6 and above, with a mock run-through before exam week.\n\nAGES 在读学员 ENROLLED STUDENTS · 60 MIN\n\nEnrol →\n03\n少年乐团 Youth Ensemble\n\n合奏 ENSEMBLE\n\n合奏\n\n九到十七岁，周六下午 90 分钟。中西乐器同台，一学期排两首，十二月在社区礼堂完整演一遍。团费按学期收，每学期 $198。 / Ages nine to seventeen, ninety minutes on Saturday afternoons. Chinese and Western instruments in one room, two works a term, played right through in December in a community hall. The levy is charged by the term at $198.\n\nAGES 9–17 · 90 MIN\n\nEnrol →\n04\n音乐启蒙小组 Early Music Group\n\n启蒙 EARLY YEARS\n\n启蒙\n\n四到六岁，六人一组 45 分钟：节奏、听辨与最初的识谱，用打击乐和游戏带着走，学期末各自挑一件乐器。 / Ages four to six, six to a group for forty-five minutes: rhythm, listening and first note-reading through percussion and games, ending the term by choosing an instrument.\n\nAGES 4–6 · 45 MIN\n\nEnrol →\n05\n声乐一对一 Voice One-on-One\n\n声乐 VOICE\n\n声乐\n\n八岁起，一节 30 分钟：呼吸、咬字，和一首从头唱到尾的歌。变声期照常上课，只是曲目跟着嗓子走。 / From age eight, thirty minutes: breathing, diction, and one song all the way through. Lessons carry on through a voice change; the repertoire moves with the voice.\n\nAGES 8+ · 30 MIN\n\nEnrol →\n06\n小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments\n\n小组课 SMALL GROUPS\n\n小组课\n\n同一件乐器的三到六人一组，一小时：齐奏、分部，和跟别人一起弹。要先在这里上过一对一，进度差不多的排在一组。 / Three to six players on the same instrument for an hour: unison, parts, and playing alongside other people. Open to students already having one-on-one lessons here, grouped by where they are up to.\n\nAGES 7–16 · 60 MIN\n\nEnrol →\n07\n弦乐一对一 Strings One-on-One\n\n弦乐 STRINGS\n\n弦乐\n\n小提琴与大提琴，六岁起，一节 30 分钟。音阶每节都拉，曲子大约两周换一首。 / Violin and cello from age six, thirty minutes a lesson. Scales every time, and a new piece about every fortnight.\n\nAGES 6+ · 30 MIN\n\nEnrol →\n08\n民乐一对一 Chinese Instruments One-on-One\n\n民乐 CHINESE INSTRUMENTS\n\n民乐\n\n古筝、二胡、琵琶，七岁起，一节 45 分钟：指法、传统曲目与视奏。教室备琴上课，家里要有一台能练。 / Guzheng, erhu and pipa from age seven, forty-five minutes: right-hand technique, traditional repertoire and reading. There are instruments here for lessons; you need one at home to practise on.\n\nAGES 7+ · 45 MIN\n\nEnrol →\n\nSTUDENT PERFORMANCES\n\nWhat people play after a while here\n\nStudent performances, published one at a time and only with the family's consent.\n\nFishermen's Song at Dusk, guzheng solo (traditional, after Lou Shuhua)\nPrelude in C, J. S. Bach (BWV 846)\nLime Juice Tub, Australian folk song (AMEB Singing Series 2, Grade 3)\nSign in to see your pieces →\n\nSTUDENT AREA\n\nClasses, pieces and enrolment, all in one place\n\nNo account, no password. The student's name, your mobile and the code from the studio are enough to see classes and pieces.\n\nStudent private area\n\nName, mobile and access code\n\n→\nMy pieces\n\nEvery one of them, class by class\n\n→\nBook a Trial · Enrol\n\nTell us a little about the student and we'll call within 24 hours\n\n→\n\nQUESTIONS\n\nBefore the first lesson\nHow do we start?\nHow are fees worked out?\nCan we make up a missed lesson?\nDoes my child have to sit exams?\nHow much practice at home?\nDo we buy an instrument, or can we hire one?\nAre there concerts?\nWill my child's playing be posted online?\n\nCONTACT\n\nCome and see the studio\nLOCATION\nGlen Waverley, Melbourne VIC\nEMAIL\nhello@zhiyinmusic.example\nPHONE\n03 5550 0180\nENQUIRY\nTo book a trial or ask about classes, use the enrolment form\nZhiyin Music\n\n© 2026 Zhiyin Music · Powered by Paradise Production\n\nDemonstration site. Everyone and everything on this page is invented, and the data is reset by hand.\n\nHome\nRepertoire & Concerts\nLessons & Classes\nTimetable\nStudent Performances\nQuestions\nStudent Login\nBook a trial\nPrivacy\n↑",
+    "buttons": [
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Book a trial",
+        "w": 130,
+        "h": 52
+      },
+      {
+        "text": "Show space photo 1",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 2",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 3",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 4",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 5",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Show space photo 6",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "All",
+        "w": 43,
+        "h": 44
+      },
+      {
+        "text": "Ensemble",
+        "w": 86,
+        "h": 44
+      },
+      {
+        "text": "Chinese instruments",
+        "w": 151,
+        "h": 44
+      },
+      {
+        "text": "Piano",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "Strings",
+        "w": 70,
+        "h": 44
+      },
+      {
+        "text": "Voice",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "View: Jasmine Flower (Jiangsu folk song, arranged for the ensemble here)",
+        "w": 690,
+        "h": 1020
+      },
+      {
+        "text": "View: Waltzing Matilda (words by A. B. Paterson; arranged here for Chinese and Western instruments)",
+        "w": 427,
+        "h": 427
+      },
+      {
+        "text": "View: Horse Racing, erhu solo (Huang Haihuai)",
+        "w": 427,
+        "h": 427
+      },
+      {
+        "text": "View: Prelude for a Pensive Pupil, Peggy Glanville-Hicks",
+        "w": 365,
+        "h": 457
+      },
+      {
+        "text": "View: White Cockatoo Spirit Dance, Ross Edwards",
+        "w": 365,
+        "h": 365
+      },
+      {
+        "text": "View: Au bord de l'eau, Gabriel Fauré",
+        "w": 365,
+        "h": 365
+      },
+      {
+        "text": "View all work",
+        "w": 141,
+        "h": 52
+      },
+      {
+        "text": "Fishermen's Song at Dusk, guzheng solo (traditional, after Lou Shuhua)",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Prelude in C, J. S. Bach (BWV 846)",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Lime Juice Tub, Australian folk song (AMEB Singing Series 2, Grade 3)",
+        "w": 274,
+        "h": 274
+      },
+      {
+        "text": "Sign in to see your pieces →",
+        "w": 243,
+        "h": 52
+      },
+      {
+        "text": "↑",
+        "w": 46,
+        "h": 46
+      }
+    ],
+    "name": "music-portal-dark",
+    "path": "/music-studio-showcase?lang=en",
+    "width": 1440,
+    "scheme": "dark",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio · 报名",
+    "headings": [
+      "说说你想画什么"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n中\nEN\n← 返回工作室网站\n快速报名 · Caulfield North, Melbourne VIC\n说说你想画什么\n\n填完之后 Janet 会亲自回你，通常一两天内。不必解释自己没有基础——多数人都没有，这不是需要说明的事。\n\n先填写必要信息\n姓名和手机号足够让工作室开始为你安排。\n\n姓氏\n名字 *\n手机号码 *\n补充信息（选填）\n我同意工作室仅将这些资料用于联系与课程管理。\n阅读隐私说明 →\n提交报名\n首页\n主理人作品\n课程与班次\n课程安排\n学员作品\n常见问题\n学员专区\n预约体验\n隐私说明\n© 2026 Let's Paint Studio · Powered by Paradise Production\n\n演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。",
+    "buttons": [
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 47,
+        "h": 44
+      },
+      {
+        "text": "阅读隐私说明 →",
+        "w": 100,
+        "h": 44
+      },
+      {
+        "text": "提交报名",
+        "w": 305,
+        "h": 44
+      }
+    ],
+    "name": "register-mobile",
+    "path": "/lets-paint-showcase/register?lang=zh",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Zhiyin Music Timetable",
+    "headings": [
+      "Upcoming public classes"
+    ],
+    "overflow": 0,
+    "text": "TIMETABLE\nUpcoming public classes\n\nGroup classes and ensemble rehearsals for the next fortnight. One-on-one lessons are not listed: those times are arranged with the teacher.\n\nTimes are in the studio's timezone (Australia/Melbourne).\n\n9 September\nWednesday\n16:00\n→ 16:45\n音乐启蒙小组 Early Music Group\n音乐启蒙 · 周三放学后 Early Music · Wed\n琴房二 Studio 2\nAges 4–6\n4 places left\nRequest\n17:30\n→ 18:30\n乐理与视唱练耳 Musicianship & Aural\n乐理与视唱练耳 · 周三晚 Musicianship · Wed\nHannah\n大琴房 Recital Room\nAges 在读学员 Enrolled students\n5 places left\nRequest\n12 September\nSaturday\n10:00\n→ 10:45\n音乐启蒙小组 Early Music Group\n音乐启蒙 · 周六上午 Early Music · Sat\n琴房二 Studio 2\nAges 4–6\n4 places left\nRequest\n11:00\n→ 12:00\n乐理与视唱练耳 Musicianship & Aural\n乐理与视唱练耳 · 周六上午 Musicianship · Sat\nHannah\n大琴房 Recital Room\nAges 在读学员 Enrolled students\n4 places left\nRequest\n12:00\n→ 13:00\n小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments\n小组课 · 弦乐 · 周六 Strings Small Group · Sat\nHannah\n琴房一 Studio 1\nAges 7–16\n停课 · 老师带学生去考场 Closed · teacher at an exam session\nCancelled\n13:00\n→ 14:30\n少年乐团 Youth Ensemble\n少年乐团 · 周六下午 Youth Ensemble · Sat\nVivian\n大琴房 Recital Room\nAges 9–17\n6 places left\nRequest\n14:30\n→ 15:30\n小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments\n小组课 · 民乐 · 周六 Chinese Instruments Small Group · Sat\n古筝房 Guzheng Room\nAges 7–16\n4 places left\nRequest\n16 September\nWednesday\n16:00\n→ 16:45\n音乐启蒙小组 Early Music Group\n音乐启蒙 · 周三放学后 Early Music · Wed\n琴房二 Studio 2\nAges 4–6\n停课 · 学校公众假期 Closed · school public holiday\nCancelled\n17:30\n→ 18:30\n乐理与视唱练耳 Musicianship & Aural\n乐理与视唱练耳 · 周三晚 Musicianship · Wed\nHannah\n大琴房 Recital Room\nAges 在读学员 Enrolled students\n5 places left\nRequest\n19 September\nSaturday\n10:00\n→ 10:45\n音乐启蒙小组 Early Music Group\n音乐启蒙 · 周六上午 Early Music · Sat\n琴房二 Studio 2\nAges 4–6\n4 places left\nRequest\n11:00\n→ 12:00\n乐理与视唱练耳 Musicianship & Aural\n乐理与视唱练耳 · 周六上午 Musicianship · Sat\nHannah\n大琴房 Recital Room\nAges 在读学员 Enrolled students\n4 places left\nRequest\n12:00\n→ 13:00\n小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments\n小组课 · 弦乐 · 周六 Strings Small Group · Sat\nHannah\n琴房一 Studio 1\nAges 7–16\n3 places left\nRequest\n13:00\n→ 14:30\n少年乐团 Youth Ensemble\n少年乐团 · 周六下午 Youth Ensemble · Sat\nVivian\n大琴房 Recital Room\nAges 9–17\n6 places left\nRequest\n14:30\n→ 15:30\n小组课 · 弦乐与民乐 Small Group · Strings & Chinese Instruments\n小组课 · 民乐 · 周六 Chinese Instruments Small Group · Sat\n古筝房 Guzheng Room\nAges 7–16\n4 places left\nRequest\nZhiyin Music\n\n03 5550 0180 · hello@zhiyinmusic.example · Glen Waverley, Melbourne VIC\n\n© 2026 Zhiyin Music · Powered by Paradise Production\n\n演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。\n\nHome\nRepertoire & Concerts\nLessons & Classes\nTimetable\nStudent Performances\nQuestions\nStudent Login\nBook a trial\nPrivacy",
+    "buttons": [
+      {
+        "text": "打开导航菜单",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "Request",
+        "w": 88,
+        "h": 44
+      }
+    ],
+    "name": "timetable-mobile",
+    "path": "/music-studio-showcase/timetable?lang=en",
+    "width": 375,
+    "scheme": "dark",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio · 教画的人，自己也在画",
+    "headings": [
+      "教画的人，自己也在画",
+      "风过果园",
+      "陶罐与柠檬",
+      "港口的形状",
+      "月下荚果",
+      "南岸，三点钟",
+      "金色的田",
+      "海边的枝叶",
+      "高草与河",
+      "无花果树与潮水",
+      "一枚红荚",
+      "退潮笔记",
+      "金合欢与桉叶"
+    ],
+    "overflow": 0,
+    "text": "跳到主要内容\n\n主理人作品\n\n教画的人，自己也在画\n\n下面这些是 Janet 自己的画。看老师的画，比看老师的简历更能判断要不要来上课。\n\n13 件公开作品\n\n全部\n城市与风景\n静物\n写生与素描\n\n继续下滑可加载更多作品。\n\n风过果园\n\n布面油画与炭笔，90 × 90 cm，2025。风停之后那半小时，树还没缓过来。\n\n陶罐与柠檬\n\n布面油画，60 × 60 cm，2025。柠檬是课上剩下的，摆了一周才画。\n\n港口的形状\n\n布面油画，刮刀，75 × 75 cm，2024。桅杆先画，剩下的都是为了托住它们。\n\n月下荚果\n\n布面丙烯与油彩，80 × 80 cm，2025。夜里画的，第二天看颜色全对，很少这样。\n\n南岸，三点钟\n\n布面油画，刮刀，60 × 60 cm，2024。风大的那种下午，海是灰绿的，草是热的。\n\n金色的田\n\n布面油画，70 × 70 cm，2024。开车去 Castlemaine 的路上，停了二十分钟。\n\n海边的枝叶\n\n布面油画与拼贴，70 × 70 cm，2025。近处的叶子和远处的海，是同一种蓝。\n\n高草与河\n\n布面油画，65 × 65 cm，2024。草比水难画，因为草会动。\n\n无花果树与潮水\n\n布面油画，70 × 70 cm，2025。院子里的树，背后是想象的海。\n\n一枚红荚\n\n纸本油彩，50 × 50 cm，2025。一节课的时间，一个东西。\n\n退潮笔记\n\n布面油画，60 × 60 cm，2024。退潮的沙滩有六种颜色，我只画得出四种。\n\n金合欢与桉叶\n\n水彩与水粉，40 × 40 cm，2025。窗台上放了三天的一把花，第二天开始掉，画的是第三天。\n\n加载更多\nLet's Paint Studio\n\n0400 000 000 · hello@pwe-studio.invalid · Caulfield North, Melbourne VIC\n\n© 2026 Let's Paint Studio · Powered by Paradise Production\n\n演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。\n\n首页\n主理人作品\n课程与班次\n课程安排\n学员作品\n常见问题\n学员专区\n预约体验\n隐私说明",
+    "buttons": [
+      {
+        "text": "打开导航菜单",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "全部",
+        "w": 60,
+        "h": 44
+      },
+      {
+        "text": "城市与风景",
+        "w": 99,
+        "h": 44
+      },
+      {
+        "text": "静物",
+        "w": 60,
+        "h": 44
+      },
+      {
+        "text": "写生与素描",
+        "w": 99,
+        "h": 44
+      },
+      {
+        "text": "查看：风过果园",
+        "w": 347,
+        "h": 434
+      },
+      {
+        "text": "查看：陶罐与柠檬",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：港口的形状",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：月下荚果",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：南岸，三点钟",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：金色的田",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：海边的枝叶",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：高草与河",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：无花果树与潮水",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：一枚红荚",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：退潮笔记",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "查看：金合欢与桉叶",
+        "w": 347,
+        "h": 347
+      },
+      {
+        "text": "加载更多",
+        "w": 349,
+        "h": 44
+      }
+    ],
+    "name": "showcase-mobile",
+    "path": "/lets-paint-showcase/showcase?lang=zh",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "Let's Paint Studio",
+      "工作台",
+      "今日重点",
+      "需要注意"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n\nStudio CMS\n\n今日\n\n工作台\n2\n待处理\n7\n\n教学运营\n\n课程安排\n课程目录\n学员档案\n作品管理\n\n经营\n\n账单发票\n充值与退款\n课酬与报表\n经营统计\n\n记录\n\n操作日志\n网站与品牌\n公开网站\n已连接\n刷新\n系统设置\n退出登录\n\nSTUDIO CMS\n\n工作台\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n今日重点\n\n按你的角色排列最常用的工作入口\n\nOwner\n处理待处理\n7\n查看今日课程\n5\n搜索学员\n12\n查看经营统计\n\nTODAY · 今日指挥台\n\n先处理最需要行动的事项\n\n06/09/2026\n\n应到→\n\n5人\n\n已签到→\n\n0人\n\n低课时→\n\n2人\n\n今日排课\n新建学员\n审核报名\n充值结算\n\n学员总数 →\n\n12 人\n\n全部剩余课时 →\n\n78 课时\n\n今日排课 →\n\n5 人\n\n历史总营收 →\n\n$7020\n\n今日待办\n\n2 项\n\n最后 1 课时 · 1 人\n\nXi Chen\n\n查看 →\n\n本月生日 · 1 人\n\n复制祝福 →\nHana Sato\n需要注意\n4\n4 位学员等待审核\n去审核 →\n12 名学员有余额但超过 90 天未上课\n⌄\n未付清 3 张，其中逾期 2 张 · 应收 $1963.50\n进账单中心 →\n2 名学员余额 ≤ 2 课时\n看名单 →\n⌄\n经营真账（估算）\n已上课 48 人次 · 加权均价 $55.71/课时\n\n学员专区与作品发布\n\n点击数字直接处理对应学员\n\n专区已就绪\n1\n缺少手机号\n0\n专区未启用\n11\n私人内容受阻\n7\n作品已公开\n8\n公开授权有效\n7\n有作品但缺授权\n1\n最近操作\n全部 →\n© 2026 Let's Paint Studio · Powered by Paradise Production\n中\nEN",
+    "buttons": [
+      {
+        "text": "工作台\n2",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "待处理\n7",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程安排",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程目录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "学员档案",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "作品管理",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "账单发票",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "充值与退款",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课酬与报表",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "经营统计",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "操作日志",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "刷新",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "系统设置",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "搜索学员、手机号或功能\n⌘K",
+        "w": 664,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "已同步",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "O\n当前账号\nOwner",
+        "w": 108,
+        "h": 44
+      },
+      {
+        "text": "处理待处理\n7",
+        "w": 274,
+        "h": 66
+      },
+      {
+        "text": "查看今日课程\n5",
+        "w": 274,
+        "h": 66
+      },
+      {
+        "text": "搜索学员\n12",
+        "w": 274,
+        "h": 66
+      },
+      {
+        "text": "查看经营统计",
+        "w": 274,
+        "h": 66
+      },
+      {
+        "text": "应到→\n\n5人",
+        "w": 217,
+        "h": 67
+      },
+      {
+        "text": "已签到→\n\n0人",
+        "w": 217,
+        "h": 67
+      },
+      {
+        "text": "低课时→\n\n2人",
+        "w": 217,
+        "h": 67
+      },
+      {
+        "text": "今日排课",
+        "w": 161,
+        "h": 44
+      },
+      {
+        "text": "新建学员",
+        "w": 161,
+        "h": 44
+      },
+      {
+        "text": "审核报名",
+        "w": 161,
+        "h": 44
+      },
+      {
+        "text": "充值结算",
+        "w": 161,
+        "h": 44
+      },
+      {
+        "text": "学员总数 →\n\n12 人",
+        "w": 210,
+        "h": 86
+      },
+      {
+        "text": "全部剩余课时 →\n\n78 课时",
+        "w": 210,
+        "h": 86
+      },
+      {
+        "text": "今日排课 →\n\n5 人",
+        "w": 210,
+        "h": 86
+      },
+      {
+        "text": "历史总营收 →\n\n$7020",
+        "w": 210,
+        "h": 86
+      },
+      {
+        "text": "查看 →",
+        "w": 64,
+        "h": 44
+      },
+      {
+        "text": "复制祝福 →",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "4 位学员等待审核\n去审核 →",
+        "w": 1150,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 195,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 206,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 180,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 186,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 198,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 184,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 193,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 205,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 191,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 162,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 192,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 197,
+        "h": 44
+      },
+      {
+        "text": "未付清 3 张，其中逾期 2 张 · 应收 $1963.50\n进账单中心 →",
+        "w": 1150,
+        "h": 44
+      },
+      {
+        "text": "看名单 →",
+        "w": 66,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 92,
+        "h": 44
+      },
+      {
+        "text": "为 Xi Chen 充值",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 136,
+        "h": 44
+      },
+      {
+        "text": "为 Dave Okonkwo 充值",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "专区已就绪\n1",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "缺少手机号\n0",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "专区未启用\n11",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "私人内容受阻\n7",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "作品已公开\n8",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "公开授权有效\n7",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "有作品但缺授权\n1",
+        "w": 153,
+        "h": 68
+      },
+      {
+        "text": "最近操作\n全部 →",
+        "w": 1152,
+        "h": 46
+      },
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "name": "cms-dashboard",
+    "path": "/lets-paint-showcase/cms?view=dashboard",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "工作台",
+      "今日重点",
+      "需要注意"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio CMS\n工作台\n今日重点\n\n按你的角色排列最常用的工作入口\n\nOwner\n处理待处理\n7\n查看今日课程\n5\n搜索学员\n12\n查看经营统计\n\nTODAY · 今日指挥台\n\n先处理最需要行动的事项\n\n06/09/2026\n\n应到→\n\n5人\n\n已签到→\n\n0人\n\n低课时→\n\n2人\n\n今日排课\n新建学员\n审核报名\n充值结算\n\n学员总数 →\n\n12 人\n\n全部剩余课时 →\n\n78 课时\n\n今日排课 →\n\n5 人\n\n历史总营收 →\n\n$7020\n\n今日待办\n\n2 项\n\n最后 1 课时 · 1 人\n\nXi Chen\n\n查看 →\n\n本月生日 · 1 人\n\n复制祝福 →\nHana Sato\n需要注意\n4\n4 位学员等待审核\n去审核 →\n12 名学员有余额但超过 90 天未上课\n⌄\n未付清 3 张，其中逾期 2 张 · 应收 $1963.50\n进账单中心 →\n2 名学员余额 ≤ 2 课时\n看名单 →\n⌄\n经营真账（估算）\n已上课 48 人次 · 加权均价 $55.71/课时\n\n学员专区与作品发布\n\n点击数字直接处理对应学员\n\n专区已就绪\n1\n缺少手机号\n0\n专区未启用\n11\n私人内容受阻\n7\n作品已公开\n8\n公开授权有效\n7\n有作品但缺授权\n1\n最近操作\n全部 →\n© 2026 Let's Paint Studio · Powered by Paradise Production\n工作台\n2\n课表\n档案\n充值\n更多\n7",
+    "buttons": [
+      {
+        "text": "搜索",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "设置",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "处理待处理\n7",
+        "w": 151,
+        "h": 66
+      },
+      {
+        "text": "查看今日课程\n5",
+        "w": 151,
+        "h": 66
+      },
+      {
+        "text": "搜索学员\n12",
+        "w": 151,
+        "h": 66
+      },
+      {
+        "text": "查看经营统计",
+        "w": 151,
+        "h": 66
+      },
+      {
+        "text": "应到→\n\n5人",
+        "w": 98,
+        "h": 67
+      },
+      {
+        "text": "已签到→\n\n0人",
+        "w": 98,
+        "h": 67
+      },
+      {
+        "text": "低课时→\n\n2人",
+        "w": 98,
+        "h": 67
+      },
+      {
+        "text": "今日排课",
+        "w": 152,
+        "h": 44
+      },
+      {
+        "text": "新建学员",
+        "w": 152,
+        "h": 44
+      },
+      {
+        "text": "审核报名",
+        "w": 152,
+        "h": 44
+      },
+      {
+        "text": "充值结算",
+        "w": 152,
+        "h": 44
+      },
+      {
+        "text": "学员总数 →\n\n12 人",
+        "w": 168,
+        "h": 86
+      },
+      {
+        "text": "全部剩余课时 →\n\n78 课时",
+        "w": 168,
+        "h": 86
+      },
+      {
+        "text": "今日排课 →\n\n5 人",
+        "w": 168,
+        "h": 86
+      },
+      {
+        "text": "历史总营收 →\n\n$7020",
+        "w": 168,
+        "h": 86
+      },
+      {
+        "text": "查看 →",
+        "w": 64,
+        "h": 44
+      },
+      {
+        "text": "复制祝福 →",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "4 位学员等待审核\n去审核 →",
+        "w": 341,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 195,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 206,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 180,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 186,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 198,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 184,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 193,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 205,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 191,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 162,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 192,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 197,
+        "h": 44
+      },
+      {
+        "text": "未付清 3 张，其中逾期 2 张 · 应收 $1963.50\n进账单中心 →",
+        "w": 341,
+        "h": 57
+      },
+      {
+        "text": "看名单 →",
+        "w": 66,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 92,
+        "h": 44
+      },
+      {
+        "text": "为 Xi Chen 充值",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 136,
+        "h": 44
+      },
+      {
+        "text": "为 Dave Okonkwo 充值",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "专区已就绪\n1",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "缺少手机号\n0",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "专区未启用\n11",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "私人内容受阻\n7",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "作品已公开\n8",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "公开授权有效\n7",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "有作品但缺授权\n1",
+        "w": 151,
+        "h": 68
+      },
+      {
+        "text": "最近操作\n全部 →",
+        "w": 343,
+        "h": 46
+      },
+      {
+        "text": "工作台\n2",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "课表",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "档案",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "充值",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "更多\n7",
+        "w": 75,
+        "h": 52
+      }
+    ],
+    "name": "cms-dashboard-mobile",
+    "path": "/lets-paint-showcase/cms?view=dashboard",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "课程安排"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio CMS\n课程安排\n课程日期\n今天\n\n周一\n\n31\n\n—\n\n周二\n\n1\n\n6\n\n周三\n\n2\n\n8\n\n周四\n\n3\n\n4\n\n周五\n\n4\n\n—\n\n周六\n\n5\n\n10\n\n周日·今\n\n6\n\n5\n\n展开整月 ⌄\n今日 · 5 人\n已签到 0\n待上课 5\n低余额 1\n今日签到\n排课设置\n时段安排\n1 个时段\n⌄\n\n06/09/2026 · 5 人（课表 1 班）\n\n当日操作\nDO\n\nDave Okonkwo\n\n待上课\n\n0400000108 · 10:30\n\n2\n10:30\n续费提醒\n签到并扣 1 课时\nHS\n\nHana Sato\n\n待上课\n\n0400000106 · 10:30\n\n10\n10:30\n签到并扣 1 课时\nLF\n\nLucy Ferreira\n\n待上课\n\n0400000107 · 10:30\n\n4\n10:30\n签到并扣 1 课时\nRH\n\nRosie Hartnett\n\n待上课\n\n0400000110 · 10:30\n\n5\n10:30\n签到并扣 1 课时\nXL\n\nXiaoman Lin\n\n待上课\n\n0400000109 · 10:30\n\n9\n10:30\n签到并扣 1 课时\n\n调整这一天的名单\n\n添加学员\n上课时间\n请先选择学员\n1 对 1（同时段还有其他人时会提示冲突）\n班组模板与批量工具\n⌄\n© 2026 Let's Paint Studio · Powered by Paradise Production\n工作台\n2\n课表\n档案\n充值\n更多\n7",
+    "buttons": [
+      {
+        "text": "搜索",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "设置",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "前一天",
+        "w": 44,
+        "h": 50
+      },
+      {
+        "text": "今天",
+        "w": 205,
+        "h": 50
+      },
+      {
+        "text": "后一天",
+        "w": 44,
+        "h": 50
+      },
+      {
+        "text": "周一\n\n31\n\n—",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周二\n\n1\n\n6",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周三\n\n2\n\n8",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周四\n\n3\n\n4",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周五\n\n4\n\n—",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周六\n\n5\n\n10",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "周日·今\n\n6\n\n5",
+        "w": 44,
+        "h": 64
+      },
+      {
+        "text": "展开整月 ⌄",
+        "w": 309,
+        "h": 44
+      },
+      {
+        "text": "今日签到",
+        "w": 110,
+        "h": 44
+      },
+      {
+        "text": "排课设置",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 252,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 252,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 252,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 252,
+        "h": 44
+      },
+      {
+        "text": "续费提醒",
+        "w": 311,
+        "h": 44
+      },
+      {
+        "text": "签到并扣 1 课时",
+        "w": 155,
+        "h": 44
+      },
+      {
+        "text": "签到并扣 1 课时",
+        "w": 159,
+        "h": 44
+      },
+      {
+        "text": "签到并扣 1 课时",
+        "w": 159,
+        "h": 44
+      },
+      {
+        "text": "签到并扣 1 课时",
+        "w": 159,
+        "h": 44
+      },
+      {
+        "text": "签到并扣 1 课时",
+        "w": 159,
+        "h": 44
+      },
+      {
+        "text": "请先选择学员",
+        "w": 309,
+        "h": 50
+      },
+      {
+        "text": null,
+        "w": 110,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 110,
+        "h": 44
+      },
+      {
+        "text": "工作台\n2",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "课表",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "档案",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "充值",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "更多\n7",
+        "w": 75,
+        "h": 52
+      }
+    ],
+    "name": "cms-roster-mobile",
+    "path": "/lets-paint-showcase/cms?view=roster",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "Let's Paint Studio",
+      "待处理"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n\nStudio CMS\n\n今日\n\n工作台\n2\n待处理\n7\n\n教学运营\n\n课程安排\n课程目录\n学员档案\n作品管理\n\n经营\n\n账单发票\n充值与退款\n课酬与报表\n经营统计\n\n记录\n\n操作日志\n网站与品牌\n公开网站\n已连接\n刷新\n系统设置\n退出登录\n\nSTUDIO CMS\n\n待处理\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n\n新报名和约课申请共用一个收件箱，按业务类型分开处理。\n\n7 项等待处理\n新报名 4\n约课 3\n成长报告\nI\n\nIsla Moore\n\n0400000201 · isla@example.com\n\n提交时间: 2026-09-05 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n看到你们的作品页找过来的，想问周三晚上。 / Found you through the work page — asking about Wednesday evenings.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nF\n\nFinn Davis\n\n0400000202 · finn@example.com\n\n提交时间: 2026-09-04 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n高中之后没画过，想重新开始。 / Haven't drawn since school and would like to start again.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nL\n\nLily Thomas\n\n0400000203 · lily@example.com\n\n提交时间: 2026-09-03 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n已约周六下午的体验课。 / Trial booked for Saturday afternoon.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nM\n\nMax Walker\n\n0400000204 · max@example.com\n\n提交时间: 2026-09-02 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n想上人像专题，等下一期有位置。 / Waiting for a place in the portrait intensive.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\n© 2026 Let's Paint Studio · Powered by Paradise Production\n中\nEN",
+    "buttons": [
+      {
+        "text": "工作台\n2",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "待处理\n7",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程安排",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程目录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "学员档案",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "作品管理",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "账单发票",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "充值与退款",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课酬与报表",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "经营统计",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "操作日志",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "刷新",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "系统设置",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "返回工作台",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "搜索学员、手机号或功能\n⌘K",
+        "w": 664,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "已同步",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "O\n当前账号\nOwner",
+        "w": 108,
+        "h": 44
+      },
+      {
+        "text": "新报名 4",
+        "w": 89,
+        "h": 44
+      },
+      {
+        "text": "约课 3",
+        "w": 75,
+        "h": 44
+      },
+      {
+        "text": "成长报告",
+        "w": 90,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "name": "cms-pending",
+    "path": "/lets-paint-showcase/cms?view=pending",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "待处理"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio CMS\n待处理\n\n新报名和约课申请共用一个收件箱，按业务类型分开处理。\n\n7 项等待处理\n新报名 4\n约课 3\n成长报告\nI\n\nIsla Moore\n\n0400000201 · isla@example.com\n\n提交时间: 2026-09-05 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n看到你们的作品页找过来的，想问周三晚上。 / Found you through the work page — asking about Wednesday evenings.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nF\n\nFinn Davis\n\n0400000202 · finn@example.com\n\n提交时间: 2026-09-04 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n高中之后没画过，想重新开始。 / Haven't drawn since school and would like to start again.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nL\n\nLily Thomas\n\n0400000203 · lily@example.com\n\n提交时间: 2026-09-03 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n已约周六下午的体验课。 / Trial booked for Saturday afternoon.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\nM\n\nMax Walker\n\n0400000204 · max@example.com\n\n提交时间: 2026-09-02 09:59 · 来源: 快速报名 · 状态: 待审核\n\n留言\n\n想上人像专题，等下一期有位置。 / Waiting for a place in the portrait intensive.\n\n下次跟进\n已联系\n已约试听\n继续跟进\n初始课时数\n拒绝\n批准建档\n© 2026 Let's Paint Studio · Powered by Paradise Production\n工作台\n2\n课表\n档案\n充值\n更多\n7",
+    "buttons": [
+      {
+        "text": "搜索",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "设置",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "新报名 4",
+        "w": 89,
+        "h": 44
+      },
+      {
+        "text": "约课 3",
+        "w": 75,
+        "h": 44
+      },
+      {
+        "text": "成长报告",
+        "w": 90,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "已联系",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "已约试听",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "继续跟进",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "拒绝",
+        "w": 62,
+        "h": 44
+      },
+      {
+        "text": "批准建档",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "工作台\n2",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "课表",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "档案",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "充值",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "更多\n7",
+        "w": 75,
+        "h": 52
+      }
+    ],
+    "name": "cms-pending-mobile",
+    "path": "/lets-paint-showcase/cms?view=pending",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "Let's Paint Studio",
+      "学员档案",
+      "Ana Bianchi",
+      "Dave Okonkwo",
+      "Eli Whelan",
+      "Hana Sato",
+      "Lucy Ferreira",
+      "Marcus Ely",
+      "Priya Raman",
+      "Rosie Hartnett",
+      "Tom Whelan",
+      "Xi Chen",
+      "Xiaoman Lin",
+      "Xiaoyu Zhou"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n\nStudio CMS\n\n今日\n\n工作台\n2\n待处理\n7\n\n教学运营\n\n课程安排\n课程目录\n学员档案\n作品管理\n\n经营\n\n账单发票\n充值与退款\n课酬与报表\n经营统计\n\n记录\n\n操作日志\n网站与品牌\n公开网站\n已连接\n刷新\n系统设置\n退出登录\n\nSTUDIO CMS\n\n学员档案\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n\n共 12 人\n\nCSV\n新建\n名 A→Z\n名 Z→A\n姓 A→Z\n姓 Z→A\n课时 高→低\n课时 低→高\n最近活跃\n全部 · 12\n有余额\n低余额≤2\n已清零\n归档库\n活跃\n低频\n流失风险\n专区已就绪\n缺手机号\n专区未启用\n私人内容受阻\n作品已公开\n公开授权有效\n缺公开授权\n共 12 人\n选择本页 12 人\nAB\nAna Bianchi\n12\n低频\n\n0400000103\n\nana@example.com\n\n—\n\n详情\n加入排课\nDO\nDave Okonkwo\n2\n活跃\n\n0400000108\n\ndave@example.com\n\n—\n\n详情\n查看排课\nEW\nEli Whelan\n7\n活跃\n\n0400000102\n\ntom@example.com\n\n—\n\n详情\n加入排课\nHS\nHana Sato\n10\n低频\n\n0400000106\n\nhana@example.com\n\n—\n\n详情\n查看排课\nLF\nLucy Ferreira\n4\n活跃\n\n0400000107\n\nlucy@example.com\n\n—\n\n详情\n查看排课\nME\nMarcus Ely\n6\n活跃\n\n0400000105\n\nmarcus@example.com\n\n—\n\n详情\n加入排课\nPR\nPriya Raman\n8\n活跃\n\n0400000101\n\npriya@example.com\n\n—\n\n详情\n加入排课\nRH\nRosie Hartnett\n5\n活跃\n\n0400000110\n\nrosie@example.com\n\n—\n\n详情\n查看排课\nTW\nTom Whelan\n3\n活跃\n\n0400000102\n\ntom@example.com\n\n—\n\n详情\n加入排课\nXC\nXi Chen\n1\n活跃\n\n0400000104\n\nxi@example.com\n\n—\n\n详情\n加入排课\nXL\nXiaoman Lin\n9\n低频\n\n0400000109\n\nxiaoman@example.com\n\n—\n\n详情\n查看排课\nXZ\nXiaoyu Zhou\n11\n低频\n\n0400000112\n\nmei.zhou@example.com\n\n—\n\n详情\n加入排课\n© 2026 Let's Paint Studio · Powered by Paradise Production\n中\nEN",
+    "buttons": [
+      {
+        "text": "工作台\n2",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "待处理\n7",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程安排",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程目录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "学员档案",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "作品管理",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "账单发票",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "充值与退款",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课酬与报表",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "经营统计",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "操作日志",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "刷新",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "系统设置",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "返回工作台",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "搜索学员、手机号或功能\n⌘K",
+        "w": 664,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "已同步",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "O\n当前账号\nOwner",
+        "w": 108,
+        "h": 44
+      },
+      {
+        "text": "CSV",
+        "w": 85,
+        "h": 44
+      },
+      {
+        "text": "新建",
+        "w": 90,
+        "h": 44
+      },
+      {
+        "text": "全部 · 12",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "有余额",
+        "w": 70,
+        "h": 44
+      },
+      {
+        "text": "低余额≤2",
+        "w": 86,
+        "h": 44
+      },
+      {
+        "text": "已清零",
+        "w": 70,
+        "h": 44
+      },
+      {
+        "text": "归档库",
+        "w": 70,
+        "h": 44
+      },
+      {
+        "text": "活跃",
+        "w": 58,
+        "h": 44
+      },
+      {
+        "text": "低频",
+        "w": 58,
+        "h": 44
+      },
+      {
+        "text": "流失风险",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "专区已就绪",
+        "w": 94,
+        "h": 44
+      },
+      {
+        "text": "缺手机号",
+        "w": 82,
+        "h": 44
+      },
+      {
+        "text": "专区未启用",
+        "w": 94,
+        "h": 44
+      },
+      {
+        "text": "私人内容受阻",
+        "w": 106,
+        "h": 44
+      },
+      {
+        "text": "作品已公开",
+        "w": 94,
+        "h": 44
+      },
+      {
+        "text": "公开授权有效",
+        "w": 106,
+        "h": 44
+      },
+      {
+        "text": "缺公开授权",
+        "w": 94,
+        "h": 44
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "查看排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "查看排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "查看排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "查看排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "查看排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "详情",
+        "w": 139,
+        "h": 46
+      },
+      {
+        "text": "快速充值",
+        "w": 50,
+        "h": 46
+      },
+      {
+        "text": "加入排课",
+        "w": 137,
+        "h": 46
+      },
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "name": "cms-students",
+    "path": "/lets-paint-showcase/cms?view=students",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "Let's Paint Studio",
+      "账单发票"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n\nStudio CMS\n\n今日\n\n工作台\n2\n待处理\n7\n\n教学运营\n\n课程安排\n课程目录\n学员档案\n作品管理\n\n经营\n\n账单发票\n充值与退款\n课酬与报表\n经营统计\n\n记录\n\n操作日志\n网站与品牌\n公开网站\n已连接\n刷新\n系统设置\n退出登录\n\nSTUDIO CMS\n\n账单发票\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n\n已开票\n\n$3,696.00\n\n5 张 · 含 GST\n\n净收款（扣除退款）\n\n$1,732.50\n\n47% · 贷记 $0.00 · 退款 $0.00\n\n逾期\n\n$907.50\n\n2 个家庭\n\n待发草稿\n\n1\n\n勾选后可批量发出\n\n起\n止\n本月\n上月\n近 30 天\n全部 5\n逾期 2\n未付清 3\n草稿 1\n共 5 张\n发票\n会计导出不含草稿 · 当前筛选范围\n发票汇总 CSV\n行项目 CSV\n会计流水 CSV\n新建发票\nWhelan 一家\n草稿 · 未编号\n草稿\n$715.00\nSouthbank Primary School\nINV-0004 · 到期 24/09/2026\n已开具\n$1,056.00\nRaman 一家\nINV-0002 · 到期 31/08/2026\n逾期\n$302.50\nWhelan 一家\nINV-0001 · 到期 17/08/2026\n已付清\n$0.00\nChen 一家\nINV-0003 · 到期 30/07/2026\n逾期\n$605.00\n选择左边的一张发票查看明细。\n© 2026 Let's Paint Studio · Powered by Paradise Production\n中\nEN",
+    "buttons": [
+      {
+        "text": "工作台\n2",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "待处理\n7",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程安排",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程目录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "学员档案",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "作品管理",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "账单发票",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "充值与退款",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课酬与报表",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "经营统计",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "操作日志",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "刷新",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "系统设置",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "返回工作台",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "搜索学员、手机号或功能\n⌘K",
+        "w": 664,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "已同步",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "O\n当前账号\nOwner",
+        "w": 108,
+        "h": 44
+      },
+      {
+        "text": "本月",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "上月",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "近 30 天",
+        "w": 72,
+        "h": 44
+      },
+      {
+        "text": "全部 5",
+        "w": 61,
+        "h": 44
+      },
+      {
+        "text": "逾期 2",
+        "w": 61,
+        "h": 44
+      },
+      {
+        "text": "未付清 3",
+        "w": 73,
+        "h": 44
+      },
+      {
+        "text": "草稿 1",
+        "w": 59,
+        "h": 44
+      },
+      {
+        "text": "发票汇总 CSV",
+        "w": 103,
+        "h": 44
+      },
+      {
+        "text": "行项目 CSV",
+        "w": 91,
+        "h": 44
+      },
+      {
+        "text": "会计流水 CSV",
+        "w": 103,
+        "h": 44
+      },
+      {
+        "text": "新建发票",
+        "w": 74,
+        "h": 44
+      },
+      {
+        "text": "Whelan 一家\n草稿 · 未编号\n草稿\n$715.00",
+        "w": 433,
+        "h": 50
+      },
+      {
+        "text": "Southbank Primary School\nINV-0004 · 到期 24/09/2026\n已开具\n$1,056.00",
+        "w": 433,
+        "h": 50
+      },
+      {
+        "text": "Raman 一家\nINV-0002 · 到期 31/08/2026\n逾期\n$302.50",
+        "w": 433,
+        "h": 50
+      },
+      {
+        "text": "Whelan 一家\nINV-0001 · 到期 17/08/2026\n已付清\n$0.00",
+        "w": 433,
+        "h": 50
+      },
+      {
+        "text": "Chen 一家\nINV-0003 · 到期 30/07/2026\n逾期\n$605.00",
+        "w": 433,
+        "h": 50
+      },
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "name": "cms-billing",
+    "path": "/lets-paint-showcase/cms?view=billing",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "Let's Paint Studio",
+      "充值与退款"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n\nStudio CMS\n\n今日\n\n工作台\n2\n待处理\n7\n\n教学运营\n\n课程安排\n课程目录\n学员档案\n作品管理\n\n经营\n\n账单发票\n充值与退款\n课酬与报表\n经营统计\n\n记录\n\n操作日志\n网站与品牌\n公开网站\n已连接\n刷新\n系统设置\n退出登录\n\nSTUDIO CMS\n\n充值与退款\n搜索学员、手机号或功能\n⌘K\n已同步\nO\n当前账号\nOwner\n\n先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。\n\n套餐管理\n5 个套餐\n\n这里定义前台充值时可快速选择的课包。修改套餐不会改动历史充值记录；删除前请确认它不再需要被新收款使用。\n\n单次体验 Single trial\n\n1 课时 · AUD 65.00\n\n编辑\n\n儿童一学期 Kids term\n\n10 课时 · AUD 405.00\n\n编辑\n\n人像六次包 Portrait six-pack\n\n6 课时 · AUD 459.00\n\n编辑\n\n水彩十次包 Watercolour ten-pack\n\n10 课时 · AUD 495.00\n\n编辑\n\n十次课包 Ten-class pack\n\n10 课时 · AUD 585.00\n\n编辑\n添加套餐\n充值\n退款退课\n选择学员\n套餐快选\n单次体验 Single trial\n1课时 · $65\n儿童一学期 Kids term\n10课时 · $405\n人像六次包 Portrait six-pack\n6课时 · $459\n水彩十次包 Watercolour ten-pack\n10课时 · $495\n十次课包 Ten-class pack\n10课时 · $585\n课时数 *\n实收金额 (AUD) *\n付款方式\n现金\n微信\n银行转账\n其他\n同时创建发票\n只有金额大于 0 才能开票；开具后金额和抬头会冻结。\n备注 选填\n确认收款并入账\n© 2026 Let's Paint Studio · Powered by Paradise Production\n中\nEN",
+    "buttons": [
+      {
+        "text": "工作台\n2",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "待处理\n7",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程安排",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课程目录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "学员档案",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "作品管理",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "账单发票",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "充值与退款",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "课酬与报表",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "经营统计",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "操作日志",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "刷新",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "系统设置",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 215,
+        "h": 44
+      },
+      {
+        "text": "返回工作台",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "搜索学员、手机号或功能\n⌘K",
+        "w": 664,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "已同步",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "O\n当前账号\nOwner",
+        "w": 108,
+        "h": 44
+      },
+      {
+        "text": "编辑",
+        "w": 48,
+        "h": 44
+      },
+      {
+        "text": "删除套餐 单次体验 Single trial",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "编辑",
+        "w": 48,
+        "h": 44
+      },
+      {
+        "text": "删除套餐 儿童一学期 Kids term",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "编辑",
+        "w": 48,
+        "h": 44
+      },
+      {
+        "text": "删除套餐 人像六次包 Portrait six-pack",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "编辑",
+        "w": 48,
+        "h": 44
+      },
+      {
+        "text": "删除套餐 水彩十次包 Watercolour ten-pack",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "编辑",
+        "w": 48,
+        "h": 44
+      },
+      {
+        "text": "删除套餐 十次课包 Ten-class pack",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "添加套餐",
+        "w": 588,
+        "h": 44
+      },
+      {
+        "text": "充值",
+        "w": 307,
+        "h": 44
+      },
+      {
+        "text": "退款退课",
+        "w": 307,
+        "h": 44
+      },
+      {
+        "text": "单次体验 Single trial\n1课时 · $65",
+        "w": 202,
+        "h": 88
+      },
+      {
+        "text": "儿童一学期 Kids term\n10课时 · $405",
+        "w": 202,
+        "h": 88
+      },
+      {
+        "text": "人像六次包 Portrait six-pack\n6课时 · $459",
+        "w": 202,
+        "h": 88
+      },
+      {
+        "text": "水彩十次包 Watercolour ten-pack\n10课时 · $495",
+        "w": 202,
+        "h": 88
+      },
+      {
+        "text": "十次课包 Ten-class pack\n10课时 · $585",
+        "w": 202,
+        "h": 88
+      },
+      {
+        "text": "现金",
+        "w": 72,
+        "h": 44
+      },
+      {
+        "text": "微信",
+        "w": 72,
+        "h": 44
+      },
+      {
+        "text": "银行转账",
+        "w": 100,
+        "h": 44
+      },
+      {
+        "text": "其他",
+        "w": 72,
+        "h": 44
+      },
+      {
+        "text": "确认收款并入账",
+        "w": 622,
+        "h": 56
+      },
+      {
+        "text": "中",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "name": "cms-topup",
+    "path": "/lets-paint-showcase/cms?view=topup",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "Let's Paint Studio CMS",
+    "headings": [
+      "系统设置"
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio CMS\n系统设置\n账号与安全\n团队与权限\n运营默认\n开票信息\n集成\n数据维护\n工作区链接\n\n界面语言\n\n中文\nEnglish\n网站、Logo、配色与注册表设置 →\n\n打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示\n\n学员注册页面\n\nhttp://127.0.0.1:8917/lets-paint-showcase/register\n复制\n退出登录\n\n快捷操作\n\n网站与品牌 · Studio Admin\n查看公开网站\n刷新数据\n退出登录\n© 2026 Let's Paint Studio · Powered by Paradise Production\n工作台\n2\n课表\n档案\n充值\n更多\n7",
+    "buttons": [
+      {
+        "text": "搜索",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "打开通知",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "设置",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "账号与安全",
+        "w": 102,
+        "h": 44
+      },
+      {
+        "text": "团队与权限",
+        "w": 102,
+        "h": 44
+      },
+      {
+        "text": "运营默认",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "开票信息",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "集成",
+        "w": 60,
+        "h": 44
+      },
+      {
+        "text": "数据维护",
+        "w": 88,
+        "h": 44
+      },
+      {
+        "text": "工作区链接",
+        "w": 102,
+        "h": 44
+      },
+      {
+        "text": "中文",
+        "w": 168,
+        "h": 44
+      },
+      {
+        "text": "English",
+        "w": 168,
+        "h": 44
+      },
+      {
+        "text": "复制",
+        "w": 24,
+        "h": 44
+      },
+      {
+        "text": "退出登录",
+        "w": 343,
+        "h": 44
+      },
+      {
+        "text": "刷新数据",
+        "w": 343,
+        "h": 49
+      },
+      {
+        "text": "退出登录",
+        "w": 343,
+        "h": 49
+      },
+      {
+        "text": "工作台\n2",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "课表",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "档案",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "充值",
+        "w": 75,
+        "h": 52
+      },
+      {
+        "text": "更多\n7",
+        "w": 75,
+        "h": 52
+      }
+    ],
+    "name": "cms-settings-mobile",
+    "path": "/lets-paint-showcase/cms?view=settings&section=workspace",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "工作室管理",
+    "headings": [
+      "Let's Paint Studio",
+      "品牌基础",
+      ""
+    ],
+    "overflow": 0,
+    "text": "Let's Paint Studio\n官网与品牌\n已发布页面\n报名\n打开运营 CMS\n中文\nEnglish\n↻\n刷新\n账户\n品牌与官网\n品牌基础\n首屏与行动按钮\n官网版块\n空间与体验\n主理人\n工作室作品\n常见问答\n招生入口\n报名表\n公开课表\n家长话术\n发布\n草稿预览与发布\n经营洞察\n官网数据分析\n品牌基础\n\n按三个清晰步骤完成品牌基础：行业、视觉主题、工作室资料。\n\n01\n选择行业基础\n\n用于设置推荐文案、报名问题与初始主题。\n\nArt\nDance\nGames & Coding\nGeneral\n语言\nMaths\nMusic\nSports\n✓\n艺术\nArt\n大胆创作，让成长看得见。\n建议起步课程 · 基础艺术实验室\n✓\n舞蹈\nDance\n自信地舞动，在训练中成长。\n建议起步课程 · 少儿芭蕾\n✓\n游戏与编程\nGames & Coding\n在玩中思考、创造与升级。\n建议起步课程 · Minecraft 创造营\n✓\n通用\nGeneral\n适合每个学员的成长路径。\n建议起步课程 · 基础课程\n✓\n语言\nLanguage\n开口表达，连接更大的世界。\n建议起步课程 · 日常会话\n✓\n数学\nMaths\n理解方法，建立长久的信心。\n建议起步课程 · 小学基础\n✓\n音乐\nMusic\n找到自己的节奏，让每次练习都算数。\n建议起步课程 · 钢琴基础\n✓\n运动\nSports\n有目标地训练，一次比一次更强。\n建议起步课程 · 少儿技能课\n02\n选择颜色主题\n\n先选择一套经过专业平衡的配色；后续微调不会改变行业内容。\n\n颜色主题\n陶土工坊\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n推荐\n独奏紫\n舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。\n复古印刷\n老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。\n黑白纸墨\n近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。\n静谧海港\n静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。\n排练玫瑰\n排练厅的玫红，配一抹苔绿。有动势，但不刺眼。\n雪松林\n雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。\n街机青柠\n街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。\n仅暗色\n自定义\n暖纸、近黑暖墨，和一支由你自己从 Logo 定下的强调色。\n明暗模式\n明亮\n暗色\n跟随访客设备\n明暗为成对设计，两种模式都已通过对比度检查。\n页面\n面板\n强调色\n辅助色\n控件边界\n聚焦环\n\n状态色 · 已按本主题调校\n\n成功\n警示\n危险\n陶土工坊\n推荐\n分裂互补\n\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n\n微调当前主题\n03\n填写工作室品牌与联系方式\n\n这些资料会统一显示在官网、报名页与 CMS 中。\n\n工作室名称\n品牌标语 · 中文\n品牌标语 · English\nLogo 网址\n上传 Logo\n套餐\nStarter (starter)\nStudio (studio)\nGrowth (growth)\n由 StudioSaaS 平台管理员管理。\n工作室资料\n联系方式、欢迎语、CMS 布局\n工作室官网\n快速报名\n来源\n草稿\n线上\n语言\n中文\nEN\n设备\n桌面\n手机\n\n草稿预览 — 发布前请与已发布官网对照\n\nLet's Paint Studio\n0400 000 000 · hello@pwe-studio.invalid · Caulfield North, Melbourne VIC\n主理人\n工作室作品\n课程\n课程安排\n学员作品\n常见问答\n学员专区\n预约体验\nCAULFIELD NORTH, MELBOURNE VIC\n颜色会把人放慢下来。\n墨尔本 Caulfield North 的一间小画室。成人小班，一次不超过八个人，从握笔开始也来得及。\n预约体验\n看看作品\n一间朝南的后院画室\n\n画室在一栋 1920 年代砖房的后院，原本是马厩改的车库，屋顶掀高了，南墙换成一整面玻璃。我们没有装射灯——南边的光一整天不变色，这是画画的人唯一挑不出毛病的光。 门口有两棵梧桐，风大的时候能听见。颜料、亚麻布、画架、围裙都在，你带一件不怕脏的衣服就行。\n\nJanet M\n\nJanet 在北京学的画，来墨尔本之后做了八年广告。2019 年她把 Caulfield North 那栋房子后院的旧马厩收拾出来，刷成白色，摆了八张画架——最初只是想有个地方自己画画，后来邻居敲门问能不能一起。 她的课没有进度表，也不排名次。第一节课通常在调色盘上度过：先弄清楚你眼睛里的灰到底是什么颜色，剩下的都好说。\n\n教画的人，自己也在画\n\n下面这些是 Janet 自己的画。看老师的画，比看老师的简历更能判断要不要来上课。\n\n课程与班次\n\n已发布课程将显示在这里。\n\n学员作品\n\n已授权的学员作品将显示在这里。\n\n常见问题\n\n6 条问答\n\n联系我们\n\nhello@pwe-studio.invalid · 0400 000 000 · Caulfield North, Melbourne VIC\n\n页脚\n工作室作品\n课程\n课程安排\n学员作品\n常见问答\n学员专区\n预约体验\nlets-paint-showcase\n没有未保存的更改\n应用行业预设\n打开官网\n保存草稿\n发布\n© 2026 Let's Paint Studio · Powered by Paradise Production",
+    "buttons": [
+      {
+        "text": "中文",
+        "w": 46,
+        "h": 44
+      },
+      {
+        "text": "English",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "↻\n刷新",
+        "w": 77,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 291,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 291,
+        "h": 44
+      },
+      {
+        "text": "品牌基础",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "首屏与行动按钮",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "官网版块",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "空间与体验",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "主理人",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "工作室作品",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "常见问答",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "报名表",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "公开课表",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "家长话术",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "草稿预览与发布",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "官网数据分析",
+        "w": 258,
+        "h": 44
+      },
+      {
+        "text": "✓\n艺术\nArt\n大胆创作，让成长看得见。\n建议起步课程 · 基础艺术实验室",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n舞蹈\nDance\n自信地舞动，在训练中成长。\n建议起步课程 · 少儿芭蕾",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n游戏与编程\nGames & Coding\n在玩中思考、创造与升级。\n建议起步课程 · Minecraft 创造营",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n通用\nGeneral\n适合每个学员的成长路径。\n建议起步课程 · 基础课程",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n语言\nLanguage\n开口表达，连接更大的世界。\n建议起步课程 · 日常会话",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n数学\nMaths\n理解方法，建立长久的信心。\n建议起步课程 · 小学基础",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n音乐\nMusic\n找到自己的节奏，让每次练习都算数。\n建议起步课程 · 钢琴基础",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "✓\n运动\nSports\n有目标地训练，一次比一次更强。\n建议起步课程 · 少儿技能课",
+        "w": 135,
+        "h": 171
+      },
+      {
+        "text": "陶土工坊\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n推荐",
+        "w": 167,
+        "h": 119
+      },
+      {
+        "text": "独奏紫\n舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。",
+        "w": 167,
+        "h": 119
+      },
+      {
+        "text": "复古印刷\n老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。",
+        "w": 167,
+        "h": 94
+      },
+      {
+        "text": "黑白纸墨\n近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。",
+        "w": 167,
+        "h": 94
+      },
+      {
+        "text": "静谧海港\n静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。",
+        "w": 167,
+        "h": 94
+      },
+      {
+        "text": "排练玫瑰\n排练厅的玫红，配一抹苔绿。有动势，但不刺眼。",
+        "w": 167,
+        "h": 94
+      },
+      {
+        "text": "雪松林\n雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。",
+        "w": 167,
+        "h": 119
+      },
+      {
+        "text": "街机青柠\n街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。\n仅暗色",
+        "w": 167,
+        "h": 119
+      },
+      {
+        "text": "自定义\n暖纸、近黑暖墨，和一支由你自己从 Logo 定下的强调色。",
+        "w": 167,
+        "h": 94
+      },
+      {
+        "text": "工作室官网",
+        "w": 182,
+        "h": 44
+      },
+      {
+        "text": "快速报名",
+        "w": 182,
+        "h": 44
+      },
+      {
+        "text": "草稿",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "线上",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "中文",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "桌面",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "手机",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "应用行业预设",
+        "w": 118,
+        "h": 44
+      },
+      {
+        "text": "打开官网",
+        "w": 90,
+        "h": 44
+      },
+      {
+        "text": "保存草稿",
+        "w": 90,
+        "h": 44
+      },
+      {
+        "text": "发布",
+        "w": 60,
+        "h": 44
+      },
+      {
+        "text": "关闭对话框",
+        "w": 42,
+        "h": 42
+      }
+    ],
+    "name": "studio-admin",
+    "path": "/lets-paint-showcase/studio-admin",
+    "width": 1440,
+    "scheme": "light",
+    "errors": []
+  },
+  {
+    "title": "工作室管理",
+    "headings": [
+      "品牌基础",
+      ""
+    ],
+    "overflow": 0,
+    "text": "官网与品牌\n已发布页面\n报名\n打开运营 CMS\n中文\nEnglish\n↻\n刷新\n品牌与官网\n品牌基础\n首屏与行动按钮\n官网版块\n空间与体验\n主理人\n工作室作品\n常见问答\n招生入口\n报名表\n公开课表\n家长话术\n发布\n草稿预览与发布\n经营洞察\n官网数据分析\n品牌基础\n\n按三个清晰步骤完成品牌基础：行业、视觉主题、工作室资料。\n\n01\n选择行业基础\n\n用于设置推荐文案、报名问题与初始主题。\n\nArt\nDance\nGames & Coding\nGeneral\n语言\nMaths\nMusic\nSports\n✓\n艺术\nArt\n大胆创作，让成长看得见。\n建议起步课程 · 基础艺术实验室\n✓\n舞蹈\nDance\n自信地舞动，在训练中成长。\n建议起步课程 · 少儿芭蕾\n✓\n游戏与编程\nGames & Coding\n在玩中思考、创造与升级。\n建议起步课程 · Minecraft 创造营\n✓\n通用\nGeneral\n适合每个学员的成长路径。\n建议起步课程 · 基础课程\n✓\n语言\nLanguage\n开口表达，连接更大的世界。\n建议起步课程 · 日常会话\n✓\n数学\nMaths\n理解方法，建立长久的信心。\n建议起步课程 · 小学基础\n✓\n音乐\nMusic\n找到自己的节奏，让每次练习都算数。\n建议起步课程 · 钢琴基础\n✓\n运动\nSports\n有目标地训练，一次比一次更强。\n建议起步课程 · 少儿技能课\n02\n选择颜色主题\n\n先选择一套经过专业平衡的配色；后续微调不会改变行业内容。\n\n颜色主题\n陶土工坊\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n推荐\n独奏紫\n舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。\n复古印刷\n老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。\n黑白纸墨\n近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。\n静谧海港\n静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。\n排练玫瑰\n排练厅的玫红，配一抹苔绿。有动势，但不刺眼。\n雪松林\n雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。\n街机青柠\n街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。\n仅暗色\n自定义\n暖纸、近黑暖墨，和一支由你自己从 Logo 定下的强调色。\n明暗模式\n明亮\n暗色\n跟随访客设备\n明暗为成对设计，两种模式都已通过对比度检查。\n页面\n面板\n强调色\n辅助色\n控件边界\n聚焦环\n\n状态色 · 已按本主题调校\n\n成功\n警示\n危险\n陶土工坊\n推荐\n分裂互补\n\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n\n微调当前主题\n03\n填写工作室品牌与联系方式\n\n这些资料会统一显示在官网、报名页与 CMS 中。\n\n工作室名称\n品牌标语 · 中文\n品牌标语 · English\nLogo 网址\n上传 Logo\n套餐\nStarter (starter)\nStudio (studio)\nGrowth (growth)\n由 StudioSaaS 平台管理员管理。\n工作室资料\n联系方式、欢迎语、CMS 布局\n工作室官网\n快速报名\n来源\n草稿\n线上\n语言\n中文\nEN\n设备\n桌面\n手机\n\n草稿预览 — 发布前请与已发布官网对照\n\nLet's Paint Studio\n0400 000 000 · hello@pwe-studio.invalid · Caulfield North, Melbourne VIC\n主理人\n工作室作品\n课程\n课程安排\n学员作品\n常见问答\n学员专区\n预约体验\nCAULFIELD NORTH, MELBOURNE VIC\n颜色会把人放慢下来。\n墨尔本 Caulfield North 的一间小画室。成人小班，一次不超过八个人，从握笔开始也来得及。\n预约体验\n看看作品\n一间朝南的后院画室\n\n画室在一栋 1920 年代砖房的后院，原本是马厩改的车库，屋顶掀高了，南墙换成一整面玻璃。我们没有装射灯——南边的光一整天不变色，这是画画的人唯一挑不出毛病的光。 门口有两棵梧桐，风大的时候能听见。颜料、亚麻布、画架、围裙都在，你带一件不怕脏的衣服就行。\n\nJanet M\n\nJanet 在北京学的画，来墨尔本之后做了八年广告。2019 年她把 Caulfield North 那栋房子后院的旧马厩收拾出来，刷成白色，摆了八张画架——最初只是想有个地方自己画画，后来邻居敲门问能不能一起。 她的课没有进度表，也不排名次。第一节课通常在调色盘上度过：先弄清楚你眼睛里的灰到底是什么颜色，剩下的都好说。\n\n教画的人，自己也在画\n\n下面这些是 Janet 自己的画。看老师的画，比看老师的简历更能判断要不要来上课。\n\n课程与班次\n\n已发布课程将显示在这里。\n\n学员作品\n\n已授权的学员作品将显示在这里。\n\n常见问题\n\n6 条问答\n\n联系我们\n\nhello@pwe-studio.invalid · 0400 000 000 · Caulfield North, Melbourne VIC\n\n页脚\n工作室作品\n课程\n课程安排\n学员作品\n常见问答\n学员专区\n预约体验\nlets-paint-showcase\n没有未保存的更改\n应用行业预设\n打开官网\n保存草稿\n发布\n© 2026 Let's Paint Studio · Powered by Paradise Production",
+    "buttons": [
+      {
+        "text": "中文",
+        "w": 46,
+        "h": 44
+      },
+      {
+        "text": "English",
+        "w": 68,
+        "h": 44
+      },
+      {
+        "text": "↻\n刷新",
+        "w": 77,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 291,
+        "h": 44
+      },
+      {
+        "text": null,
+        "w": 291,
+        "h": 44
+      },
+      {
+        "text": "品牌基础",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "首屏与行动按钮",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "官网版块",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "空间与体验",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "主理人",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "工作室作品",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "常见问答",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "报名表",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "公开课表",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "家长话术",
+        "w": 78,
+        "h": 44
+      },
+      {
+        "text": "草稿预览与发布",
+        "w": 78,
+        "h": 51
+      },
+      {
+        "text": "官网数据分析",
+        "w": 160,
+        "h": 44
+      },
+      {
+        "text": "✓\n艺术\nArt\n大胆创作，让成长看得见。\n建议起步课程 · 基础艺术实验室",
+        "w": 32,
+        "h": 528
+      },
+      {
+        "text": "✓\n舞蹈\nDance\n自信地舞动，在训练中成长。\n建议起步课程 · 少儿芭蕾",
+        "w": 32,
+        "h": 528
+      },
+      {
+        "text": "✓\n游戏与编程\nGames & Coding\n在玩中思考、创造与升级。\n建议起步课程 · Minecraft 创造营",
+        "w": 32,
+        "h": 699
+      },
+      {
+        "text": "✓\n通用\nGeneral\n适合每个学员的成长路径。\n建议起步课程 · 基础课程",
+        "w": 32,
+        "h": 699
+      },
+      {
+        "text": "✓\n语言\nLanguage\n开口表达，连接更大的世界。\n建议起步课程 · 日常会话",
+        "w": 32,
+        "h": 538
+      },
+      {
+        "text": "✓\n数学\nMaths\n理解方法，建立长久的信心。\n建议起步课程 · 小学基础",
+        "w": 32,
+        "h": 538
+      },
+      {
+        "text": "✓\n音乐\nMusic\n找到自己的节奏，让每次练习都算数。\n建议起步课程 · 钢琴基础",
+        "w": 32,
+        "h": 571
+      },
+      {
+        "text": "✓\n运动\nSports\n有目标地训练，一次比一次更强。\n建议起步课程 · 少儿技能课",
+        "w": 32,
+        "h": 571
+      },
+      {
+        "text": "陶土工坊\n陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。\n推荐",
+        "w": 148,
+        "h": 119
+      },
+      {
+        "text": "独奏紫\n舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "复古印刷\n老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "黑白纸墨\n近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "静谧海港\n静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "排练玫瑰\n排练厅的玫红，配一抹苔绿。有动势，但不刺眼。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "雪松林\n雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "街机青柠\n街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。\n仅暗色",
+        "w": 148,
+        "h": 119
+      },
+      {
+        "text": "自定义\n暖纸、近黑暖墨，和一支由你自己从 Logo 定下的强调色。",
+        "w": 148,
+        "h": 94
+      },
+      {
+        "text": "工作室官网",
+        "w": 140,
+        "h": 44
+      },
+      {
+        "text": "快速报名",
+        "w": 140,
+        "h": 44
+      },
+      {
+        "text": "草稿",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "线上",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "中文",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "EN",
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "桌面",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "手机",
+        "w": 50,
+        "h": 44
+      },
+      {
+        "text": "应用行业预设",
+        "w": 155,
+        "h": 44
+      },
+      {
+        "text": "打开官网",
+        "w": 155,
+        "h": 44
+      },
+      {
+        "text": "保存草稿",
+        "w": 155,
+        "h": 44
+      },
+      {
+        "text": "发布",
+        "w": 155,
+        "h": 44
+      },
+      {
+        "text": "关闭对话框",
+        "w": 42,
+        "h": 42
+      }
+    ],
+    "name": "studio-admin-mobile",
+    "path": "/lets-paint-showcase/studio-admin",
+    "width": 375,
+    "scheme": "light",
+    "errors": []
+  }
+]
