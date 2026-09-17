@@ -12,14 +12,13 @@
 > reports the version just built afterwards. `pwestudio_remote.sh verify-target`
 > answers the question on its own, without deploying.
 >
-> The procedure for the Oracle host is recorded outside this repository, in
-> `~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`. In
-> short it builds on the box from a commit rather than uploading a tarball:
-> `ssh pwe-arm && cd /srv/pwestudio && sudo git -C app checkout <commit> &&
-> sudo docker build -f app/deploy/aws/Dockerfile -t studiosaas:<version> app/ &&
-> sudo docker compose up -d`. **That procedure has not been exercised from this
-> repository** — what has been verified here is the link (Cloudflare → Caddy →
-> Oracle) and that v10.20.0's own changes are live on it.
+> Production is deployed with `bash deploy/oracle/pwestudio_arm.sh deploy
+> <commit>`, which builds on the box from a commit rather than uploading a
+> tarball, and shipped v10.20.1 that way on 2026-09-17. It still uses this
+> directory's `Dockerfile` and both compose files (with `--profile local-db` —
+> compose refuses the project without it). See `docs/Release_Runbook.md`,
+> "Where production runs". The bundles built here remain the Edition
+> deliverable and an archival SaaS artefact; the Oracle host consumes neither.
 
 
 本目录是随代码一起发布的 AWS 部署套件。目标架构与成本估算见

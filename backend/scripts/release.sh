@@ -22,7 +22,9 @@
 #                    local HEAD == origin/main (fetched first). This is
 #                    runbook's "nothing may be added after step 6" as a
 #                    machine check instead of a rule people remember.
-#    deploy          pwestudio_remote.sh deploy <SaaS bundle>       (runbook 8)
+#    deploy          deploy/oracle/pwestudio_arm.sh deploy <HEAD>   (runbook 8)
+#                    The Oracle host builds its image from a commit; the
+#                    SaaS bundle is archival and is not what gets deployed.
 #    health          public deep health summary                     (runbook 8)
 #
 #  Two interactive confirmations: before build and before deploy. Runbook
@@ -299,18 +301,28 @@ finish_if_done guard
 if runs deploy; then
   say "deploy to production (runbook step 8)"
   confirm "Confirmation 2/2 — deploy v$NEW to pwestudio.online now?"
-  bash deploy/aws/pwestudio_remote.sh deploy "$SAAS_BUNDLE"
+  # Production is the Oracle ARM host (since 2026-09-17), which checks out a
+  # commit and builds on the box. This stage called the Lightsail script until
+  # v10.20.1 was shipped by hand around it: that script's target guard refuses
+  # the retained box, correctly, which left the orchestration a dead end at
+  # step 8. The guard stage proves HEAD == origin/main == the commit both
+  # bundles were built from, so HEAD is what was gated; resumed with
+  # `--from deploy` that stage is skipped, and pwestudio_arm.sh still refuses
+  # a commit origin/main does not have.
+  bash deploy/oracle/pwestudio_arm.sh deploy "$(git rev-parse HEAD)"
 fi
 finish_if_done deploy
 
 if runs health; then
   say "deep health summary"
-  bash deploy/aws/pwestudio_remote.sh health
+  bash deploy/oracle/pwestudio_arm.sh health
   echo
   say "done — what remains is runbook step 9 (close)"
   cat <<EOF
   Record in README's three rows and the handoff: git revision, bundle hashes,
-  backup dump + manifest names, health payloads, operator and time.
+  backup evidence, health payloads, operator and time. The Oracle path takes no
+  pre-deploy dump: record the box's last timer run, or — for a release that
+  carried migrations — the backup you declared to pwestudio_arm.sh.
   main was already synced before the deploy (the guard requires it).
 EOF
 fi

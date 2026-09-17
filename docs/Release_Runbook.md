@@ -80,22 +80,36 @@ the right box?" on its own, changing nothing.
 
 | Host | Command |
 |---|---|
-| Oracle ARM (current production) | build on the box from a commit, not from a bundle — see below |
-| AWS Lightsail (retained, not serving) | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` |
+| Oracle ARM (current production) | `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` — builds on the box from a commit, not from a bundle |
+| AWS Lightsail (retained, not serving) | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` — its target guard refuses today, which is the intended behaviour |
 
-The Oracle procedure's source of truth is
-`~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`, outside
-this repository. Recorded here so this repo is not useless without it:
+`release.sh`'s deploy and health stages call the Oracle script with `HEAD`.
+`pwestudio_arm.sh` also answers `status`, `verify-target`, `health`, `logs` and
+`ssh`. It shipped v10.20.1 on 2026-09-17, and the first real run is why two
+things below are written down:
 
-```bash
-ssh pwe-arm && cd /srv/pwestudio
-sudo git -C app fetch && sudo git -C app checkout <commit>
-sudo docker build -f app/deploy/aws/Dockerfile -t studiosaas:<version> app/
-sudo docker compose up -d
-```
+- **Do not type the compose command by hand.** The database is a service of
+  the same project under `profiles: ["local-db"]`; without `--profile local-db`
+  compose does not start the app without a database, it refuses to parse the
+  project. An earlier version of this section printed a bare
+  `sudo docker compose up -d`, and that is the command that failed. The script
+  carries the full invocation (project name, env file, both compose files, the
+  profile), read off the running containers' labels.
+- **The script takes no pre-deploy backup.** The Lightsail path ran
+  `lightsail_ctl.sh backup` before switching; this host's backups are systemd
+  timers (`pwe-backup@db`, `pwe-backup@full`, encrypted, off-site to
+  Cloudflare R2) that run on a schedule and know nothing about a deploy.
+  Rolling back a checkout does not roll back a schema, so a release whose
+  range touches `backend/db/migrations/` is **refused** until the operator
+  takes a backup on the box and re-runs with
+  `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<the full commit being deployed>`. The
+  variable names the commit so that it cannot be left set for the next release.
+  Orchestrating that backup from the script is still to do.
 
-**Not exercised from this repository.** What has been verified here is the link
-(Cloudflare → Caddy → Oracle) and that v10.20.0's own changes are live on it.
+The host itself — Caddy, the 48 redirects, the backup timers — is described
+outside this repository, in
+`~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`.
+
 Three constraints the new link adds, all of which fail silently:
 
 - **Caddy needs `route` blocks to keep source order** — it reorders directives
@@ -153,7 +167,7 @@ What it adds beyond sequencing:
 
 - **`bump`** rewrites every ledger position in one shot — `VERSION`,
   `server.py` (`APP_VERSION` + `RELEASE_DATE`), the seven role guides, the
-  README rows, the Edition documents — and inserts *skeleton* sections into
+  Edition documents — and inserts *skeleton* sections into
   both customer release-notes files. Each edit asserts the old string before
   and the new string after, so a moved ledger fails loudly instead of
   silently missing. It never touches `docs/HANDOFF_LATEST.md`: step 3 is

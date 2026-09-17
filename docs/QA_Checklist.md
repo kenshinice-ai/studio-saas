@@ -155,8 +155,10 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-v10.13.0 runs in production on AWS Lightsail at `https://pwestudio.online`
-(live 2026-07-30). Cloudflare Tunnel is retained for local development only and
+Recorded at v10.13.0, when production ran on AWS Lightsail at
+`https://pwestudio.online` (live 2026-07-30). Production moved to an Oracle ARM
+host behind Caddy and Cloudflare on 2026-09-17 — the items below were verified
+against the previous host; current evidence is in `docs/HANDOFF_LATEST.md`. Cloudflare Tunnel is retained for local development only and
 must not be reintroduced for that hostname:
 
 - [x] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`

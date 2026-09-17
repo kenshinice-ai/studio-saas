@@ -64,7 +64,7 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 | Route | Surface |
 |---|---|
 | `/studio`, `/zh/studio/` | PWE Studio product home — the canonical address from v10.18.0 (`/studio/llms.txt` carries the product's `llms.txt`) |
-| `/`, `/zh/` | Interim: still the product home inside the application, but from v10.18.0 the house website (PWE · 天域) owns `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`, `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`, `/llms.txt`, `/sitemap-pwe.xml` and `/404.html` at the nginx edge; those names are reserved slugs so no tenant can be created under them. A later release turns the root into a redirect to `/studio` |
+| `/`, `/zh/` | Interim: still the product home inside the application, but from v10.18.0 the house website (PWE · 天域) owns `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`, `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`, `/llms.txt`, `/sitemap-pwe.xml` and `/404.html` at the host edge (Caddy since 2026-09-17, nginx before); those names are reserved slugs so no tenant can be created under them. A later release turns the root into a redirect to `/studio` |
 | `/platform-admin` | Direct StudioSaaS Super Admin login |
 | `/super-admin` | Optional Cloudflare Access-protected alias of the same dashboard |
 | `/pricing`, `/zh/pricing` | Public plan catalogue and calculator |
@@ -166,6 +166,8 @@ studiosaas/
 ├── deploy/
 │   ├── aws/                      # Dockerfile, entrypoint.sh, docker-compose.yml, nginx/,
 │   │                             # systemd/, build_aws_bundle.sh, README_AWS.md
+│   │                             # (the image and compose files production still builds from)
+│   ├── oracle/                   # pwestudio_arm.sh — operates the host that serves production
 │   └── launchd/                  # macOS LaunchAgent templates (backup + tunnel)
 ```
 
@@ -226,8 +228,8 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | Component | Integration |
 |---|---|
 | PostgreSQL (local) | Homebrew PostgreSQL 16+/18, database `studiosaas_local_test` |
-| PostgreSQL (production) | `postgres:16-alpine` container on the Lightsail instance; **not** RDS |
-| Host edge (production) | nginx on the Lightsail instance terminates TLS (Let's Encrypt, apex + `www`); the application binds to `127.0.0.1` only |
+| PostgreSQL (production) | `postgres:16-alpine` container on the production host (Oracle ARM since 2026-09-17, AWS Lightsail before), same compose project as the app under `--profile local-db`; **not** RDS |
+| Host edge (production) | Cloudflare proxy → Caddy on the Oracle ARM host, which terminates TLS; the application binds to `127.0.0.1:8899` only. The real client address arrives as `CF-Connecting-IP`. Until 2026-09-17 this was nginx + Let's Encrypt on a Lightsail instance, which is retained and not serving |
 | PostgreSQL (RDS) | Reserved — future production; not in use |
 | S3 | Media and portfolio storage — future (`media_assets.storage_provider` reserved) |
 | CloudFront | CDN for public assets and portfolio — future |
@@ -236,7 +238,7 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | Xero | OAuth2 + encrypted tokens + gated one-way invoice/credit-note/payment queue; Beta, no two-way edits |
 | Email | Console backend by default; SMTP adapter available when a tenant/deployment supplies its own sending configuration |
 | SMS | Routing, quota, opt-out and logging exist; provider transport is not enabled |
-| Deployment kit | `deploy/aws/` — Dockerfile, docker-compose, nginx, systemd, `build_aws_bundle.sh`, `README_AWS.md` (v7.4.0) |
+| Deployment kit | `deploy/aws/` — Dockerfile, docker-compose, `build_aws_bundle.sh`, `README_AWS.md` (v7.4.0; its nginx and systemd units describe the retained Lightsail host). `deploy/oracle/pwestudio_arm.sh` deploys production; see `docs/Release_Runbook.md`, "Where production runs" |
 
 ---
 

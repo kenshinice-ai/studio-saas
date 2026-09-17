@@ -9,8 +9,8 @@ Date: 2026-08-23（Stage 2 上线记录：2026-07-30）
 > 拦住这件事。生产在哪、怎么发，见 `docs/Release_Runbook.md` 的
 > 「Where production runs」。以下各节保留为迁移前的记录。
 
-Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
-当前 SaaS 发布基线 v10.13.0；Source、Package、Production 的独立证据以
+Scope（迁移前的记录，见上方横幅）: 生产曾运行于 AWS Lightsail 单实例，域名
+`https://pwestudio.online`，本文写作时的 SaaS 发布基线为 v10.13.0；Source、Package、Production 的独立证据以
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) 顶部记录为准。
 本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
 不得再为该域名重新引入。生产事实与实测证据见

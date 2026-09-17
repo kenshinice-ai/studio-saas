@@ -22,7 +22,10 @@
 #   health            Public deep health, redirect and transport.
 #   logs [n]          Application logs.
 #   deploy <commit>   Check out <commit>, rebuild, restart, verify, roll back
-#                     automatically if verification fails.
+#                     automatically if verification fails. Takes NO backup:
+#                     a release that carries migrations is refused unless
+#                     PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<that full commit> says
+#                     one was just taken.
 #   ssh               Interactive shell.
 #
 # The SSH identity comes from ~/.ssh/config:
@@ -41,6 +44,7 @@ ENV_FILE="$ROOT/shared/production.env"
 COMPOSE_DIR="$APP/deploy/aws"
 PROJECT="pwestudio"
 PUBLIC_URL="${PWESTUDIO_PUBLIC_URL:-https://pwestudio.online}"
+MIGRATIONS_DIR="backend/db/migrations"
 
 say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m%s\033[0m\n' "$*"; }
@@ -188,6 +192,30 @@ case "$cmd" in
     [ -n "$previous_version" ] || die "$ENV_FILE carries no STUDIOSAAS_VERSION — refusing an unrollbackable deploy"
     echo "  deploying   : ${full:0:12}  v$version"
     echo "  rolling back to: ${previous_commit:0:12}  v$previous_version"
+
+    # This script takes no pre-deploy backup. The Lightsail path ran
+    # `lightsail_ctl.sh backup` before it switched; here the backups are the
+    # box's own timers, which fire on a schedule and know nothing about a
+    # deploy. Rolling back a checkout does not roll back a schema, so a release
+    # that carries migrations is the one case where that gap costs data — and
+    # until this check it was a sentence in the handoff that the script could
+    # not read.
+    #
+    # The declaration names the commit on purpose: `=1` left in a shell profile
+    # would wave through every later release, and this one goes stale the
+    # moment the next commit exists.
+    git cat-file -e "$previous_commit^{commit}" 2>/dev/null \
+      || die "the box is on $previous_commit, which this repository does not have — cannot tell whether the release carries migrations"
+    migrations="$(git diff --name-only "$previous_commit" "$full" -- "$MIGRATIONS_DIR")"
+    if [ -n "$migrations" ]; then
+      warn "  this release changes the schema:"
+      sed 's/^/    /' <<<"$migrations"
+      [ "${PWESTUDIO_ARM_BACKUP_TAKEN_FOR:-}" = "$full" ] || die "refusing to migrate production without a backup taken for this deploy.
+  Take a database backup on the box, check that it completed
+  (docs/Release_Runbook.md, 'Where production runs'), then re-run with
+    PWESTUDIO_ARM_BACKUP_TAKEN_FOR=$full"
+      echo "  backup declared for ${full:0:12} — proceeding"
+    fi
 
     say "Fetching and checking out ${full:0:12}"
     remote "set -e

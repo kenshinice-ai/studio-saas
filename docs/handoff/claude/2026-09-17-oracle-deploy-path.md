@@ -1,6 +1,9 @@
 # 2026-09-17 · 给现在的生产主机补一条有守卫的发布路径（v10.20.1）
 
-> 状态：**源码候选**。第 6–9 步由发布人执行。
+> 状态：**已发布、已部署**（2026-09-17，commit `147458b`）。实测证据在
+> `docs/HANDOFF_LATEST.md` 的四层身份表；下文是发布前写的计划，保留原样。
+> 「未做」里的两条（编排脚本的去向、无部署前备份）由同日的
+> `2026-09-17-post-migration-tidy.md` 接手。
 > 上游事实：生产于 2026-09-17 由另一个会话迁到 Oracle ARM，方案正本
 > `~/Documents/ClaudeCode/oracle-a1-grab/DEPLOY-PWESTUDIO-LETSPAINT.md`。
 

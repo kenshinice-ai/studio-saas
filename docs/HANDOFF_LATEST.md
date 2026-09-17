@@ -20,7 +20,7 @@
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 部署的是 `147458b14ee7579eb9eacdfa9548af729341778b`。`main` 目前领先它两个**只改本机工具**的提交（`87896ec` 修矩阵登录），未重新部署——那两个提交不进运行时，为它们重启生产没有道理。内容：**生产在 2026-09-17 迁到 Oracle ARM**（Cloudflare 橙云 + Caddy）之后，仓库里没有任何一条通往它的脚本路径——runbook 里是散文，而 `deploy/aws/pwestudio_remote.sh` 默认指向仍在运行的旧 Lightsail 机。本版补上：`deploy/oracle/pwestudio_arm.sh`（status / verify-target / health / logs / deploy / ssh），带与 AWS 路径同样的两道守卫；两条路径都加了「上传前证明目标机就是公开地址所指的那台」与「部署后断言公开边缘报出刚构建的版本」。文档层把 runbook、README、Deployment、Roadmap、deploy/aws 的说明全部对齐到新拓扑，并保留带日期的历史记录不动。README 的三行状态表此前**全错**（sed 盲替所致），已改写并补上守卫。**零迁移**，schema 仍至 `0047_xero_transport.sql`；**零运行时代码改动**。 |
+| Source | 部署的是 `147458b14ee7579eb9eacdfa9548af729341778b`。`main` 领先于它，是有意的：`147458b` 之后的每个提交都只改发布工具、测试或文档（`87896ec` 修矩阵登录、`2026-09-17-post-migration-tidy.md` 那一轮让 `release.sh` 指向 Oracle），没有一个进运行时，为它们重启生产没有道理。核对方法是 `git diff --stat 147458b origin/main`——在这里写一个数字，下一个提交就让它变错。内容：**生产在 2026-09-17 迁到 Oracle ARM**（Cloudflare 橙云 + Caddy）之后，仓库里没有任何一条通往它的脚本路径——runbook 里是散文，而 `deploy/aws/pwestudio_remote.sh` 默认指向仍在运行的旧 Lightsail 机。本版补上：`deploy/oracle/pwestudio_arm.sh`（status / verify-target / health / logs / deploy / ssh），带与 AWS 路径同样的两道守卫；两条路径都加了「上传前证明目标机就是公开地址所指的那台」与「部署后断言公开边缘报出刚构建的版本」。文档层把 runbook、README、Deployment、Roadmap、deploy/aws 的说明全部对齐到新拓扑，并保留带日期的历史记录不动。README 的三行状态表此前**全错**（sed 盲替所致），已改写并补上守卫。**零迁移**，schema 仍至 `0047_xero_transport.sql`；**零运行时代码改动**。 |
 | Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz`，SHA-256 `c36b8a19c93baea37377fdd6b89133b3fc4d38c9b191f11ced3719a5ce6fcf37`。Oracle 路径不消费它（镜像在机器上从 commit 构建），保留作归档。 |
 | Package / Edition | `dist/PWE-Studio-Edition-10.20.1.tar.gz`，SHA-256 `6a23d84a0e53ca118b7db7166ff2c629a3fb551748357904617218226375b2d3`。两个包通过 `verify_release_bundles.sh`。 |
 | Production | `pwestudio.online` = **v10.20.1**（Oracle ARM，commit `147458b`）。实测 `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 7.6%。部署走 `deploy/oracle/pwestudio_arm.sh deploy 147458b`。 |
@@ -37,14 +37,17 @@
 
 ### 这次收口不声称的
 
+- **（同日后续轮次已把下面这条从散文变成拒绝：范围内动了 `backend/db/migrations/` 的部署，
+  不带 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<完整 commit>` 就不放行。备份本身仍要人在机器上做。）**
 - **`deploy/oracle/pwestudio_arm.sh` 不做部署前备份。** 旧的 AWS 路径在切换前会跑一次
   `lightsail_ctl.sh backup`；新脚本没有对应动作。本版零迁移，没有任何数据处于风险中，
   但**带迁移的版本不能就这样发**。异地备份由 systemd timer 覆盖，那是定时的，不是
   部署触发的。
-- **生产运行的不是 `main` 的头。** `main` 领先两个只改本机工具的提交。为不进运行时的
+- **生产运行的不是 `main` 的头。** `main` 领先的提交都只改本机工具、测试与文档。为不进运行时的
   改动重启生产没有道理；这一行就是记录它。
 - **Cloudflare 的 bot 检查会挡住任何非浏览器客户端。** 本版把矩阵的登录改成走真实
-  浏览器；其它以 `urllib` 打生产的脚本还没查过。
+  浏览器；其它以 `urllib` 打生产的脚本还没查过。（同日后续轮次查过：另有三个脚本用
+  `urllib`，全部默认打本机，发布路径上没有第二个。）
 - `cms_roster_teacher` 一页仍未检查（teacher 口令未提供）。
 
 ## 上一版四层身份（v10.20.0，2026-09-12 · 已发布；2026-09-17 随迁移在 Oracle 上重建）
@@ -418,6 +421,14 @@
 
 ## 最新轮次
 
+- **2026-09-17（Claude）迁移之后的收尾 —— 让编排脚本也指向真正在服务的那台机器**（工具 / 测试 / 文档，**未 bump、未部署**，生产仍是 v10.20.1）：
+  轮次文件 `docs/handoff/claude/2026-09-17-post-migration-tidy.md`。v10.20.1 是绕开
+  `release.sh` 手工发的——它的第 8 步仍调 AWS 脚本，会被上一轮的守卫拒绝。本轮把它接到
+  `pwestudio_arm.sh`，给那个此前**零测试**的脚本补上行为测试（shim 掉 ssh/curl，逐条弄红过），
+  并把「带迁移的版本不能就这样发」从散文变成脚本里的拒绝。runbook 与 `README_AWS.md`
+  里那段手敲的 compose 命令——正是首次真部署失败的那一条——已删。
+  **下文各版写作 `dist/…` 的旧发布包现在在 `achieve/dist/`**（本机归档，已逐个对过 SHA-256）；
+  主 `dist/` 只留当前版。
 - **2026-09-17（Claude）v10.20.1 给现在的生产主机补一条有守卫的发布路径**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。生产 9-17 迁到
   Oracle ARM 之后，仓库里通往它的只有散文；而默认的部署脚本指着仍在运行的旧机，
