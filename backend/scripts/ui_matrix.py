@@ -304,6 +304,61 @@ def run_actions(page, actions: list) -> None:
             sys.exit(f"unknown action verb: {verb!r} (know: click, fill, wait)")
 
 
+def browser_login(browser, base: str, email: str, password: str) -> str:
+    """Sign in through Chromium and return the session cookie value.
+
+    `context.request` issues the request from the browser's own stack, so an
+    edge bot check sees a browser because it is one. The password is passed
+    straight through from the 0600 file and never reaches a URL, a process
+    list or this script's output.
+    """
+
+    context = browser.new_context()
+    try:
+        response = context.request.post(
+            f"{base.rstrip('/')}/v1/auth/login",
+            data={"email": email, "password": password},
+            headers={"Content-Type": "application/json"},
+            timeout=30000,
+        )
+        if not response.ok:
+            raise RuntimeError(f"browser login returned HTTP {response.status}")
+        for cookie in context.cookies():
+            if cookie["name"] == "session":
+                return cookie["value"]
+        raise RuntimeError("browser login set no session cookie")
+    finally:
+        context.close()
+
+
+def sign_in_roles(roles, base: str, browser) -> tuple[dict, dict]:
+    """One session per role. A missing credentials file is not a crash: the
+    authenticated pages are skipped, the public ones still run, and the summary
+    line says how many were not checked."""
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sessions: dict[str, str] = {}
+    skipped: dict[str, str] = {}
+    try:
+        from capture_manual_shots import ROLE_EMAIL, login, read_demo_password
+        password = read_demo_password()
+    except SystemExit as exc:
+        return {}, {role: str(exc) for role in roles}
+
+    try:
+        for role in sorted(roles):
+            try:
+                sessions[role] = login(base, ROLE_EMAIL[role], password)
+            except Exception as direct:             # noqa: BLE001 — reported, not raised
+                try:
+                    sessions[role] = browser_login(browser, base, ROLE_EMAIL[role], password)
+                except Exception as via_browser:    # noqa: BLE001
+                    skipped[role] = f"{direct}; through the browser: {via_browser}"
+    finally:
+        del password
+    return sessions, skipped
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base", default="http://127.0.0.1:8100",
@@ -347,22 +402,6 @@ def main() -> int:
     roles = {spec.get("role") for spec in pages if spec.get("role")}
     sessions: dict[str, str] = {}
     skipped_roles: dict[str, str] = {}
-    if roles:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        try:
-            from capture_manual_shots import ROLE_EMAIL, login, read_demo_password
-            password = read_demo_password()
-            for role in sorted(roles):
-                try:
-                    sessions[role] = login(args.base, ROLE_EMAIL[role], password)
-                except Exception as exc:            # noqa: BLE001 — reported, not raised
-                    skipped_roles[role] = str(exc)
-            del password
-        except SystemExit as exc:
-            for role in roles:
-                skipped_roles[role] = str(exc)
-        for role, why in skipped_roles.items():
-            print(f"SKIP pages needing role {role!r}: {why}", file=sys.stderr)
     default_widths = defaults.get("widths") or [375, 768, 1280]
     default_langs = defaults.get("languages") or ["default"]
     height = int(defaults.get("height") or 900)
@@ -379,6 +418,24 @@ def main() -> int:
     skipped_pages: list[tuple[str, str]] = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
+
+        # Sign in AFTER the browser exists, because signing in may need it.
+        #
+        # 2026-09-17: production moved behind Cloudflare's proxy, whose browser
+        # integrity check answers a plain `urllib` POST with 403 and the body
+        # `error code: 1010`. The first post-deploy acceptance run after the
+        # move reported three pages NOT CHECKED for "403: Forbidden" — the
+        # release evidence for every logged-in surface quietly became nothing.
+        #
+        # The fix is not to dress the HTTP client up as a browser. It is to use
+        # the browser this tool already drives: `context.request` is Chromium's
+        # own network stack, which is exactly what the check is asking for. The
+        # direct POST is still tried first — it is faster, and local runs and
+        # any host without an edge in front never need the second path.
+        if roles:
+            sessions, skipped_roles = sign_in_roles(roles, args.base, browser)
+            for role, why in skipped_roles.items():
+                print(f"SKIP pages needing role {role!r}: {why}", file=sys.stderr)
         for spec in pages:
             name = spec.get("name") or spec["path"].strip("/").replace("/", "_")
             role = spec.get("role")
