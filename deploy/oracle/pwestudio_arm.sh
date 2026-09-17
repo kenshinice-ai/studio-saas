@@ -48,9 +48,16 @@ die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 remote() { ssh -o ConnectTimeout=15 "$SSH_HOST" "$@"; }
 
+# `--profile local-db` is not optional here. The database is a service of this
+# same project (`profiles: ["local-db"]` in docker-compose.yml), and without the
+# flag compose refuses the whole project with
+# `service "app" depends on undefined service "db"` — it does not start the app
+# without the database, it declines to parse. Both compose files document the
+# flag in their header comments; the first version of this script did not carry
+# it and failed on the first real deploy.
 compose() {
   remote "cd $COMPOSE_DIR && sudo docker compose -p $PROJECT --env-file $ENV_FILE \
-    -f docker-compose.yml -f docker-compose.lightsail.yml $*"
+    -f docker-compose.yml -f docker-compose.lightsail.yml --profile local-db $*"
 }
 
 pinned_version() { remote "sudo sed -n 's/^STUDIOSAAS_VERSION=//p' $ENV_FILE | tail -1"; }
@@ -203,7 +210,9 @@ case "$cmd" in
 
     say "Starting"
     deployed=false
+    started=false
     if compose "up -d"; then
+      started=true
       say "Waiting for internal deep health (up to 120 seconds)"
       if wait_internal_health; then
         echo
@@ -228,10 +237,25 @@ case "$cmd" in
       exit 0
     fi
 
-    say "Verification FAILED — rolling back to ${previous_commit:0:12} (v$previous_version)"
+    # Two different situations, and calling both "ROLLBACK FAILED" is how an
+    # operator gets paged for a deploy that never touched anything. The first
+    # run of this script hit the second one and said the box needed hands; the
+    # box was serving normally throughout, because compose had declined to
+    # parse the project and therefore stopped nothing.
+    say "Restoring the checkout to ${previous_commit:0:12} (v$previous_version)"
     remote "set -e
       sudo git -C $APP checkout --quiet --detach $previous_commit
       sudo sed -i 's/^STUDIOSAAS_VERSION=.*/STUDIOSAAS_VERSION=$previous_version/' $ENV_FILE"
+
+    if ! $started; then
+      # compose never ran, so the container that was serving before is still
+      # serving — untouched, not restarted, not rebuilt.
+      say "Nothing was restarted: production is still on v$previous_version and was never interrupted"
+      curl -sS -o /dev/null -w '  %{http_code} from %{url_effective}\n' --max-time 20 "$PUBLIC_URL/v1/health" || true
+      exit 1
+    fi
+
+    say "The new release was started and failed verification — rolling it back"
     compose "up -d" || die "ROLLBACK FAILED — the box needs hands"
     if wait_internal_health >/dev/null; then
       say "Rolled back to v$previous_version"
