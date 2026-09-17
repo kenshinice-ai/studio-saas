@@ -1,0 +1,43 @@
+/*
+ * PWE Studio roadshow slide tokens.
+ * Source: 01 BRAND ASSETS/brand-tokens.json and docs/design/Brand_Identity.md.
+ * Keep the deck on the same family layer as the product: Warm Paper as the
+ * canvas, Family Navy as ink and Family Amber as the creative accent.
+ * Functional product colours remain separate.
+ */
+:root {
+  --color-primary: #f5b335;
+  --color-primary-text: #0e1729;
+  --color-background: #f7f5f2;
+  --color-background-raised: #fffdf9;
+  --color-background-soft: #eadfce;
+  --color-paper: #f7f5f2;
+  --color-ink: #0e1729;
+  --color-ink-soft: #475569;
+  --color-slate: #475569;
+  --color-muted: #64748b;
+  --color-line: #d9d5ce;
+  --color-white: #ffffff;
+  --color-amber-text: #a16207;
+  --color-console-blue: #2563eb;
+  --color-success: #2f7951;
+  --color-warm-panel: #f2e9df;
+  --color-soft-green: #e5f4ef;
+  --color-soft-amber: #fbf0d8;
+  --color-soft-blue: #e8f0fb;
+  --primitive-gradient-primary: linear-gradient(135deg, #f5b335, #ffe3a0);
+  --typography-font-heading: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --typography-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --slide-bg: var(--color-paper);
+  --slide-ink: var(--color-ink);
+  --slide-ink-soft: var(--color-ink-soft);
+  --slide-radius: 18px;
+  --slide-shadow: 0 18px 46px rgba(14, 23, 41, .14);
+  --slide-space-1: 8px;
+  --slide-space-2: 13px;
+  --slide-space-3: 21px;
+  --slide-space-4: 34px;
+  --slide-space-5: 55px;
+  --slide-space-6: 89px;
+}

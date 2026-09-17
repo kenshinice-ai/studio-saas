@@ -421,6 +421,11 @@
 
 ## 最新轮次
 
+- **2026-09-17（Claude）仓库清理 —— 远端分支、旧 stash、路演 deck 的生成器、旧发布包**（文档 / 销售素材，**未 bump、未部署**）：
+  轮次文件 `docs/handoff/claude/2026-09-17-repo-housekeeping.md`。`origin` 上除 `main` 外的 22 个分支全部删除
+  （2 个未合并的尖端 SHA 记在轮次文件里）。从一个五周前的 stash 里找回了路演 deck 的生成器——
+  8 月 18 日那一轮正因为找不到它才记下「deck 无生成器」。它落后于已跟踪的 `.pptx`（$199 / 100·500·1000），
+  已按迁移 0046 与现行 deck 校正后入库，并改为**不会覆盖** deck；说明见 `docs/sales/ROADSHOW_SOURCE.md`。
 - **2026-09-17（Claude）GitHub release gate：60 次 0 绿 → 绿，且证明还能红**（CI / 测试，**未 bump、未部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-ci-gate-repair.md`。CI 一直以超级用户连库（RLS 无条件失效，
   两条隔离测试**正确地**失败），外加一条只有 3.11 才会坏的自测。照 `verify_local.sh` 的配方改了工作流；
@@ -431,8 +436,9 @@
   `pwestudio_arm.sh`，给那个此前**零测试**的脚本补上行为测试（shim 掉 ssh/curl，逐条弄红过），
   并把「带迁移的版本不能就这样发」从散文变成脚本里的拒绝。runbook 与 `README_AWS.md`
   里那段手敲的 compose 命令——正是首次真部署失败的那一条——已删。
-  **下文各版写作 `dist/…` 的旧发布包现在在 `achieve/dist/`**（本机归档，已逐个对过 SHA-256）；
-  主 `dist/` 只留当前版。
+  **下文各版写作 `dist/…` 的旧发布包已不在 `dist/`**：同日稍后按 Lee 的决定，本机只保留
+  当前版（`dist/`）与此前最新两版 v10.19.0 / v10.20.0（`achieve/dist/`，SHA-256 已核对）；
+  更早的包已移出。下文记录的哈希仍是那些版本的身份凭据，包可由对应 commit 重建。
 - **2026-09-17（Claude）v10.20.1 给现在的生产主机补一条有守卫的发布路径**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。生产 9-17 迁到
   Oracle ARM 之后，仓库里通往它的只有散文；而默认的部署脚本指着仍在运行的旧机，

@@ -4,8 +4,20 @@
     {
       "name": "studiosaas",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \"/Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/.venv/bin/python\" \"$(git rev-parse --show-toplevel)/backend/server.py\""],
+      "runtimeArgs": [
+        "-c",
+        "PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \"/Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/.venv/bin/python\" \"$(git rev-parse --show-toplevel)/backend/server.py\""
+      ],
       "port": 8899
+    },
+    {
+      "name": "sales-static",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"$(git rev-parse --show-toplevel)/docs/sales\" && exec python3 -m http.server 8898 --bind 127.0.0.1"
+      ],
+      "port": 8898
     }
   ]
 }
