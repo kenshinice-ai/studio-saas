@@ -28,9 +28,29 @@ jobs:
           --health-timeout 5s
           --health-retries 20
 
+    # Two database identities, the same two backend/scripts/verify_local.sh
+    # uses, and for the reason written at the top of that script.
+    #
+    # Until 2026-09-17 this job exported one URL — the `postgres` superuser — as
+    # STUDIOSAAS_DATABASE_URL for every step. Row level security does not apply
+    # to a superuser, so test_tenant_isolation_by_construction.py failed here on
+    # every run: correctly. With one more failure that only Python 3.11 can
+    # produce, the last 60 runs of this gate were 60 failures, and a gate that
+    # is always red stops nothing — a real regression arrives as "still red".
+    #
+    # OWNER runs migrations and builds fixtures. APP is what the application is
+    # allowed to be: no superuser, no table ownership, no BYPASSRLS. Neither is
+    # exported job-wide: each step names the identity it needs, and
+    # STUDIOSAAS_MIGRATION_DATABASE_URL stays out of the pytest step because
+    # scripts that import db.use_owner_connection() would promote the whole
+    # process to the owner and put the RLS tests back into vacuous failure.
+    #
+    # The password is for a throwaway service container on a runner that is
+    # destroyed after the job; configure_runtime_db_role.py requires 32+ chars.
     env:
-      STUDIOSAAS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/studiosaas_ci
       STUDIOSAAS_ENV: local
+      OWNER_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/studiosaas_ci
+      APP_DATABASE_URL: postgresql://studiosaas_app:ci-only-runtime-role-password-0000@localhost:5432/studiosaas_ci
 
     steps:
       - uses: actions/checkout@v4
@@ -50,20 +70,49 @@ jobs:
           python -m pip install -r backend/requirements-dev.txt
           npm ci
 
-      - name: Apply migrations
+      - name: Apply migrations (as the owner)
         working-directory: backend
+        env:
+          STUDIOSAAS_DATABASE_URL: ${{ env.OWNER_DATABASE_URL }}
         run: python scripts/run_migrations.py
 
-      - name: Unit and boundary tests
+      - name: Create the least-privilege application role
         working-directory: backend
-        run: python -m pytest -q
+        env:
+          STUDIOSAAS_MIGRATION_DATABASE_URL: ${{ env.OWNER_DATABASE_URL }}
+          STUDIOSAAS_DB_RUNTIME_ROLE: studiosaas_app
+          STUDIOSAAS_DB_RUNTIME_PASSWORD: ci-only-runtime-role-password-0000
+        run: python scripts/configure_runtime_db_role.py
+
+      - name: The application role must not be able to bypass row level security
+        env:
+          PGPASSWORD: ci-only-runtime-role-password-0000
+        run: |
+          # Asked of the database directly, before any test runs: if this job
+          # ever goes back to connecting as a superuser, it fails here with a
+          # sentence instead of inside a test report nobody reads.
+          verdict="$(psql -h localhost -U studiosaas_app -d studiosaas_ci -tAc \
+            "SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user")"
+          [ "$verdict" = "f" ] || { echo "application role can bypass RLS (got: $verdict)"; exit 1; }
+
+      - name: Unit and boundary tests (as the application role)
+        working-directory: backend
+        env:
+          STUDIOSAAS_DATABASE_URL: ${{ env.APP_DATABASE_URL }}
+          STUDIOSAAS_OWNER_DATABASE_URL: ${{ env.OWNER_DATABASE_URL }}
+        # -rs: a skip has to say why. Tests that remove themselves from the run
+        # are how a suite gets smaller without anybody deciding it should.
+        run: python -m pytest -q -rs
 
       - name: Legacy smoke tests
         working-directory: backend
         run: python test_cms.py
 
-      - name: Tenant isolation and privacy tests
+      - name: Tenant isolation and privacy tests (as the application role)
         working-directory: backend
+        env:
+          STUDIOSAAS_DATABASE_URL: ${{ env.APP_DATABASE_URL }}
+          STUDIOSAAS_OWNER_DATABASE_URL: ${{ env.OWNER_DATABASE_URL }}
         run: python test_tenant_isolation.py
 
       - name: Generated frontend consistency

@@ -90,8 +90,20 @@ def test_every_module_parses_on_the_production_interpreter(source: Path) -> None
 def _backslashes_in_fstring_expressions(text: str) -> list[tuple[int, str]]:
     """(line, source) for every interpolated expression containing a backslash."""
 
+    # Before PEP 701 the interpreter does not hand back a tree for this
+    # construct, it refuses the file — so on the production interpreter, the one
+    # this check exists for, `ast.parse` raising IS the detection. Letting that
+    # propagate kept the self-test below red on 3.11 (and green on the 3.14
+    # laptops that wrote it) for as long as CI had run.
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        if "f-string" in (exc.msg or "") and "backslash" in (exc.msg or ""):
+            return [(exc.lineno or 0, (exc.text or "").strip())]
+        raise
+
     found = []
-    for node in ast.walk(ast.parse(text)):
+    for node in ast.walk(tree):
         if not isinstance(node, ast.JoinedStr):
             continue
         for part in node.values:
