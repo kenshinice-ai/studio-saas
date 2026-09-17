@@ -1,21 +1,35 @@
 # PWE Studio
 
-## v10.20.0 release identity — the product moves to /studio (source candidate, not released)
+## v10.20.1 release identity — a guarded deployment path for the new host
 
-`VERSION` = **10.20.0** and `backend/server.py` reports `APP_VERSION=10.20.0`.
-v10.20.0 is the release that lets the house website (PWE · 天域) take over the
-root of `pwestudio.online`: the product home moves to `/studio`, the house's
-section prefixes become reserved tenant slugs, installed PWAs stop starting at
-`/`, and Paradise Production is no longer described as the parent brand — text
-only, no icon or image changes. Round notes:
-`docs/handoff/claude/2026-09-11-pwe-house.md`.
+`VERSION` = **10.20.1** and `backend/server.py` reports `APP_VERSION=10.20.1`.
+Infrastructure only: **zero migrations and zero runtime code change.**
+Production moved to an Oracle ARM host behind Caddy and Cloudflare on
+2026-09-17, and nothing in this repository could reach it — the procedure was
+prose, and `deploy/aws/pwestudio_remote.sh` still defaults to the retained
+Lightsail instance, which is still running. This release adds
+`deploy/oracle/pwestudio_arm.sh` and gives both paths the same two guards: one
+that proves the target is the machine `pwestudio.online` reaches before
+anything moves, and one that proves the public edge reports the version just
+built afterwards. Round notes:
+`docs/handoff/claude/2026-09-17-oracle-deploy-path.md`.
+
+> This heading, and the table below it, are written by hand at runbook steps 3
+> and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
+> `release.sh bump` — a blind substitution that advanced whichever lines
+> carried the outgoing version and froze the rest. By v10.20.0 this paragraph
+> described v10.18.0's work under a v10.20.0 heading and cited v10.18.0's round
+> file, while the table read "Source: candidate, not pushed / Package: not
+> built / Production: still v10.17.0" for a version that was released and
+> deployed. Every line false, and freshly rewritten. A claim about reality
+> cannot be produced by substitution.
 The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.0, released** — commit `8d92995` on `main` | Local gate `All checks passed`, pytest 2489 passed / 41 skipped; **zero migrations** — schema stays at `0047_xero_transport.sql`. Round handoff: `docs/handoff/claude/2026-09-12-back-office-hierarchy.md`. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.0.tar.gz` SHA-256 `6e3bd5519e03fc77b502d6a4bcd387adc4b8516c0233feba2ca2cbac5fbe619f`; `dist/PWE-Studio-Edition-10.20.0.tar.gz` SHA-256 `728aa97d3c76034693f7209df587165c4f8c1b39bb8580262acd1f1f8e040bc7`. Three-way guard equal at build time. |
-| Production | **v10.20.0** (`pwestudio.online`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. **Host changed 2026-09-17**: Oracle ARM behind Caddy and Cloudflare, no longer AWS Lightsail — the retained Lightsail instance still answers, so see `docs/Release_Runbook.md` § *Where production runs* before deploying anything. |
+| Source | **v10.20.1 candidate on `main`, not yet pushed** | Infrastructure only — a guarded deployment path for the Oracle ARM host, plus documentation aligned to it. **Zero migrations, zero runtime code change.** Round handoff: `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`. Commit hash filled in at the step-9 closure. |
+| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz` and `dist/PWE-Studio-Edition-10.20.1.tar.gz`. The Oracle host does not consume the SaaS bundle — it builds the image from a commit — so that one is an archival artefact and the Edition tarball is the deliverable. |
+| Production | **still v10.20.0** (`pwestudio.online`, Oracle ARM, commit `e5140571`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. See `docs/Release_Runbook.md` § *Where production runs*. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

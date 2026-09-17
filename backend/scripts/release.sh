@@ -204,7 +204,7 @@ deployment state, and where the acceptance evidence lives, before releasing."
   echo
   printf '%b' "$BOLD"
   cat <<EOF
-  bump done — two things remain HUMAN before this can pass preflight:
+  bump done — three things remain HUMAN before this can pass preflight:
     1. write the v$NEW section at the TOP of docs/HANDOFF_LATEST.md (runbook step 3);
     2. fill in both release-notes skeletons (they currently say so themselves);
     3. update README.md's three status rows — bump no longer rewrites them,

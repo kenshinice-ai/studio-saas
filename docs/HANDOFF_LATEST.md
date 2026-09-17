@@ -1,4 +1,4 @@
-# PWE Studio v10.20.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,20 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.20.0，2026-09-12 · **已发布、已部署**）
+## 当前四层身份（v10.20.1，2026-09-17 · 源码候选，未发布）
+
+> 本表是 runbook 第 3 步的 prepared ledger。
+> 轮次文件：`docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 分支 `main`，**未推送**（提交哈希 closure 时回填）。内容：**生产在 2026-09-17 迁到 Oracle ARM**（Cloudflare 橙云 + Caddy）之后，仓库里没有任何一条通往它的脚本路径——runbook 里是散文，而 `deploy/aws/pwestudio_remote.sh` 默认指向仍在运行的旧 Lightsail 机。本版补上：`deploy/oracle/pwestudio_arm.sh`（status / verify-target / health / logs / deploy / ssh），带与 AWS 路径同样的两道守卫；两条路径都加了「上传前证明目标机就是公开地址所指的那台」与「部署后断言公开边缘报出刚构建的版本」。文档层把 runbook、README、Deployment、Roadmap、deploy/aws 的说明全部对齐到新拓扑，并保留带日期的历史记录不动。README 的三行状态表此前**全错**（sed 盲替所致），已改写并补上守卫。**零迁移**，schema 仍至 `0047_xero_transport.sql`；**零运行时代码改动**。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz`（未构建；Oracle 路径不消费它，仍作归档与 Edition 的同源产物）。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.1.tar.gz`（未构建）。 |
+| Production | **仍是 v10.20.0**（Oracle ARM，commit `e5140571`）。本版部署走 `deploy/oracle/pwestudio_arm.sh deploy <commit>`：在机器上 checkout + 构建镜像，不传包。部署后复核 `appVersion=10.20.1`。 |
+| Backup / migration | 本版零迁移。Oracle 上的备份目录见 `production.env` 的 `STUDIOSAAS_BACKUP_DIR`。 |
+
+## 上一版四层身份（v10.20.0，2026-09-12 · 已发布；2026-09-17 随迁移在 Oracle 上重建）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。
@@ -384,6 +397,11 @@
 
 ## 最新轮次
 
+- **2026-09-17（Claude）v10.20.1 给现在的生产主机补一条有守卫的发布路径**（**源码候选，未发布**）：
+  轮次文件 `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。生产 9-17 迁到
+  Oracle ARM 之后，仓库里通往它的只有散文；而默认的部署脚本指着仍在运行的旧机，
+  跑下去会「成功」且不改变任何人看到的东西。本版补 `deploy/oracle/pwestudio_arm.sh`
+  并给两条路径都装上同样的两道守卫，然后**用它真的发一次**。
 - **2026-09-12（Claude）v10.20.0 后台层级 —— 一页一个主操作，一个数字只说一遍**（**已发布、已部署**）：
   轮次文件 `docs/handoff/claude/2026-09-12-back-office-hierarchy.md`。用真实会话把
   CMS、Studio Admin、Platform Admin 走了一遍并按「填色对页面底色的对比度」给控件
