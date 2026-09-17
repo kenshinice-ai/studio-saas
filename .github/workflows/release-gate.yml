@@ -54,6 +54,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: test_oracle_deploy_path.py executes the production
+          # deploy script against real commits on origin/main, and skips itself
+          # on a shallow clone — which is every clone this job used to make.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -128,4 +133,7 @@ jobs:
           python backend/scripts/check_terminology.py
 
       - name: Build and inspect both delivery forms
-        run: bash deploy/aws/verify_release_bundles.sh
+        # smoke_release_archive.sh defaults to the repository's .venv, which a
+        # runner does not have. This step had never executed here: the pytest
+        # step above it failed on every run, so nothing found that out.
+        run: PYTHON="$(command -v python)" bash deploy/aws/verify_release_bundles.sh
