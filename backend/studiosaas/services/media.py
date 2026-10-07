@@ -213,8 +213,18 @@ def validate_media_upload(file_storage: FileStorage, *, kind: str) -> tuple[str,
 
     filename = file_storage.filename or ""
     safe_name = secure_filename(filename)
-    if not safe_name or "/" in filename or "\\" in filename or PurePath(filename).name != filename:
-        raise MediaUploadError("Filename must not contain path separators.")
+    # ".." is refused on its own, not only as a path component. A parser can
+    # drop separators before this runs: werkzeug 3.1.9 unescapes backslashes in
+    # quoted multipart filenames, so "..\logo.png" arrives as "..logo.png".
+    # This guard must not depend on the separator surviving the parse.
+    if (
+        not safe_name
+        or "/" in filename
+        or "\\" in filename
+        or ".." in filename
+        or PurePath(filename).name != filename
+    ):
+        raise MediaUploadError("Filename must not contain path separators or '..'.")
     ext = os.path.splitext(safe_name)[1].lower()
     allowed_ext, max_bytes = MEDIA_UPLOAD_LIMITS.get(kind, MEDIA_UPLOAD_LIMITS["portfolio"])
     if ext not in allowed_ext:

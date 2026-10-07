@@ -98,6 +98,23 @@ def test_same_origin_svg_logo_upload_is_rejected():
         validate_media_upload(upload, kind="logo")
 
 
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "../logo.png",
+        r"..\logo.png",
+        "..logo.png",  # r"..\logo.png" after werkzeug 3.1.9 unescapes the backslash
+        "..%2Flogo.png",
+        "a/logo.png",
+        r"a\logo.png",
+    ],
+)
+def test_media_upload_guard_refuses_traversal_filenames(filename):
+    upload = FileStorage(stream=io.BytesIO(b"\x89PNG\r\n\x1a\n"), filename=filename, content_type="image/png")
+    with pytest.raises(MediaUploadError, match="path separators"):
+        validate_media_upload(upload, kind="logo")
+
+
 def test_retired_portfolio_token_route_returns_410_without_database(client):
     response = client.post("/v1/public/demo/portfolio-token", json={})
     assert response.status_code == 410

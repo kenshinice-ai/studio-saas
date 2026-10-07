@@ -1,4 +1,10 @@
 flask>=2.3,<4
+# Bounded: werkzeug parses multipart filenames, and the upload guard is tested
+# against what it delivers. 3.1.9 changed backslash unescaping in a patch
+# release and turned the CI gate red (2026-10-07). The tests now hold on 3.1.8
+# and 3.1.9; take 3.2 only as a deliberate bump with the gate re-run.
+# Production installs the exact pin in deploy/aws/requirements.lock instead.
+werkzeug>=3.1.8,<3.2
 psycopg[binary]>=3.2,<4
 waitress>=2.1,<4
 pillow>=10,<12

@@ -1756,7 +1756,19 @@ def main() -> int:
     check("Logo upload rejects wrong extension", logo_upload(owner_a, "logo.txt", PNG).status_code == 400)
     check("Logo upload rejects wrong MIME", logo_upload(owner_a, "logo.png", PNG, "text/plain").status_code == 400)
     check("Logo upload rejects fake image content", logo_upload(owner_a, "logo.png", b"not an image").status_code == 400)
-    check("Logo upload rejects path traversal filename", logo_upload(owner_a, r"..\logo.png", PNG).status_code == 400)
+    # The filename the handler sees depends on the multipart parser:
+    # werkzeug 3.1.9 unescapes backslashes in quoted filenames, so r"..\logo.png"
+    # arrives as "..logo.png" while r"..\\logo.png" arrives as r"..\logo.png".
+    # Each variant must be refused by the server's own guard
+    # (services.media.validate_media_upload), whichever form reaches it.
+    for traversal_name in ("../logo.png", r"..\logo.png", r"..\\logo.png", "..%2Flogo.png"):
+        traversal_upload = logo_upload(owner_a, traversal_name, PNG)
+        traversal_message = str((traversal_upload.get_json() or {}).get("message") or "")
+        check(
+            f"Logo upload rejects path traversal filename {traversal_name!r}",
+            traversal_upload.status_code == 400 and "path separators" in traversal_message,
+            f"got {traversal_upload.status_code}: {traversal_message!r}",
+        )
     check("Logo upload rejects oversized file", logo_upload(owner_a, "huge.png", PNG + (b"x" * (5 * 1024 * 1024))).status_code == 400)
 
     website_upload = owner_a.post(
