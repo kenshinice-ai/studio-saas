@@ -421,6 +421,7 @@
 
 ## 最新轮次
 
+- **2026-10-07（Claude）STE-lite v1 写作规则与文档术语表**（文档，**未 bump、未部署**）：新建根目录 `CLAUDE.md`（首行 `@AGENTS.md`，含写作规则、适用范围、pwe-clinic 关系与文档术语表），本轮不另写轮次文件。
 - **2026-09-17（Claude）仓库清理 —— 远端分支、旧 stash、路演 deck 的生成器、旧发布包**（文档 / 销售素材，**未 bump、未部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-repo-housekeeping.md`。`origin` 上除 `main` 外的 22 个分支全部删除
   （2 个未合并的尖端 SHA 记在轮次文件里）。从一个五周前的 stash 里找回了路演 deck 的生成器——
