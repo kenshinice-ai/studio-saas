@@ -56,6 +56,11 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.20.2 — the CMS speaks English again</strong><strong data-lang="zh">v10.20.2 —— CMS 的英文模式回来了</strong>
+      <p data-lang="en">Since v10.16.0 the CMS had no English mode and no language switch: one missing comma stopped its dictionary from loading, and every page fell back to Chinese. It is fixed, and a new check runs both dictionaries on every release so the same fault cannot ship silently again. Uploads now also refuse any file name containing <code>..</code> — a file named that way was never stored under its own name, and this closes the question for good. Behind the scenes: our automated release checks are green again after a library update changed how upload file names are read, and our internal procedures follow one plain-English writing standard. No data changes; nothing to do on your side.</p>
+      <p data-lang="zh">自 v10.16.0 起，CMS 没有英文模式，也没有语言切换：词典里少了一个逗号，整份词典加载失败，所有页面退回中文。现已修复，并新增一项检查：每次发布都实际运行两份词典，同样的问题不会再悄悄发出去。上传现在也会拒绝文件名里含 <code>..</code> 的文件——这类文件本来就不会按原名存储，现在从入口直接挡住。幕后：一次依赖库更新改变了上传文件名的读取方式，我们的自动发布检查因此变红，现已恢复全绿；内部操作文档统一采用一套简明英文写作规范。数据无变化，你这边无需操作。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.20.1 — a guarded deployment path for the new host</strong><strong data-lang="zh">v10.20.1 —— 为新主机补上带守卫的发布路径</strong>
       <p data-lang="en">Infrastructure only — nothing in the product changed. Production moved to new hardware on 2026-09-17, and this release gives that host a guarded deployment path: a deploy now has to prove it is reaching the machine your studio's site actually runs on, before it changes anything, and has to prove the live site reports the version just shipped afterwards. Nothing to do on your side.</p>
       <p data-lang="zh">只改基础设施，产品没有任何变化。生产环境已于 2026-09-17 迁到新硬件，本版为它补上带守卫的发布路径：一次部署必须先证明它连的就是你工作室官网实际运行的那台机器，之后还必须证明线上确实在跑刚发布的版本。**你这边无需操作。**</p>

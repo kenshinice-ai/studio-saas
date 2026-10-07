@@ -1,4 +1,4 @@
-# PWE Studio v10.20.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,20 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.20.1，2026-09-17 · **已发布、已部署**）
+## 当前四层身份（v10.20.2，2026-10-08 · 源码候选，未部署）
+
+> 本表是 runbook 第 3 步的 prepared ledger。第 8、9 步未执行。
+> 轮次文件：`docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 分支 `release/10.20.2`，父提交为 `origin/main` `924ab01`。release 提交的哈希在第 9 步回填。进运行时的改动两处：`924ab01` 补回 `cms-i18n.js` 的逗号，CMS 的英文模式与语言切换恢复（自 v10.16.0 起失效，生产 v10.20.1 也是）；`d75c150` 让上传文件名守卫拒绝 `..`。其余为测试、CI 与文档：`a83bec4` 执行两份词典的回归测试；`d75c150` 让 CI gate 在 werkzeug 3.1.9 下转绿；`1c562d0` / `a03cfa4` STE-lite v1 写作规则。**零迁移**，schema 仍至 `0047_xero_transport.sql`。local gate（2026-10-08，`TEST_PORT=8775`，werkzeug 3.1.8）：`All checks passed`，pytest `2465 passed, 41 skipped`，legacy smoke 73/0，租户隔离 `257 passed, 0 failed`。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.2.tar.gz`（未构建）。Oracle 路径不消费它，作归档。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.2.tar.gz`（未构建）。 |
+| Production | **仍是 v10.20.1**（Oracle ARM，commit `147458b`）。部署命令：`bash deploy/oracle/pwestudio_arm.sh deploy <release 提交的完整 SHA>`。部署后复核公开 `appVersion=10.20.2`。回滚命令：`bash deploy/oracle/pwestudio_arm.sh deploy 147458b14ee7579eb9eacdfa9548af729341778b`。 |
+| Backup / migration | 本版零迁移，不需要 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。异地备份由主机上的 `pwe-backup@db` / `pwe-backup@full` timer 负责（not verified 2026-10-08：本轮未上主机查最近一次运行）。 |
+
+## 上一版四层身份（v10.20.1，2026-09-17 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 轮次文件：`docs/handoff/claude/2026-09-17-oracle-deploy-path.md`。
@@ -421,6 +434,10 @@
 
 ## 最新轮次
 
+- **2026-10-08（Claude）v10.20.2 —— CMS 英文词典恢复，CI gate 在 werkzeug 3.1.9 下转绿**（**源码候选，未部署**）：
+  轮次文件 `docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。`cms-i18n.js` 少一个逗号，
+  CMS 自 v10.16.0 起没有英文模式；补回并加执行两份词典的回归测试。CI 从 `a03cfa4` 起红：
+  werkzeug 3.1.9 去掉文件名里的反斜杠，`..\logo.png` 变成 `..logo.png`。上传守卫改为直接拒绝 `..`。
 - **2026-10-07（Claude）STE-lite v1 写作规则与文档术语表**（文档，**未 bump、未部署**）：新建根目录 `CLAUDE.md`（首行 `@AGENTS.md`，含写作规则、适用范围、pwe-clinic 关系与文档术语表），本轮不另写轮次文件。
 - **2026-09-17（Claude）仓库清理 —— 远端分支、旧 stash、路演 deck 的生成器、旧发布包**（文档 / 销售素材，**未 bump、未部署**）：
   轮次文件 `docs/handoff/claude/2026-09-17-repo-housekeeping.md`。`origin` 上除 `main` 外的 22 个分支全部删除

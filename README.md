@@ -1,18 +1,16 @@
 # PWE Studio
 
-## v10.20.1 release identity — a guarded deployment path for the new host
+## v10.20.2 release identity — the CMS speaks English again, and the CI gate is green
 
-`VERSION` = **10.20.1** and `backend/server.py` reports `APP_VERSION=10.20.1`.
-Infrastructure only: **zero migrations and zero runtime code change.**
-Production moved to an Oracle ARM host behind Caddy and Cloudflare on
-2026-09-17, and nothing in this repository could reach it — the procedure was
-prose, and `deploy/aws/pwestudio_remote.sh` still defaults to the retained
-Lightsail instance, which is still running. This release adds
-`deploy/oracle/pwestudio_arm.sh` and gives both paths the same two guards: one
-that proves the target is the machine `pwestudio.online` reaches before
-anything moves, and one that proves the public edge reports the version just
-built afterwards. Round notes:
-`docs/handoff/claude/2026-09-17-oracle-deploy-path.md`.
+`VERSION` = **10.20.2** and `backend/server.py` reports `APP_VERSION=10.20.2`.
+**Zero migrations.** Two runtime changes. `cms-i18n.js` had lost a comma in
+v10.16.0, so the CMS dictionary threw on load and the CMS had no English mode
+and no language switch, production v10.20.1 included; the comma is back and a
+test now executes both dictionaries. The upload filename guard now refuses
+`..` itself: werkzeug 3.1.9 strips backslashes from quoted multipart
+filenames, which turned the CI gate red and showed the guard depended on the
+separator surviving the parse. Round notes:
+`docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -27,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.1, released** — deployed commit `147458b` | Infrastructure only: a guarded deployment path for the Oracle ARM host plus documentation aligned to it. **Zero migrations, zero runtime code change.** `main` is ahead of what is deployed, deliberately: every commit after `147458b` changes release tooling, tests or documentation and none enters the runtime (`git diff --stat 147458b origin/main` is the check — a count written here would be wrong one commit later). Round handoff: `docs/handoff/claude/2026-09-17-oracle-deploy-path.md`. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.1.tar.gz` SHA-256 `c36b8a19c93baea37377fdd6b89133b3fc4d38c9b191f11ced3719a5ce6fcf37` (archival — the Oracle host builds its image from a commit and does not consume it); `dist/PWE-Studio-Edition-10.20.1.tar.gz` SHA-256 `6a23d84a0e53ca118b7db7166ff2c629a3fb551748357904617218226375b2d3`. |
-| Production | **v10.20.1** (`pwestudio.online`, Oracle ARM, commit `147458b`) | Deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 7.6%. Browser matrix 642 assertions, 0 failed, 21/22 pages. Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` (what `release.sh`'s deploy stage now calls) — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. |
+| Source | **v10.20.2 candidate on branch `release/10.20.2`** | CMS dictionary fix (`924ab01`), its execution test (`a83bec4`), upload guard refuses `..` and the CI gate holds on werkzeug 3.1.9 (`d75c150`). **Zero migrations** — schema stays at `0047_xero_transport.sql`. Round handoff: `docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`. Release commit hash filled in at the step-9 closure. |
+| Package | **not built** | Expected `dist/PWE-StudioSaaS-aws-10.20.2.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.2.tar.gz`. |
+| Production | **still v10.20.1** (`pwestudio.online`, Oracle ARM, commit `147458b`) | Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` (what `release.sh`'s deploy stage calls) — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. Roll back by deploying `147458b14ee7579eb9eacdfa9548af729341778b`. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
