@@ -507,6 +507,15 @@ Do not optimise by removing correctness, accessibility, or tenant isolation.
 
 Avoid adding heavy client dependencies for small UI effects.
 
+## Writing Rules and Docs Glossary
+
+`CLAUDE.md` at the repo root holds the STE-lite v1 writing rules and the docs glossary. Codex follows them too.
+
+- Follow the writing rules in `CLAUDE.md` when you write procedures, release or rollback steps, handoffs, warnings, or notes for other sessions.
+- Use only the terms in the `CLAUDE.md` glossary in those docs. If a term is missing or has two meanings, report it. Do not coin a new term in the doc.
+- The scope in `CLAUDE.md` decides which files the rules cover. UI wording still follows `docs/Glossary.md` and `backend/scripts/check_terminology.py`.
+- When you change security, RLS, billing, Xero or accounting code, say in your report whether pwe-clinic needs the same change.
+
 ## 22. Testing and Checks
 
 Before declaring StudioSaaS work complete, run the relevant existing checks.
