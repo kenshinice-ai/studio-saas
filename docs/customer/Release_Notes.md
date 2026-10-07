@@ -20,7 +20,7 @@ node 里实际运行 CMS 与 Studio Admin 两份词典，要求它们完成加�
 
 **零迁移，数据无变化，工作室这边无需操作。**
 
-**部署状态**：源码候选，未部署（2026-10-08）。部署后在此补记。
+**部署状态**：已于 2026-10-08 部署到 `pwestudio.online`（commit `dc15be4`），线上报 `appVersion=10.20.2`。
 
 **验收证据**：`docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。
 

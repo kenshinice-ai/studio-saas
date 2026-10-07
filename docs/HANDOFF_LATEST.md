@@ -13,18 +13,38 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.20.2，2026-10-08 · 源码候选，未部署）
+## 等 Lee
 
-> 本表是 runbook 第 3 步的 prepared ledger。第 8、9 步未执行。
+没有。
+
+## 当前四层身份（v10.20.2，2026-10-08 · **已发布、已部署**）
+
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
+> 操作者：Lee 执行部署；Claude 会话准备发布并做部署后验收。
 > 轮次文件：`docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 分支 `release/10.20.2`，父提交为 `origin/main` `924ab01`。release 提交的哈希在第 9 步回填。进运行时的改动两处：`924ab01` 补回 `cms-i18n.js` 的逗号，CMS 的英文模式与语言切换恢复（自 v10.16.0 起失效，生产 v10.20.1 也是）；`d75c150` 让上传文件名守卫拒绝 `..`。其余为测试、CI 与文档：`a83bec4` 执行两份词典的回归测试；`d75c150` 让 CI gate 在 werkzeug 3.1.9 下转绿；`1c562d0` / `a03cfa4` STE-lite v1 写作规则。**零迁移**，schema 仍至 `0047_xero_transport.sql`。local gate（2026-10-08，`TEST_PORT=8775`，werkzeug 3.1.8）：`All checks passed`，pytest `2465 passed, 41 skipped`，legacy smoke 73/0，租户隔离 `257 passed, 0 failed`。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.2.tar.gz`（未构建）。Oracle 路径不消费它，作归档。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.2.tar.gz`（未构建）。 |
-| Production | **仍是 v10.20.1**（Oracle ARM，commit `147458b`）。部署命令：`bash deploy/oracle/pwestudio_arm.sh deploy <release 提交的完整 SHA>`。部署后复核公开 `appVersion=10.20.2`。回滚命令：`bash deploy/oracle/pwestudio_arm.sh deploy 147458b14ee7579eb9eacdfa9548af729341778b`。 |
-| Backup / migration | 本版零迁移，不需要 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。异地备份由主机上的 `pwe-backup@db` / `pwe-backup@full` timer 负责（not verified 2026-10-08：本轮未上主机查最近一次运行）。 |
+| Source | 部署的是 `dc15be419ac15433f17e640946e68a64ee265221`，已在 `origin/main`（由 `release/10.20.2` 快进）。进运行时的改动两处：`924ab01` 补回 `cms-i18n.js` 的逗号，CMS 的英文模式与语言切换恢复（自 v10.16.0 起失效，生产 v10.20.1 也是）；`d75c150` 让上传文件名守卫拒绝 `..`。其余为测试、CI 与文档：`a83bec4` 执行两份词典的回归测试；`d75c150` 让 CI gate 在 werkzeug 3.1.9 下转绿；`1c562d0` / `a03cfa4` STE-lite v1 写作规则。**零迁移**，schema 仍至 `0047_xero_transport.sql`。local gate（2026-10-08，`TEST_PORT=8775`，werkzeug 3.1.8）：`All checks passed`，pytest `2465 passed, 41 skipped`，legacy smoke 73/0，租户隔离 `257 passed, 0 failed`。CI gate（werkzeug 3.1.9）：分支 run `37626677383`、main run `37627048320` 均 success。本 closure 提交只改文档，不在已部署的包里。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.2.tar.gz`，SHA-256 `76aef2917caa54bab201d65367045ef2a94f6c7e9e7c292075e5f6a9874a229b`，`BUILD_INFO` commit `dc15be4…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.2.tar.gz`，SHA-256 `26cc543463b4aa8049130b66a841cd8679f7e3b3d9be347ca9316a69fa28c426`，`BUILD_INFO` commit `dc15be4…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Production | `pwestudio.online` = **v10.20.2**（Oracle ARM `pwe-arm` / `130.162.197.219`，commit `dc15be4`，镜像 `studiosaas:10.20.2`）。2026-10-08 约 00:30 AEDT 由 `bash deploy/oracle/pwestudio_arm.sh deploy dc15be419ac15433f17e640946e68a64ee265221` 部署，脚本输出 `Deployed: dc15be419ac1 as v10.20.2`。实测公网 `/v1/health?deep=1`：`appVersion=10.20.2`、`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 14.0%（123.97 GB 空闲）；主机内部 deep health 同为 10.20.2。回滚命令：`bash deploy/oracle/pwestudio_arm.sh deploy 147458b14ee7579eb9eacdfa9548af729341778b`。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。异地备份由主机上的 `pwe-backup@db` / `pwe-backup@full` timer 负责（not verified 2026-10-08：本轮未上主机查最近一次运行）。 |
+
+### 部署后验收（生产实测，2026-10-08）
+
+| 验的东西 | 结果 |
+|---|---|
+| 版本身份 | 公网与主机内部 deep health 都报 `10.20.2`；`pwestudio_arm.sh status`：`STUDIOSAAS_VERSION=10.20.2`，app commit `dc15be4…`，`pwestudio-app-1` healthy |
+| 公开面 | `/` 200；`/platform-admin` 200；`/register` 404（仍须 404）；http → 308 https；https 200，TLS 校验通过，HTTP/2 |
+| 本版主修复：CMS 词典 | `/lets-paint-showcase/cms` 200，引用 `cms-i18n.js?v=10.20.2&h=a146b86d0717b603`。线上该文件 71,339 字节，在 node vm 里执行：加载不抛错，`StudioI18n.mount` 调用 1 次；第 739 行已带逗号 |
+
+### 这次收口不声称的
+
+- **没有在浏览器里实际切换 CMS 语言。** 证据是线上词典在 node vm 里能加载并调用 `mount`，不是一次真人登录后的中英切换。
+- **浏览器矩阵本版没有跑。**
+- 生产镜像仍按 `deploy/aws/requirements.lock` 装 werkzeug 3.1.8；`requirements.txt` 的 `>=3.1.8,<3.2` 只约束开发与 CI。
+- 备份 timer 的最近一次运行未核实（见上表）。
 
 ## 上一版四层身份（v10.20.1，2026-09-17 · 已发布、已部署）
 
@@ -434,7 +454,7 @@
 
 ## 最新轮次
 
-- **2026-10-08（Claude）v10.20.2 —— CMS 英文词典恢复，CI gate 在 werkzeug 3.1.9 下转绿**（**源码候选，未部署**）：
+- **2026-10-08（Claude）v10.20.2 —— CMS 英文词典恢复，CI gate 在 werkzeug 3.1.9 下转绿**（**已发布、已部署**，`dc15be4`）：
   轮次文件 `docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。`cms-i18n.js` 少一个逗号，
   CMS 自 v10.16.0 起没有英文模式；补回并加执行两份词典的回归测试。CI 从 `a03cfa4` 起红：
   werkzeug 3.1.9 去掉文件名里的反斜杠，`..\logo.png` 变成 `..logo.png`。上传守卫改为直接拒绝 `..`。
