@@ -736,7 +736,12 @@
      'Cache clearing failed. Close the app and open it again.'],
     ['PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。',
      'The PWA cache is cleared and the page will reload. If the home-screen icon is still stale, remove it and add it again.'],
-    ['请确认终端正在运行', 'Check that this is running in your terminal']
+    ['请确认终端正在运行', 'Check that this is running in your terminal'],
+    /* The comma above is load-bearing. Without it the next entry after the
+       comment below is parsed as an index expression on this array — the
+       Sign out? pair became arr['Sign out?'], i.e. undefined, and one
+       undefined element makes Object.fromEntries throw. The whole
+       dictionary failed to load and the CMS had no English at all. */
 
     /* ── 钱与不可逆操作（v10.16.0） ──
      * 补齐的优先级按后果，不按出现频率。词典有约 870 条，源码里的可见中文串
