@@ -23,7 +23,18 @@ _FIXED_SURFACES = [
     "tenant-template/showcase.html",
     "tenant-template/timetable.html",
     "backend/frontend/studio-admin.html",
+    "backend/frontend/assets/studio-admin.js",
+    "backend/frontend/assets/super-admin.js",
     "super-admin.html",
+]
+
+# The two translation dictionaries carry the other half of every screen: the
+# English the CMS shows and the Chinese the consoles show. Neither appears in
+# any file above, so a banned word could live here for months while this check
+# passed (it did, until 2026-10-09). They are checked under the same rules.
+_DICTIONARY_SURFACES = [
+    "backend/frontend/assets/cms-i18n.js",
+    "backend/frontend/assets/admin-i18n.js",
 ]
 
 
@@ -44,7 +55,7 @@ def _cms_surfaces() -> list[str]:
     ]
 
 
-SURFACES = _FIXED_SURFACES + _cms_surfaces()
+SURFACES = _FIXED_SURFACES + _DICTIONARY_SURFACES + _cms_surfaces()
 
 # (pattern, human explanation). Patterns are matched against a comment-stripped
 # copy of each file, so a rule may be discussed in a comment without tripping.
