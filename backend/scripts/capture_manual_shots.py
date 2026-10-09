@@ -546,9 +546,17 @@ ROSTER_UI_CONTRACT = """
 # Staff screens remember their language in localStorage; the visitor-facing
 # pages take it from `?lang=`. Seeding the key before the document exists is
 # the only way to catch the app's own first read of it.
+#
+# Three keys, not two. `studiosaas_admin_language` alone stopped being enough
+# when i18n-runtime.js began separating "the language in use" from "the language
+# somebody chose": without `studiosaas_admin_language_choice` the runtime
+# follows the browser's locale, so on an English Chrome the "zh" pass rendered
+# English and failed with "no control labelled 充值与退款". Found on 2026-10-09
+# re-shooting 04-topup; every staff-screen `.zh` shot was affected.
 SEED_LANGUAGE = """
 try {
   localStorage.setItem('studiosaas_admin_language', %s);
+  localStorage.setItem('studiosaas_admin_language_choice', %s);
   localStorage.setItem('pwe_lang_lets-paint-showcase', %s);
 } catch (e) {}
 """
@@ -574,7 +582,7 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
     # from the previous language would still be running.
     if browser._seed:
         browser.call("Page.removeScriptToEvaluateOnNewDocument", identifier=browser._seed)
-    seed = SEED_LANGUAGE % (json.dumps(language), json.dumps(language))
+    seed = SEED_LANGUAGE % (json.dumps(language), json.dumps(language), json.dumps(language))
     browser._seed = browser.call(
         "Page.addScriptToEvaluateOnNewDocument", source=seed)["identifier"]
     url = f"{base}{path}" + ("" if session else f"?lang={language}")

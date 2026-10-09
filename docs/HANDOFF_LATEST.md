@@ -1,4 +1,4 @@
-# PWE Studio v10.20.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -15,10 +15,27 @@
 
 ## 等 Lee
 
+- **[动手] 部署 v10.20.3 到生产主机** — 推荐：先跑 `bash deploy/oracle/pwestudio_arm.sh verify-target`，再跑 `bash deploy/oracle/pwestudio_arm.sh deploy "$(git log -1 --format=%H --grep='^release: v10.20.3' origin/main)"`，末行应是 `Deployed: … as v10.20.3` · 不做会卡住：生产停在 v10.20.2，新用词和充值页英文不上线，第 9 步 evidence closure 做不了 · 自 2026-10-09
+- **[决定] CMS 其它面板的英文覆盖要不要单独做一轮** — 推荐：做，先做 `billing.jsx`、`finance.jsx`、`scheduling.jsx` 三个 · 不定会卡住：英文界面里最多 579 句仍显示中文（上界，没有逐句核实），明细见 `docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md` · 自 2026-10-09
 - **[决定] Studio「作品」的禁用范围** — 推荐：只禁共享代码和公开模板里硬编码的「作品」，员工界面（CMS / Studio Admin）保留「作品 / Portfolio」 · 不定会卡住：审计 S-B08/B10/B12/B15/B18/B20 和「画室 · 空间」「画艺」共 8 组用词 · 自 2026-10-09
 - **[决定] Studio 的 Insights 导航组要不要跟 Clinic 一样叫「数据分析」** — 推荐：改为「数据分析 / Analytics」，组里只有官网数据分析，不是经营统计页 · 不定会卡住：`admin-i18n.js` 的 `经营洞察` 留着，和术语表禁的「洞察」冲突 · 自 2026-10-09
 
-## 当前四层身份（v10.20.2，2026-10-08 · **已发布、已部署**）
+## 当前四层身份（v10.20.3，2026-10-09 · 源码候选，未部署）
+
+> 本表是 runbook 第 3 步的 prepared ledger。Source 是事实；Package、Production 写的是预期。
+> 第 9 步 evidence closure 时换成实测。
+> 操作者：Claude 会话准备发布；第 8 步部署由 Lee 执行。
+> 轮次文件：`docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 候选提交在 `main`，标题以 `release: v10.20.3` 开头。取完整哈希：`git log -1 --format=%H --grep='^release: v10.20.3' origin/main`。进运行时的改动都是界面文案：`fdc488a`、`d21927d` 两本字典改用术语表的词（课包、课时、官网）；本轮给充值页补 22 条英文词条和 2 条单复数规则，改两句夹英文的中文，重拍 `04-topup` 手册截图。**零迁移**，schema 仍至 `0047_xero_transport.sql`。安全、RLS、计费逻辑、Xero、账务代码没有改。2026-10-09 本机 local gate `All checks passed`，pytest `2527 passed, 41 skipped`。 |
+| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.3.tar.gz`。 |
+| Production | **仍是 v10.20.2**（2026-10-09 实测公网 `/v1/health`：`appVersion=10.20.2`）。部署后预期 `appVersion=10.20.3`。 |
+| Backup / migration | **本版零迁移**，不需要设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+
+## 上一版四层身份（v10.20.2，2026-10-08 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Lee 执行部署；Claude 会话准备发布并做部署后验收。
@@ -455,7 +472,11 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）两本字典改用术语表已定的词**（界面文案，**已推分支 `feat/wording-dictionaries`，未合并、未发布**，随 v10.20.3 带上）：
+- **2026-10-09（Claude）v10.20.3 —— 充值页的英文补齐，字典用词随版本带上**（**源码候选，未部署**）：
+  轮次文件 `docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md`。发布前在浏览器里看充值页：
+  英文的退款分页一半是中文，提交按钮也是；课包列表写 `1 credits`。补 22 条词条。
+  其它面板的英文覆盖没有做，上界 579 句，见轮次文件。
+- **2026-10-09（Claude）两本字典改用术语表已定的词**（界面文案，`fdc488a`、`d21927d` 已在 `main`，随 v10.20.3 发布）：
   轮次文件 `docs/handoff/claude/2026-10-09-wording-dictionaries.md`。课包、课时、官网三组词按术语表改；删 11 条死键；
   `check_terminology.py` 加 3 条规则。作品和 Insights 两组等 Lee 定。
 - **2026-10-08（Claude）v10.20.2 —— CMS 英文词典恢复，CI gate 在 werkzeug 3.1.9 下转绿**（**已发布、已部署**，`dc15be4`）：

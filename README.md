@@ -1,16 +1,16 @@
 # PWE Studio
 
-## v10.20.2 release identity — the CMS speaks English again, and the CI gate is green
+## v10.20.3 release identity — the top-up page reads as English, and the dictionaries use the Glossary's words
 
-`VERSION` = **10.20.2** and `backend/server.py` reports `APP_VERSION=10.20.2`.
-**Zero migrations.** Two runtime changes. `cms-i18n.js` had lost a comma in
-v10.16.0, so the CMS dictionary threw on load and the CMS had no English mode
-and no language switch, production v10.20.1 included; the comma is back and a
-test now executes both dictionaries. The upload filename guard now refuses
-`..` itself: werkzeug 3.1.9 strips backslashes from quoted multipart
-filenames, which turned the CI gate red and showed the guard depended on the
-separator surviving the parse. Round notes:
-`docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`.
+`VERSION` = **10.20.3** and `backend/server.py` reports `APP_VERSION=10.20.3`.
+**Zero migrations.** Interface wording only. Both dictionaries now use the
+words `docs/Glossary.md` already chose (credit pack, credit, website). On the
+top-up page, the English refund tab was half Chinese — the submit button
+included — and the pack list read `1 credits`; 22 dictionary entries and two
+plural rules fix that, and a test now runs every static string on that panel
+through the dictionary. Other panels are not covered yet; the round notes give
+the measured upper bound. Round notes:
+`docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -25,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.2, released** — deployed commit `dc15be4` | CMS dictionary fix (`924ab01`), its execution test (`a83bec4`), upload guard refuses `..` and the CI gate holds on werkzeug 3.1.9 (`d75c150`). **Zero migrations** — schema stays at `0047_xero_transport.sql`. Local gate `All checks passed`, pytest 2465 passed / 41 skipped; CI gate green on werkzeug 3.1.9. `main` may be ahead of what is deployed with docs-only commits, starting with this closure (`git diff --stat dc15be4 origin/main` is the check). Round handoff: `docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.2.tar.gz` SHA-256 `76aef2917caa54bab201d65367045ef2a94f6c7e9e7c292075e5f6a9874a229b` (archival — the Oracle host builds its image from a commit and does not consume it); `dist/PWE-Studio-Edition-10.20.2.tar.gz` SHA-256 `26cc543463b4aa8049130b66a841cd8679f7e3b3d9be347ca9316a69fa28c426`. Three-way commit guard equal at build time. |
-| Production | **v10.20.2** (`pwestudio.online`, Oracle ARM, commit `dc15be4`) | Deployed 2026-10-08. Deep health `appVersion=10.20.2`, `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 14.0%. The live `cms-i18n.js` loads and reaches `StudioI18n.mount` in a node vm. Deploy with `bash deploy/oracle/pwestudio_arm.sh deploy <commit>` (what `release.sh`'s deploy stage calls) — **not** the `deploy/aws/` script, whose default target is the retained Lightsail instance and which still answers. |
+| Source | **v10.20.3 candidate on `main`** | Interface wording only; **zero migrations**. The full commit hash is in `docs/HANDOFF_LATEST.md`. Local gate result recorded there. |
+| Package | **expected** | `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.3.tar.gz`. Hashes are recorded at the evidence closure. |
+| Production | **still v10.20.2** (`pwestudio.online`, Oracle ARM) | Measured 2026-10-09: public `/v1/health` reports `appVersion=10.20.2`. Step 8 is `bash deploy/oracle/pwestudio_arm.sh deploy <commit>`, run by Lee. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

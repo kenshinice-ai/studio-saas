@@ -393,6 +393,41 @@
     ['退款金额 (AUD) *', 'Refund amount (AUD) *'], ['退款方式', 'Refund method'],
     ['退款原因 *', 'Reason for refund *'], ['课包快选', 'Pick a credit pack'],
     ['当前角色无退款权限', 'Your role cannot issue refunds'],
+    /* The refund tab, added v10.20.3. None of these had an entry, so in English
+     * the tab was half Chinese — the source notice, the sync checkbox, the
+     * closing note and the submit button itself. It went unseen because the
+     * dictionary did not load at all before v10.20.2; once it did, the strings
+     * with no entry were the ones left standing. */
+    ['先选择原充值', 'Choose the original top-up first'],
+    ['退款必须从一笔明确的原充值开始；系统不会按学员余额猜来源。',
+     'A refund starts from one specific top-up. The system does not guess the source from the student\'s balance.'],
+    ['没有剩余课时可退的原充值。已全部退完的来源会保留在账本中，但不会再出现在可选列表。',
+     'No top-up has credits left to refund. A fully refunded top-up stays in the ledger but leaves this list.'],
+    ['同步处理原发票与付款', 'Also adjust the original invoice and payment'],
+    ['先选择一笔原充值。', 'Choose an original top-up first.'],
+    ['将同时开具贷记单、登记付款退款并保留桥接证据。',
+     'A credit note is issued, the payment refund is recorded and the link between them is kept.'],
+    ['没有完整 bridge，或当前角色缺少 credits:refund / payments:refund / billing:issue。',
+     'This top-up has no complete invoice link, or your role lacks credits:refund / payments:refund / billing:issue.'],
+    ['如 搬家、时间冲突、课程不合适...', 'e.g. moving away, a schedule clash, the course is not a fit…'],
+    ['勾选同步时会生成贷记单并调整付款；不勾选时只改课时账本和现金净额，不会改变发票或付款记录。所有操作都会记入账本与操作日志。',
+     'With the box ticked, a credit note is issued and the payment adjusted. Without it, only the credit ledger and net cash change — no invoice or payment record is touched. Every action is written to the ledger and the Activity Log.'],
+    ['确认退款退课', 'Confirm refund'], ['仅课时充值', 'Credits-only top-up'],
+    /* The rest of the same panel. Found by running every static Chinese
+     * string in topup.jsx through this dictionary and listing the ones that
+     * came back unchanged — ten more, among them both busy states of the
+     * submit button. test_topup_panel_is_fully_translated.py now does that on
+     * every run. */
+    ['价格（AUD） *', 'Price (AUD) *'], ['例如：10 课时包', 'e.g. 10-credit pack'],
+    ['保存中…', 'Saving…'], ['处理中...', 'Working…'],
+    ['正在加载可退充值…', 'Loading refundable top-ups…'],
+    ['可同步单据', 'Invoice can be adjusted'], ['无完整桥接', 'No invoice link'],
+    ['款项已经收到，同时登记付款', 'Payment already received — record it now'],
+    ['关闭后只开具未付款发票，不会猜测或冲销旧发票。',
+     'Switched off, only an unpaid invoice is issued. No earlier invoice is guessed at or reversed.'],
+    ['当前未配置税码，发票将按 0% 税率计算。',
+     'No tax code is configured, so the invoice is calculated at 0% tax.'],
+    ['使用手册', 'User manual'],
     ['课时资产池', 'Outstanding credits'],
     ['常规课程消耗', 'Regular class'], ['管理员撤销', 'Reversed by administrator'],
     ['管理端校准', 'Adjusted by administrator'],
@@ -829,7 +864,13 @@
       [/^(.+)\s*前有效$/, 'valid until $1'],
       [/^(\d{2}\/\d{2}\/\d{4})\s*请假产生$/, 'earned $1'],
       [/^剩余\s*(-?\d+)\s*课时$/, '$1 credits remaining'],
-      [/^(-?\d+)\s*课时$/, '$1 credits'],
+      /* `1 credits` was on screen for every single-credit pack. The number and
+       * the unit were separate text nodes, so nothing that translated the unit
+       * could see the number. The pack row is one node now. */
+      [/^(-?\d+)\s*课时\s*·\s*AUD\s*([\d.,]+)$/,
+        (whole, count, price) => `${count} ${Math.abs(Number(count)) === 1 ? 'credit' : 'credits'} · AUD ${price}`],
+      [/^(-?\d+)\s*课时$/,
+        (whole, count) => `${count} ${Math.abs(Number(count)) === 1 ? 'credit' : 'credits'}`],
       [/^(\d+)\s*人$/, '$1 students'],
       /* Phrases that wrap the count in Chinese punctuation. English drops the
        * measure word entirely, so they only translate correctly as one node —

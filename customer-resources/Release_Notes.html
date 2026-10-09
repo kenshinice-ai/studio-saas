@@ -56,6 +56,11 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.20.3 — one word for one thing, and a top-up page that reads as English</strong><strong data-lang="zh">v10.20.3 —— 一件事一个词，充值页的英文补齐</strong>
+      <p data-lang="en">Wording only. The CMS and both consoles now use one word for one thing: a pack of prepaid credits is a <em>credit pack</em>, the unit is a <em>credit</em>, and the public site is the <em>website</em>. On the top-up page in English, the refund tab had been half in Chinese — its submit button included — and a one-credit pack read "1 credits"; both are fixed. No data changes; nothing to do on your side.</p>
+      <p data-lang="zh">只改用词。CMS 和两个控制台现在一件事只用一个词：预付课时的包叫「课包」，单位叫「课时」，对外的站点叫「官网」。英文界面下，充值页的退款分页此前有一半是中文，提交按钮也是；只含一个课时的课包写成了「1 credits」。两处都已修正。**不改任何数据，你这边无需操作。**</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.20.2 — the CMS speaks English again</strong><strong data-lang="zh">v10.20.2 —— CMS 的英文模式回来了</strong>
       <p data-lang="en">Since v10.16.0 the CMS had no English mode and no language switch: one missing comma stopped its dictionary from loading, and every page fell back to Chinese. It is fixed, and a new check runs both dictionaries on every release so the same fault cannot ship silently again. Uploads now also refuse any file name containing <code>..</code> — a file named that way was never stored under its own name, and this closes the question for good. Behind the scenes: our automated release checks are green again after a library update changed how upload file names are read, and our internal procedures follow one plain-English writing standard. No data changes; nothing to do on your side.</p>
       <p data-lang="zh">自 v10.16.0 起，CMS 没有英文模式，也没有语言切换：词典里少了一个逗号，整份词典加载失败，所有页面退回中文。现已修复，并新增一项检查：每次发布都实际运行两份词典，同样的问题不会再悄悄发出去。上传现在也会拒绝文件名里含 <code>..</code> 的文件——这类文件本来就不会按原名存储，现在从入口直接挡住。幕后：一次依赖库更新改变了上传文件名的读取方式，我们的自动发布检查因此变红，现已恢复全绿；内部操作文档统一采用一套简明英文写作规范。数据无变化，你这边无需操作。</p>
