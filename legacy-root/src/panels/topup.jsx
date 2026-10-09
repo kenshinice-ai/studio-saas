@@ -76,7 +76,7 @@ export function TopupSection(props) {
                         {recent.map(l => (
                             <div key={l.id} className="flex items-center justify-between px-3 py-2">
                                 <span className={l.action==='退款退课'?'text-red-500 font-bold':'text-gray-600 font-bold'}>{l.action}</span>
-                                <span className={`font-bold ${l.action==='退款退课'?'text-red-500':'text-gray-700'}`}>{String(l.change)} 课时 · ${l.feePaid||0}</span>
+                                <span className={`font-bold ${l.action==='退款退课'?'text-red-500':'text-gray-700'}`}>{`${String(l.change)} 课时 · $${l.feePaid||0}`}</span>
                                 <span className="text-gray-400">{String(l.date).split(',')[0]}</span>
                             </div>
                         ))}
@@ -208,7 +208,7 @@ export function TopupSection(props) {
                         else { setTuCr(String(pkg.credits)); setTuFee(String(pkg.price)); setTuPkg(String(pkg.id)); }
                     }}
                         className={`py-3 px-2 border-2 rounded-xl text-sm font-bold min-h-[50px] ${tuPkg===String(pkg.id)?'border-indigo-500 bg-indigo-100 text-indigo-900':'border-indigo-200 bg-indigo-50 active:bg-indigo-100 text-indigo-800'}`}>
-                        {pkg.name}<br/><span className="font-normal text-xs">{pkg.credits}课时 · ${pkg.price}</span>
+                        {pkg.name}<br/><span className="font-normal text-xs">{`${pkg.credits} 课时 · $${pkg.price}`}</span>
                     </button>
                 ))}
             </div>

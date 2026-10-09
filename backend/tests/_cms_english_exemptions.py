@@ -14,17 +14,24 @@ from __future__ import annotations
 #: would show staff a sentence the parent never receives.
 FAMILY = "sent to families in the tenant's language"
 
-#: A header or cell of an exported CSV. It never reaches the DOM, so the
-#: dictionary cannot see it. An English export is a separate piece of work.
-CSV = "CSV export text, never in the DOM"
+#: A header or cell of an exported CSV, or a file name. It never reaches the
+#: DOM, so the dictionary cannot see it. An English export is separate work.
+CSV = "CSV export text or a file name, never in the DOM"
 
-#: Written to the database as a value. The studio owns it after that.
-DATA = "stored value, the studio's own data"
+#: Written to the database as a value (a ledger note, a default pack name), or
+#: built from the tenant's own industry noun. The studio owns it.
+DATA = "stored value or the tenant's own noun"
 
 #: A measure word or a clause that only exists inside a longer sentence. The
 #: sentence itself is translated by a rule in cms-i18n.js; the piece alone
 #: would reorder the phrase it belongs to (see the note in that file).
 PIECE = "piece of a sentence that a rule translates whole"
+
+#: Translated by a rule written by hand, because the template is too short to
+#: derive a safe pattern from (`已${verb}` would match half the language) or
+#: its holes only ever hold a fixed set of phrases. The placeholder sample
+#: cannot satisfy such a rule; the real sentences are probed in the test.
+HAND = "hand-written rule, probed with real sentences in the test"
 
 #: A language's name is written in that language.
 ENDONYM = "a language's own name"
@@ -50,8 +57,39 @@ EXEMPT: dict[str, str] = {
     "条申请": PIECE,
     "，已读": PIECE,
     "，未读": PIECE,
-    "（家长将收到通知邮件）": PIECE,
-    "并删除该记录？": PIECE,
-    "、已发一次补课额度": PIECE,
     "中文": ENDONYM,
+}
+
+#: Sentences the app assembles from a template literal, keyed by the sample the
+#: test builds: holes filled with `Zed` and `7` in turn.
+EXEMPT_ASSEMBLED: dict[str, str] = {
+    "Studio_经营月报_Zed.csv": CSV,
+    "Zed（剩余7课时）": FAMILY,
+    "【Zed 7 人 - Zed】\n7": FAMILY,
+    "Zed（7）\n提醒：您的上课时间是 Zed7，请准时到课。Zed 期待见到您！": FAMILY,
+    "签到/消课 Zed 人": DATA,
+    "近 Zed 个月上课足迹": FAMILY,
+    "作品集（Zed 幅）": FAMILY,
+    "报告生成于 Zed · 7": FAMILY,
+    "已在 Zed 成长陪伴 <b>7</b> 天 · 入学于 Zed": FAMILY,
+    "欢迎加入 Zed": FAMILY,
+    "暂无Zed记录 · 上传后报告会更精彩": FAMILY,
+    "欢迎 Zed 加入 7！学习旅程刚刚启程，期待记录每一份成长与快乐。": FAMILY,
+    "Zed 在 7 已经学习了 Zed 天，累计上课 7 次，完成Zed 7 份。": FAMILY,
+    "Zed 已7": HAND,
+    "套餐: Zed": DATA,
+    "付款: Zed": DATA,
+    "（实收 $Zed）": FAMILY,
+    "Zed 您好！已为您办理退课 7 节、退款 $Zed（7），当前剩余 Zed 课时。感谢您的理解与支持。": FAMILY,
+    "改名: Zed→7": DATA,
+    "入学日期: Zed→7": DATA,
+    "Zed 分钟7": HAND,
+    "等Zed人": HAND,
+    "共 Zed 7": HAND,
+    "已记录：Zed、7Zed": HAND,
+    "已Zed": HAND,
+    "工作室停课：Zed，老师照付课酬。": HAND,
+    "提前 Zed 小时以上算按时请假，7；临时请假Zed。": HAND,
+    "提醒：您的上课时间是 Zed7，请准时到课。Zed 期待见到您！": FAMILY,
+    "Zed集": DATA,
 }

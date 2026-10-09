@@ -14,10 +14,15 @@ containing Chinese, unless `_cms_english_exemptions.py` gives a reason for it.
 It was one panel on 2026-10-09 morning (57 strings); the same day the other
 568 were drafted, reviewed and added, so the gate now covers all of them.
 
-What it cannot see: sentences built in a template literal (`${name} 已签到`).
-Those have no static form to extract. The assembled sentences that sit on a
-money path are probed by hand below; the rest are a known gap, recorded in
-`docs/handoff/claude/2026-10-09-cms-english-coverage.md`.
+Sentences built in a template literal (`${name} 已签到`) have no static form.
+`_assembled_sentences.js` re-derives each one from the source, fills its holes
+with placeholders, and the second test below runs the result through the
+dictionary the same way. The ones on a money path are also probed with real
+values.
+
+What neither test sees: text the app builds by concatenating a variable in
+front of a quoted string (`name + ' 已签到'`), and what only appears after a
+click. Those are found by walking the CMS in English in a browser.
 """
 from __future__ import annotations
 
@@ -28,12 +33,37 @@ from pathlib import Path
 
 import pytest
 
-from _cms_english_exemptions import EXEMPT
+from _cms_english_exemptions import EXEMPT, EXEMPT_ASSEMBLED
 from _cms_sources import cms_source_files
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DICTIONARY = REPOSITORY_ROOT / "backend/frontend/assets/cms-i18n.js"
 NODE = shutil.which("node")
+ASSEMBLED_LIB = Path(__file__).resolve().parent / "_assembled_sentences.js"
+
+ASSEMBLED_RUNNER = r"""
+const fs = require('fs'), vm = require('vm');
+const [dictionary, lib, ...files] = process.argv.slice(1);
+const { extract, sample, CJK } = require(lib);
+const calls = [];
+const window = { StudioI18n: { mount(config) { calls.push(config); } } };
+vm.runInContext(fs.readFileSync(dictionary, 'utf8'), vm.createContext({
+  window, document: { body: {}, querySelector() { return null; } },
+  console: { error() {}, warn() {}, log() {} } }));
+const translate = calls[0].translateCore;
+// A hole may be a name, a count or a year; a sentence is covered when any
+// plausible filling comes out without Chinese. The third filling is the key.
+const FILLS = [() => '7', () => 'Zed', n => (n % 2 ? '7' : 'Zed'), n => (n % 2 ? 'Zed' : '7'), () => '2026'];
+let total = 0; const uncovered = {};
+for (const file of files) {
+  for (const sentence of extract(fs.readFileSync(file, 'utf8'))) {
+    total++;
+    const samples = FILLS.map(fill => sample(sentence.parts, fill));
+    if (!samples.some(text => !CJK.test(String(translate(text))))) uncovered[samples[2]] = file.split('/').pop();
+  }
+}
+process.stdout.write(JSON.stringify({ total, uncovered }));
+"""
 
 RUNNER = r"""
 const fs = require('fs'), vm = require('vm');
@@ -108,6 +138,36 @@ def test_no_cms_screen_shows_chinese_on_an_english_screen_without_a_reason() -> 
     )
 
 
+def _assembled() -> dict:
+    result = subprocess.run(
+        [NODE, "-e", ASSEMBLED_RUNNER, str(DICTIONARY), str(ASSEMBLED_LIB),
+         *[str(path) for path in cms_source_files()]],
+        capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stderr[-800:]
+    return json.loads(result.stdout)
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_no_assembled_sentence_comes_out_chinese_without_a_reason() -> None:
+    report = _assembled()
+    assert report["total"] >= 200, (
+        f"only {report['total']} assembled sentences found in the CMS sources — "
+        "the extraction is broken, not the CMS"
+    )
+    unexplained = {s: f for s, f in report["uncovered"].items() if s not in EXEMPT_ASSEMBLED}
+    assert not unexplained, (
+        "these sentences are assembled from a template and still come out Chinese. "
+        "Add a row to `assembled` in cms-i18n.js, or give the reason in "
+        "_cms_english_exemptions.py:\n  "
+        + "\n  ".join(f"{s!r}   [{f}]" for s, f in sorted(unexplained.items()))
+    )
+    stale = sorted(set(EXEMPT_ASSEMBLED) - set(report["uncovered"]))
+    assert not stale, (
+        "these assembled sentences are exempt but are now translated or gone — "
+        "remove them from EXEMPT_ASSEMBLED:\n  " + "\n  ".join(stale)
+    )
+
+
 @pytest.mark.skipif(NODE is None, reason="node not installed")
 def test_every_exemption_is_still_needed() -> None:
     """A reason that no longer applies is a hole in the gate, not a record."""
@@ -144,6 +204,24 @@ def test_every_exemption_is_still_needed() -> None:
      "Issue the invoice without recording a payment yet?"),
     ("Holly Chen 充值 10 课时，已开票并登记收款", "Holly Chen: 10 credits added, invoice issued and payment recorded"),
     ("已记录：不计费、不计课酬、已发一次补课额度", "Recorded: not charged, not counted for pay, one make-up credit issued"),
+    ("确认 Holly Chen 从原充值 INV-0003 退 2 课时、退款 $130.00（现金），同时开具贷记单并登记付款退款？",
+     "Remove 2 credits and refund $130.00 (Cash) for Holly Chen, from original top-up INV-0003, "
+     "and also issue a credit note and record the payment refund?"),
+    ("Holly Chen 签到 ✓ 剩余 1 课时", "Holly Chen checked in ✓ 1 credit left"),
+    ("发出 3 张，1 张失败：timeout", "Issued 3 invoices; 1 failed: timeout"),
+    # Hand-written rules: the placeholder sample cannot reach these.
+    ("Holly Chen 已归档", "Holly Chen archived"),
+    ("已暂停", "Paused"),
+    ("10月", "Oct"),
+    ("45 分钟 · 默认", "45 min · default"),
+    ("共 3 条申请", "3 requests"),
+    ("工作室停课：不计费，老师照付课酬。", "Cancelled by the studio: not charged, teacher still paid."),
+    ("提前 24 小时以上算按时请假，发补课额度；临时请假照常计费。",
+     "Leave with at least 24 hours' notice counts as on time and earns a make-up credit; late leave is still charged."),
+    # A short template must not swallow ordinary words or a tenant's data.
+    ("每月", "每月"),
+    ("素描集", "素描集"),
+    ("小张", "小张"),
     # The two fallbacks: a known label before a colon, and a ` · ` list.
     ("加载失败：Network error", "Could not load: Network error"),
     ("未填写手机 · 14:30", "No mobile number · 14:30"),

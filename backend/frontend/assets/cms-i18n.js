@@ -1407,7 +1407,7 @@
     /* pieces of assembled sentences, and stored values that are shown as they are */
     ['工作室', 'Studio'],
     ['学员成长报告', 'Student progress report'],
-    ['同一位老师', 'the same teacher'],
+    ['同一位老师', 'The same teacher'],
     ['组织', 'organisation'],
     ['手动', 'Manual'],
     ['试跑通过', 'Dry run passed'],
@@ -1417,8 +1417,8 @@
     ['老师照付课酬', 'teacher still paid'],
     ['发补课额度', 'earns a make-up credit'],
     ['不发补课额度', 'earns no make-up credit'],
-    ['开票并登记收款', 'Invoice issued and payment recorded'],
-    ['开票待收款', 'Invoice issued, awaiting payment'],
+    ['开票并登记收款', 'invoice issued and payment recorded'],
+    ['开票待收款', 'invoice issued, awaiting payment'],
     ['家庭', 'Family'],
     ['（未能读到组织名）', '(organisation name could not be read)'],
     ['撤销签到', 'Check-in undone'],
@@ -1462,6 +1462,57 @@
      'Hidden by default. One-to-one slots, internal make-ups and trial places held for a family should not appear on the public site.'],
     ['尚未同意在公开课表显示姓名，课表会照常展示但不带老师。可在「设置 · 团队与权限」里逐人开启。',
      'has not agreed to be named on the public timetable, so the class is shown without a teacher. Turn it on per person under Settings · Team & permissions.'],
+    /* pieces that fill a hole in an assembled sentence (see `assembled` below) */
+    ['开票但暂不登记收款', 'Issue the invoice without recording a payment yet'],
+    ['——免费充课', ' — free top-up'],
+    ['（家长将收到通知邮件）', ' The parent will be notified by email.'],
+    ['并删除该记录？', ' This also deletes the record.'],
+    ['、已发一次补课额度', ', one make-up credit issued'],
+    /* text beside a value: React gives each its own node, so each is translated where it stands */
+    ['（活跃', '(active'],
+    ['）· 日志', ') · Log entries:'],
+    ['条 · 库', '· Database:'],
+    [': 余额', ': balance'],
+    ['，日志合计', ', log total'],
+    ['（差', '(difference'],
+    ['条 · 最近备份', '· Last backup:'],
+    ['份）', 'backups)'],
+    ['名学员 ·', 'students ·'],
+    ['与当前相比: 学员', 'Compared with current: students'],
+    ['· 日志', '· log entries'],
+    ['批量发出 (', 'Issue selected ('],
+    ['（原收款', '(originally received'],
+    ['，退款', ', refunded'],
+    ['已关联付款方（', 'Linked payers ('],
+    ['个，', 'found,'],
+    ['/ 推送', '/ pushed'],
+    ['/ 失败', '/ failed'],
+    ['待推', 'Queued'],
+    ['· 失败', '· Failed'],
+    ['· 已推', '· Pushed'],
+    ['· 第', '·'],
+    ['对账：检查', 'Reconciliation: checked'],
+    ['张，差异', 'documents,'],
+    ['处', 'differences'],
+    ['：本地', ': local'],
+    ['周期至', 'Period to'],
+    ['· 由', '·'],
+    ['撰写', '(author)'],
+    ['交易记录 (', 'Transactions ('],
+    ['标记停课 ·', 'Mark as cancelled ·'],
+    ['(近', '(last'],
+    ['次)', 'sessions)'],
+    ['份)', 'reports)'],
+    ['这份草稿由', 'This draft was written by'],
+    ['撰写。', '.'],
+    ['人（余额 ≤', '(balance ≤'],
+    ['节）', 'credits)'],
+    ['剩余', 'Remaining'],
+    ['· 已退', '· refunded'],
+    ['· 付款', '· payment'],
+    ['；当前人工金额', '; current manual amount'],
+    ['，偏差', ', difference'],
+    ['。请确认有效单价并填写退款原因，系统不会替你猜税务决定。', '. Confirm the effective unit price and enter a reason for the refund. The system does not guess tax decisions for you.'],
   ]);
 
   /* Prefixes that carry no meaning of their own (icons and status glyphs the
@@ -1475,6 +1526,177 @@
    * both consoles, so the historical defect classes can only be fixed once.
    * This file keeps what is the CMS's own: the zh→en dictionary above and
    * the sentence rules below. */
+
+  /* ── Sentences the app assembles (2026-10-09) ──
+   * A template literal such as `${name} 签到 ✓ 剩余 ${n} 课时` has no static
+   * form, so no exact entry can match what it prints. Each row is the regex
+   * derived from one template in the source — every `${…}` is a capture group,
+   * in order — and the English sentence with {1}, {2} … where the holes go.
+   *
+   *   {N}            the hole, translated again if it holds a known phrase
+   *                  (a branch of a ternary such as 照常计费 / 不计费)
+   *   {N|one|many}   writes `one` when hole N is the number 1, else `many`
+   *
+   * Rows are generated from the source and checked by
+   * test_cms_english_coverage.py, which re-derives every assembled sentence
+   * and fails on one that still comes out Chinese. A template shorter than
+   * three characters is not here: `已${x}` would match half the language.
+   * Longest literal text first, so a template never loses to a shorter one
+   * that happens to match the same sentence. */
+  const assembled = [
+    [/^把这个工作室\*\*已开具的全部\*\*发票、贷记单与收款排进推送队列，送入\s*Xero\s*组织「([\s\S]*?)」。\s*已经推过的单据不会重复创建（按单号幂等），但推错账套需要会计手工清理。\s*确认这是正确的\s*Xero\s*组织后再继续。$/, 'Queue **all issued** invoices, credit notes and payments for this studio to push to the Xero organisation “{1}”.\nDocuments already pushed are not created again (idempotent by number), but pushing to the wrong organisation needs your accountant to clean up by hand.\nContinue once you are sure this is the right Xero organisation.'],
+    [/^此操作不可撤销。\s*将永久删除\s*([\s\S]*?)\s*的学员档案与全部排课记录。历史操作日志会保留（用于审计），但档案本身无法恢复。\s*如果只是想让\s*TA\s*不再出现在名单里，请改用「归档」——归档随时可以恢复。$/, 'This cannot be undone.\n\nThis permanently deletes {1}\'s student record and all roster entries. The activity log is kept for audit, but the record itself cannot be restored.\n\nIf you only want them off the list, use Archive instead — an archived student can be restored at any time.'],
+    [/^([\s\S]*?)\s*目前展示在官网的内容会立即全部下架，家长和访客都不会再看到。\s*私人记录不受影响，仍保留在学员专区里。撤回会作为一条不可覆盖的审计记录留存。$/, '{1}\'s content currently shown on the website will be unpublished immediately. Parents and visitors will no longer see it.\n\nPrivate records are not affected and stay in the student area. The withdrawal is kept as an immutable audit record.'],
+    [/^该备份：(-?[\d.,]+)\s*名学员\s*\/\s*(-?[\d.,]+)\s*条日志\s*与当前相比：学员\s*([\s\S]*?)([\s\S]*?)\s*\/\s*日志\s*([\s\S]*?)([\s\S]*?)\s*当前数据会先自动另存为\s*pre_restore\s*备份（可再恢复回来），然后被该备份覆盖。$/, 'This backup: {1} {1|student|students} / {2} log {2|entry|entries}\nCompared with now: students {3}{4} / logs {5}{6}\n\nYour current data is saved as a pre_restore backup first (so it can be restored again), then overwritten by this one.'],
+    [/^([\s\S]*?)\s*当前的访问码会立即作废，已登录的会话也会马上退出，家长将无法再查询课时与记录。\s*之后可以随时重新生成一个新访问码交给家长。$/, '{1}\'s current access code will stop working immediately and any signed-in sessions will be signed out, so the parent will no longer be able to look up credits and records.\n\nYou can issue a new access code at any time and give it to the parent.'],
+    [/^(-?[\d.,]+)\s*名学员会移出日常名单，不再出现在排课和搜索结果里。\s*课时、上课记录和作品都完整保留，在「归档库」筛选下随时可以恢复。$/, '{1} {1|student|students} will be removed from the daily list and will no longer appear in rosters or search results.\n\nCredits, attendance history and works are all kept, and you can restore them any time under the Archived filter.'],
+    [/^([\s\S]*?)\s*会移出日常名单，不再出现在排课和搜索结果里。\s*课时、上课记录和作品都完整保留，在「归档库」筛选下随时可以恢复。$/, '{1} will be removed from the daily list and will no longer appear in rosters or search results.\n\nCredits, attendance history and works are all kept, and you can restore them any time under the Archived filter.'],
+    [/^删除固定班次「([\s\S]*?)」后，之后的日期不会再自动排入这批学员。\s*已经排过的日期、已签到的记录和学员课时都不受影响。$/, 'After you delete the recurring class “{1}”, later dates will no longer add these students automatically.\n\nDates already rostered, existing check-ins and student credits are not affected.'],
+    [/^撤销\s*([\s\S]*?)\s*在\s*([\s\S]*?)\s*的签到，扣掉的\s*1\s*课时会退回\s*TA\s*的余额：([\s\S]*?)\s*→\s*(-?[\d.,]+)\s*课时。\s*这条撤销会写进操作日志，可以随时再签一次。$/, 'Undo {1}\'s check-in on {2}. The 1 credit that was deducted goes back to their balance: {3} → {4} {4|credit|credits}.\n\nThe undo is written to the Activity Log, and you can check them in again at any time.'],
+    [/^删除班组模板「([\s\S]*?)」后，将无法再一键套用这组学员。\s*已经用它排过的课、学员档案和课时都不受影响。$/, 'Deleting the group template “{1}” means you can no longer apply this group of students in one click.\n\nRosters already built from it, student records and credits are not affected.'],
+    [/^注意：目前有\s*(-?[\d.,]+)\s*个班次正在关联它，那些班次不受影响，公开课表仍会显示这门课的名称。$/, '\n\nNote: {1} {1|class is|classes are} currently linked to it. Those classes are not affected, and the public timetable will still show this course\'s name.'],
+    [/^确认\s*([\s\S]*?)\s*从原充值\s*([\s\S]*?)\s*退\s*(-?[\d.,]+)\s*课时、退款\s*\$([\s\S]*?)（([\s\S]*?)）？只改课时账本和现金净额，不改变发票或付款记录。$/, 'Remove {3} {3|credit|credits} and refund ${4} ({5}) for {1}, from original top-up {2}? Only the credit ledger and net cash change; invoices and payment records stay as they are.'],
+    [/^批量签到确认\s*·\s*([\s\S]*?)：([\s\S]*?)排课\s*(-?[\d.,]+)\s*人；已签到\s*([\s\S]*?)\s*人；余额不足\s*([\s\S]*?)\s*人；已归档\s*([\s\S]*?)\s*人；本次实际执行\s*([\s\S]*?)\s*人。$/, 'Bulk check-in · {1}: {2} {3} {3|student|students} rostered; {4} already checked in; {5} with insufficient credits; {6} archived; {7} will be checked in now.'],
+    [/^没有姓名、电话、微信或邮箱包含「([\s\S]*?)」的学员。换个关键词，或清空搜索看全部。$/, 'No student has a name, phone number, WeChat ID or email containing "{1}". Try a different keyword, or clear the search to see everyone.'],
+    [/^([\s\S]*?)\s*会回到日常名单，可以正常排课和签到。\s*课时余额和历史记录保持原样。$/, '{1} will return to the daily list and can be rostered and checked in as normal.\n\nThe credit balance and history stay as they were.'],
+    [/^安全拦截：([\s\S]*?)\s*如果这不是你刻意删除的结果，请选择取消并刷新页面！$/, 'Blocked for safety: {1} If this is not a deletion you meant to make, choose Cancel and refresh the page.'],
+    [/^确认\s*([\s\S]*?)\s*从原充值\s*([\s\S]*?)\s*退\s*(-?[\d.,]+)\s*课时、退款\s*\$([\s\S]*?)（([\s\S]*?)），同时开具贷记单并登记付款退款？$/, 'Remove {3} {3|credit|credits} and refund ${4} ({5}) for {1}, from original top-up {2}, and also issue a credit note and record the payment refund?'],
+    [/^开票信息不全([\s\S]*?)——请到\s*系统设置\s*→\s*开票信息\s*补齐后再开具。$/, 'Invoice details are incomplete{1}. Complete them under Settings → Invoice details, then issue.'],
+    [/^确认\s*([\s\S]*?)\s*充值\s*(-?[\d.,]+)\s*课时，gross\s*([\s\S]*?)（预计税额\s*\$([\s\S]*?)），付款方：([\s\S]*?)；([\s\S]*?)？$/, 'Top up {2} {2|credit|credits} for {1}: gross {3} (estimated tax ${4}), payer: {5}. {6}?'],
+    [/^注意：该学员同时段已在「([\s\S]*?)」，已加入但请确认不冲突$/, 'Note: this student is already in "{1}" at the same time. Added, but check there is no clash.'],
+    [/^归档课程「([\s\S]*?)」后，它不会再出现在新排课的下拉里。$/, 'After you archive the course "{1}", it will no longer appear in the dropdown when scheduling new classes.'],
+    [/^恢复完成：(-?[\d.,]+)\s*名学员\s*\/\s*(-?[\d.,]+)\s*条日志。页面即将刷新数据。$/, 'Restore complete: {1} {1|student|students} / {2} log {2|entry|entries}. The data is about to refresh.'],
+    [/^将当前日期的\s*(-?[\d.,]+)\s*位学员保存为可复用的班组模板。$/, 'Save the {1} {1|student|students} on the current date\'s roster as a reusable group template.'],
+    [/^1\s*对\s*1\s*时间冲突：([\s\S]*?)\s*与同时段其他排课重叠$/, 'One-to-one clash: other roster entries overlap at the same time for {1}'],
+    [/^已复制\s*(-?[\d.,]+)\s*条续课提醒，可逐条粘贴到微信$/, 'Copied {1} renewal {1|reminder|reminders}. Paste into WeChat one at a time.'],
+    [/^同步退款金额不能超过所选原充值剩余\s*\$([\s\S]*?)$/, 'A synced refund cannot exceed the ${1} remaining on the selected original top-up'],
+    [/^已存在同名学员\s*"([\s\S]*?)"，仍要继续建档？$/, 'A student named "{1}" already exists. Create the record anyway?'],
+    [/^已复制\s*(-?[\d.,]+)\s*条续课提醒，可逐条粘贴到微信$/, 'Copied {1} renewal {1|reminder|reminders}, ready to paste into WeChat one by one'],
+    [/^未找到\s*([\s\S]*?)\s*的准确签到记录，未执行撤销$/, 'No exact check-in record found for {1}; nothing was undone'],
+    [/^批量签到完成：成功\s*([\s\S]*?)\s*人，失败\s*([\s\S]*?)\s*人\s*——\s*([\s\S]*?)$/, 'Bulk check-in finished: {1} succeeded, {2} failed — {3}'],
+    [/^([\s\S]*?)\s*已批准建档，家长将收到确认邮件$/, '{1} approved and record created; the parent will receive a confirmation email'],
+    [/^已处理\s*(-?[\d.,]+)\s*项：成功\s*([\s\S]*?)，失败\s*([\s\S]*?)，稍后重试\s*([\s\S]*?)$/, 'Processed {1} {1|item|items}: {2} succeeded, {3} failed, {4} to retry later'],
+    [/^已排队\s*(-?[\d.,]+)\s*张（发票\s*([\s\S]*?)\s*\/\s*贷记\s*([\s\S]*?)\s*\/\s*收款\s*([\s\S]*?)）$/, 'Queued {1} {1|document|documents} (invoices {2} / credit notes {3} / payments {4})'],
+    [/^([\s\S]*?)（([\s\S]*?)）。([\s\S]*?)\s*的余额会从\s*([\s\S]*?)\s*变成\s*(-?[\d.,]+)\s*课时。$/, '{1} ({2}). {3}\'s balance will go from {4} to {5} {5|credit|credits}.'],
+    [/^确认为\s*([\s\S]*?)\s*充值\s*(-?[\d.,]+)\s*课时，实收\s*([\s\S]*?)（([\s\S]*?)）([\s\S]*?)？$/, 'Top up {2} {2|credit|credits} for {1}: {3} received ({4}){5}?'],
+    [/^补课已排在\s*([\s\S]*?)，这次额度已用掉$/, 'Make-up scheduled for {1}; this credit has been used'],
+    [/^批量签到完成：实际成功\s*([\s\S]*?)\s*人$/, 'Bulk check-in finished: {1} checked in'],
+    [/^批量签到\/消课完成，共\s*(-?[\d.,]+)\s*人$/, 'Bulk check-in complete: {1} {1|student|students}'],
+    [/^授权已撤回，(-?[\d.,]+)\s*件作品已下架$/, 'Consent withdrawn. {1} {1|work|works} unpublished'],
+    [/^([\s\S]*?)\s*课时已清零！请提醒续课$/, '{1} is out of credits. Remind them to renew.'],
+    [/^补课排进原来的循环课：([\s\S]*?)([\s\S]*?)([\s\S]*?)$/, 'The make-up goes into the original recurring lesson: {1}{2}{3}'],
+    [/^模板「([\s\S]*?)」已保存（(-?[\d.,]+)\s*人）$/, 'Template "{1}" saved ({2} {2|student|students})'],
+    [/^开票并登记已收款（([\s\S]*?)）$/, 'Issue the invoice and record the payment as received ({1})'],
+    [/^([\s\S]*?)\s*的报名已并入既有档案$/, '{1}\'s registration attached to the existing record'],
+    [/^拒绝\s*"([\s\S]*?)"\s*的注册申请？([\s\S]*?)$/, 'Reject the registration for "{1}"?{2}'],
+    [/^保存失败\s*\(HTTP\s*([\s\S]*?)\)$/, 'Save failed (HTTP {1})'],
+    [/^对账通过：(-?[\d.,]+)\s*张全部一致$/, 'Reconciliation passed: all {1} {1|document|documents} match'],
+    [/^可退充值加载失败：([\s\S]*?)$/, 'Could not load refundable top-ups: {1}'],
+    [/^团队成员加载失败：([\s\S]*?)$/, 'Could not load team members: {1}'],
+    [/^固定课表加载失败：([\s\S]*?)$/, 'Could not load the recurring schedule: {1}'],
+    [/^经营数据加载失败：([\s\S]*?)$/, 'Could not load business data: {1}'],
+    [/^与「([\s\S]*?)」（([\s\S]*?)\s*([\s\S]*?)）时段重叠$/, 'This class overlaps in time with “{1}” ({2} {3})'],
+    [/^「([\s\S]*?)」([\s\S]*?)，仍要保存吗？$/, '{2}. Save “{1}” anyway?'],
+    [/^默认上课时间已设为\s*([\s\S]*?)$/, 'Default class time set to {1}'],
+    [/^默认时间保存失败：([\s\S]*?)$/, 'Could not save the default time: {1}'],
+    [/^已套用「([\s\S]*?)」，新增\s*(-?[\d.,]+)\s*人$/, 'Applied "{1}": {2} {2|student|students} added'],
+    [/^([\s\S]*?)\s*已退款并开具贷记单\s*\$([\s\S]*?)$/, '{1} refunded and credit note issued for ${2}'],
+    [/^([\s\S]*?)\s*已加入\s*([\s\S]*?)；该时段共\s*(-?[\d.,]+)\s*人$/, '{1} added at {2}; {3} {3|student|students} in this time slot'],
+    [/^发票详情加载失败：([\s\S]*?)$/, 'Could not load invoice details: {1}'],
+    [/^课时明细加载失败：([\s\S]*?)$/, 'Could not load sessions: {1}'],
+    [/^集成状态加载失败：([\s\S]*?)$/, 'Could not load integration status: {1}'],
+    [/^已复制给\s*([\s\S]*?)\s*的催费提醒$/, 'Copied payment reminder for {1}'],
+    [/^数据量将从\s*([\s\S]*?)\s*减少到\s*([\s\S]*?)$/, 'The amount of data will drop from {1} to {2}.'],
+    [/^已复制\s*(-?[\d.,]+)\s*条提醒内容$/, 'Copied {1} {1|reminder|reminders}'],
+    [/^访问码生成失败：([\s\S]*?)$/, 'Could not issue access code: {1}'],
+    [/^发出\s*(-?[\d.,]+)\s*张，([\s\S]*?)\s*张失败：([\s\S]*?)$/, 'Issued {1} {1|invoice|invoices}; {2} failed: {3}'],
+    [/^月结单加载失败：([\s\S]*?)$/, 'Could not load statement: {1}'],
+    [/^付款方更新失败：([\s\S]*?)$/, 'Could not update payer: {1}'],
+    [/^贷记单加载失败：([\s\S]*?)$/, 'Could not load credit note: {1}'],
+    [/^付款方加载失败：([\s\S]*?)$/, 'Could not load payers: {1}'],
+    [/^付款方搜索失败：([\s\S]*?)$/, 'Could not search payers: {1}'],
+    [/^令牌检查未通过：([\s\S]*?)$/, 'Token check did not pass: {1}'],
+    [/^([\s\S]*?)\s*·\s*([\s\S]*?)\s*请假产生的额度$/, '{1} · make-up credit earned from leave on {2}'],
+    [/^([\s\S]*?)\s*签到\s*✓\s*剩余\s*(-?[\d.,]+)\s*课时$/, '{1} checked in ✓ {2} {2|credit|credits} left'],
+    [/^([\s\S]*?)同时段已排「([\s\S]*?)」$/, '{1} is already booked at the same time for “{2}”'],
+    [/^课表保存失败：([\s\S]*?)$/, 'Could not save the schedule: {1}'],
+    [/^标记停课失败：([\s\S]*?)$/, 'Could not mark as cancelled: {1}'],
+    [/^课程「([\s\S]*?)」已归档$/, 'Course "{1}" archived'],
+    [/^已批准，([\s\S]*?)\s*已排入\s*([\s\S]*?)$/, 'Approved. {1} has been added to the roster for {2}'],
+    [/^([\s\S]*?)\s*已在今日排课中$/, '{1} is already on today\'s roster'],
+    [/^([\s\S]*?)\s*已加入今日排课$/, '{1} added to today\'s roster'],
+    [/^授权保存失败：([\s\S]*?)$/, 'Could not save consent: {1}'],
+    [/^账单加载失败：([\s\S]*?)$/, 'Could not load billing: {1}'],
+    [/^新建发票失败：([\s\S]*?)$/, 'Could not create invoice: {1}'],
+    [/^登记收款失败：([\s\S]*?)$/, 'Could not record payment: {1}'],
+    [/^记录提醒失败：([\s\S]*?)$/, 'Could not record reminder: {1}'],
+    [/^([\s\S]*?)%\s*·\s*贷记\s*([\s\S]*?)\s*·\s*退款\s*([\s\S]*?)$/, '{1}% · credited {2} · refunded {3}'],
+    [/^未付清\s*(-?[\d.,]+)\s*张([\s\S]*?)\s*·\s*应收\s*([\s\S]*?)$/, '{1} unpaid {1|invoice|invoices}{2} · {3} receivable'],
+    [/^报表加载失败：([\s\S]*?)$/, 'Could not load reports: {1}'],
+    [/^([\s\S]*?)\s*已清除上课时间$/, '{1} class time cleared'],
+    [/^([\s\S]*?)\s*已标记为待上课$/, '{1} marked as scheduled'],
+    [/^([\s\S]*?)\s*课时余额不足$/, '{1} does not have enough credits'],
+    [/^仍然签到\s*·\s*([\s\S]*?)\s*→\s*([\s\S]*?)$/, 'Check in anyway · {1} → {2}'],
+    [/^已归档\s*(-?[\d.,]+)\s*名学员$/, 'Archived {1} {1|student|students}'],
+    [/^([\s\S]*?)\s*充值\s*(-?[\d.,]+)\s*课时，已([\s\S]*?)$/, '{1}: {2} {2|credit|credits} added, {3}'],
+    [/^([\s\S]*?)\s*退课\s*(-?[\d.,]+)\s*节\s*\/\s*退款\s*\$([\s\S]*?)$/, '{1}: {2} {2|credit|credits} removed / ${3} refunded'],
+    [/^([\s\S]*?)\s*的申请已拒绝$/, 'Request from {1} rejected'],
+    [/^已发出\s*(-?[\d.,]+)\s*张发票$/, 'Issued {1} {1|invoice|invoices}'],
+    [/^，其中逾期\s*([\s\S]*?)\s*张$/, ', of which {1} overdue'],
+    [/^额度有效期至\s*([\s\S]*?)$/, 'Credit valid until {1}'],
+    [/^([\s\S]*?)\s*上课时间改为\s*([\s\S]*?)$/, '{1} class time changed to {2}'],
+    [/^([\s\S]*?)\s*已标记为补课$/, '{1} marked as make-up'],
+    [/^添加失败：([\s\S]*?)$/, 'Could not add team member: {1}'],
+    [/^签到失败：([\s\S]*?)$/, 'Could not check in: {1}'],
+    [/^已撤销\s*([\s\S]*?)\s*签到$/, 'Check-in undone for {1}'],
+    [/^归档失败：([\s\S]*?)$/, 'Could not archive: {1}'],
+    [/^处理失败：([\s\S]*?)$/, 'Could not process: {1}'],
+    [/^充值失败：([\s\S]*?)$/, 'Could not top up: {1}'],
+    [/^退款失败：([\s\S]*?)$/, 'Could not refund: {1}'],
+    [/^停用失败：([\s\S]*?)$/, 'Could not disable: {1}'],
+    [/^撤回失败：([\s\S]*?)$/, 'Could not withdraw: {1}'],
+    [/^批准失败：([\s\S]*?)$/, 'Could not approve: {1}'],
+    [/^([\s\S]*?)\s*已批准建档$/, '{1} approved and record created'],
+    [/^导出失败：([\s\S]*?)$/, 'Could not export: {1}'],
+    [/^（含\s*([\s\S]*?)\s*规则）$/, ' (incl. {1} rules)'],
+    [/^(-?[\d.,]+)\s*条未读通知$/, '{1} unread {1|notification|notifications}'],
+    [/^发现\s*(-?[\d.,]+)\s*处差异$/, 'Found {1} {1|difference|differences}'],
+    [/^走清算账户\s*([\s\S]*?)$/, 'Use clearing account {1}'],
+    [/^([\s\S]*?)\s*的上课时间$/, 'Class time for {1}'],
+    [/^税码：([\s\S]*?)\s*·\s*([\s\S]*?)%$/, 'Tax code: {1} · {2}%'],
+    [/^([\s\S]*?)\s*恢复上课$/, '{1}: class restored'],
+    [/^恢复备份\s*([\s\S]*?)$/, 'Restore backup {1}'],
+    [/^(-?[\d.,]+)\s*人不一致$/, '{1} {1|student|students} with a mismatch'],
+    [/^（缺：([\s\S]*?)）$/, ' (missing: {1})'],
+    [/^查看([\s\S]*?)作品$/, 'View work: {1}'],
+    [/^下次跟进\s*([\s\S]*?)$/, 'Next follow-up {1}'],
+    [/^·\s*命中：([\s\S]*?)$/, ' · matched on: {1}'],
+    [/^归档\s*(-?[\d.,]+)\s*人$/, 'Archive {1} {1|student|students}'],
+    [/^([\s\S]*?)\s*已建档$/, '{1} record created'],
+    [/^([\s\S]*?)\s*已移除$/, '{1} removed'],
+    [/^([\s\S]*?)已上传$/, '{1} uploaded'],
+    [/^([\s\S]*?)的作品\s*([\s\S]*?)$/, '{1}\'s work {2}'],
+    [/^已登记\s*([\s\S]*?)$/, 'Recorded {1}'],
+    [/^([\s\S]*?)\s*的作品$/, '{1}\'s work'],
+    [/^([\s\S]*?)的作品\s*([\s\S]*?)$/, 'Work {2} by {1}'],
+    [/^·\s*(-?[\d.,]+)天前$/, ' · {1} {1|day|days} ago'],
+    [/^还有\s*(-?[\d.,]+)\s*位$/, '{1} {1|seat|seats} left'],
+    [/^·\s*(-?[\d.,]+)\s*人$/, ' · {1} {1|student|students}'],
+    [/^·\s*(-?[\d.,]+)\s*行$/, ' · {1} {1|row|rows}'],
+    [/^(-?[\d.,]+)\s*小时$/, '{1} {1|hour|hours}'],
+    [/^([\s\S]*?)\s*([\s\S]*?)，(-?[\d.,]+)\s*人$/, '{1} {2}, {3} {3|student|students}'],
+    [/^(-?[\d.,]+)\s*张$/, '{1} {1|invoice|invoices}'],
+  ];
+
+  function fillTemplate(template, groups) {
+    return template.replace(/\{(\d+)(?:\|([^|}]*)\|([^}]*))?\}/g, (whole, index, one, many) => {
+      const value = groups[Number(index)] || '';
+      if (one !== undefined) return Number(value) === 1 ? one : many;
+      const inner = value.trim();
+      if (!inner) return value;
+      return value.slice(0, value.indexOf(inner)) + translateCore(inner);
+    }).replace(/\s+$/, '');
+  }
 
   /* One piece of an assembled sentence: translated when it is known, returned
    * as it came when it is a name, a date or anything else. Always shorter than
@@ -1494,6 +1716,14 @@
     /* "学员档案 (30)" — translate the heading, keep the count. */
     const counted = clean.match(/^(.+?)\s*\((\d+)\)$/);
     if (counted && en[counted[1].trim()]) return `${en[counted[1].trim()]} (${counted[2]})`;
+
+    /* Before the rules: a row here was derived from one template and matches
+     * only what that template prints, while several older rules are loose
+     * enough to take half of a longer sentence. */
+    for (const [pattern, template] of assembled) {
+      const groups = clean.match(pattern);
+      if (groups) return fillTemplate(template, groups);
+    }
 
     const rules = [
       [/^共\s*(\d+)\s*人$/, '$1 students'],
@@ -1616,30 +1846,19 @@
        * match them, and several sit on a money path: the top-up confirmation
        * was Chinese on an English screen. A replacement is a function where
        * one of the pieces is itself a choice between two phrases. */
-      [/^确认\s*(.*?)\s*充值\s*(\S+)\s*课时，gross\s*(\S+)（预计税额\s*(\S+)），付款方：(.+?)；(?:开票并登记已收款（(.+?)）|(开票但暂不登记收款))？$/,
-        (whole, name, credits, gross, tax, payer, method) =>
-          `Top up ${credits} ${credits === '1' ? 'credit' : 'credits'} for ${name}: gross ${gross} (estimated tax ${tax}), payer: ${payer}. `
-          + (method ? `Issue the invoice and record the payment as received (${piece(method)})?`
-                    : 'Issue the invoice without recording a payment yet?')],
-      [/^确认为\s*(.*?)\s*充值\s*(\S+)\s*课时，实收\s*(\S+)（(.+?)）(——免费充课)?？$/,
-        (whole, name, credits, gross, method, free) =>
-          `Top up ${credits} ${credits === '1' ? 'credit' : 'credits'} for ${name}: ${gross} received (${piece(method)})${free ? ' — free top-up' : ''}?`],
-      [/^(.+?)\s+充值\s+(\S+)\s*课时，已(开票并登记收款|开票待收款)$/,
-        (whole, name, credits, state) =>
-          `${name}: ${credits} ${credits === '1' ? 'credit' : 'credits'} added, invoice issued`
-          + (state === '开票并登记收款' ? ' and payment recorded' : ', awaiting payment')],
       [/^(.+?)\s+充值\s+(\S+)\s*课时\s*\/\s*\$([\d.,]+)$/,
         (whole, name, credits, fee) => `${name}: ${credits} ${credits === '1' ? 'credit' : 'credits'} added / $${fee}`],
       [/^班次「(.+)」已删除$/, 'Class “$1” deleted'],
       [/^(.+?)\s+已在当日名单中$/, (whole, name) => `${piece(name)} is already on this day's roster`],
-      [/^拒绝 "(.+)" 的注册申请？（家长将收到通知邮件）$/, 'Reject the registration for "$1"? The parent will be notified by email.'],
-      [/^拒绝 "(.+)" 的注册申请？并删除该记录？$/, 'Reject the registration for "$1" and delete the record?'],
       [/^下载失败（HTTP\s*(\d+)）$/, 'Download failed (HTTP $1)'],
       [/^(.+)，已读$/, '$1, read'],
       [/^(.+)，未读$/, '$1, unread'],
-      [/^开票信息不全(?:（缺：(.+)）)?——请到 系统设置 → 开票信息 补齐后再开具。$/,
-        (whole, missing) => `Invoice details are incomplete${missing ? ` (missing: ${missing})` : ''}. Complete them under Settings → Invoice details, then issue.`],
       [/^排队并推送到\s+(.+)$/, 'Queue and push to $1'],
+      [/^适龄\s*([^·]+?)$/, 'Ages $1'],
+      [/^(\d+)\s*人$/, '$1 students'],
+      [/^(\d+)\s*行$/, '$1 rows'],
+      [/^共\s*(\d+)\s*条申请$/, '$1 requests'],
+      /* Holes that sit side by side, or a phrase that needs lower case mid-sentence. */
       [/^已记录：(照常计费|不计费)、(老师照付课酬|不计课酬)(、已发一次补课额度)?$/,
         (whole, charge, pay, credit) =>
           `Recorded: ${charge === '照常计费' ? 'still charged' : 'not charged'}, `
@@ -1652,10 +1871,16 @@
           + `late leave is ${late === '照常计费' ? 'still charged' : 'not charged'}.`],
       [/^工作室停课：(照常计费|不计费)，老师照付课酬。$/,
         (whole, charge) => `Cancelled by the studio: ${charge === '照常计费' ? 'still charged' : 'not charged'}, teacher still paid.`],
-      [/^适龄\s*([^·]+?)$/, 'Ages $1'],
-      [/^(\d+)\s*人$/, '$1 students'],
-      [/^(\d+)\s*行$/, '$1 rows'],
-      [/^共\s*(\d+)\s*条申请$/, '$1 requests'],
+      /* The quick-pick button and the recent top-up line. Each was a number, a
+       * unit and an amount in three nodes, which printed `1credits · $65`. The
+       * source emits one node now, so the unit can agree with the number. */
+      [/^([+-]?\d+)\s*课时\s*·\s*\$(.+)$/,
+        (whole, count, amount) => `${count} ${Math.abs(Number(count)) === 1 ? 'credit' : 'credits'} · $${amount}`],
+      /* Too short to derive from their templates safely; written by hand. */
+      [/^(\d{1,2})月$/, (whole, month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month) - 1] || whole],
+      [/^(.+?)\s+已(归档|恢复)$/, (whole, name, verb) => `${name} ${verb === '归档' ? 'archived' : 'restored'}`],
+      [/^已(暂停|恢复)$/, (whole, verb) => (verb === '暂停' ? 'Paused' : 'Resumed')],
+      [/^至\s*(\d[\d\/.\-]*)$/, 'to $1'],
       [/^(.+?)\s*等\s*(\d+)\s*人$/, (whole, names, count) => `${names.split('、').join(', ')} and others (${count} students)`],
     ];
     for (const [pattern, replacement] of rules) {
