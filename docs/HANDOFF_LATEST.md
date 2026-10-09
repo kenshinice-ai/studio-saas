@@ -17,25 +17,36 @@
 
 没有。
 
-## 当前四层身份（v10.20.5，2026-10-09 · **已准备，未部署**）
+## 当前四层身份（v10.20.5，2026-10-09 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（2026-10-09「按照你的推荐 执行 同步 推送 部署」）。
 > 轮次文件：`docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`「第三批」一节。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。进运行时的改动都是文字和截图：`7c56d6b` 英文第三批；`44ea0f5` 重拍 8 张手册截图。**零迁移**，不动安全、RLS、计费逻辑、Xero、账务代码。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.5.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.5.tar.gz`。未构建。 |
-| Production | 仍是 **v10.20.4**（`411f78b`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.5`，公网深健康 `appVersion=10.20.5`。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `d5d2b914e6368c013012251ee02f37e5acbec3c6`，已在 `origin/main`。进运行时的改动都是文字和截图：`7c56d6b` 英文第三批；`44ea0f5` 重拍 8 张手册截图。**零迁移**，不动安全、RLS、计费逻辑、Xero、账务代码。local gate `All checks passed`，pytest 2558 passed / 41 skipped；CI gate 在同一提交上通过（run 37919754311）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.5.tar.gz`，SHA-256 `fa486954062629af02bd7803565abe12c6b4f60391766fec0bec2def9156432f`，`BUILD_INFO` commit `d5d2b91…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.5.tar.gz`，SHA-256 `39089c21e9d05a14c0e0ef70422f6e27b8e167e5bb2764d04a4806a76906950c`，`BUILD_INFO` commit `d5d2b91…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。 |
+| Production | `pwestudio.online` = **v10.20.5**（Oracle ARM `pwe-arm`，commit `d5d2b91`，镜像 `studiosaas:10.20.5`）。2026-10-09 由 `bash deploy/oracle/pwestudio_arm.sh deploy d5d2b914e6368c013012251ee02f37e5acbec3c6` 部署，脚本末行 `Deployed: d5d2b914e636 as v10.20.5`。实测公网深健康：`appVersion=10.20.5`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`、磁盘 15.3%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-09 实测主机 `/var/log/pwe-backup.status`：`db` 最近一次 2026-10-09 03:17 AEDT，`exit=0`；下一次定时 2026-10-10 03:15 AEDT。部署脚本本身不做部署前备份。 |
 
-### STOP GATE（第 8 步之前）
+### 部署后验收（生产实测，2026-10-09）
 
-- local gate 输出 `All checks passed`。
-- CI gate 在发布提交上通过。
-- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 14.9%、公网 14.9%，同一台主机 |
+| 浏览器矩阵 | 642 条断言、0 失败、21/22 页。`cms_roster_teacher` 仍跳过：直连 403，浏览器登录 401 |
+| CMS 13 个视图，英文（owner，`lets-paint-showcase`，只读） | `<html lang>` = `en`，页面脚本错误 0。剩下的中文都是租户自己录入的课程名、课包名、家庭名、跟进备注。操作日志页那一句现在是英文 |
+| 设置页 6 个分区，英文（只读，按地址打开） | `team`、`operational`、`maintenance`、`integrations`、`workspace`、`billing-identity` 都没有中文 |
+| 公开地址 | `/`、`/studio`、`/zh/studio/`、`/manual/`、两个租户的页面、新截图 `05-portfolio.en.webp` 都是 200 |
+
+### 这次不声称的
+
+- **生产上没有点任何控件。** 排课页月份标题、学员档案的 `Portfolio` 标题、含「的作品」的备注原样显示，这三处只在本机和测试里验过。
+- **手册里三组排课截图的周五显示 3 人，不是原演示数据的「—」。** 原因在本会话：本机点击走查点了「Add to roster」，这个按钮直接加人。只影响本机的合成数据和截图里的一个数字。
+- **CMS 验收只看了 owner 角色**，没有看手机宽度。
+- **pwe-clinic 没有改，也没有打开核对。**
 
 ## 上一版四层身份（v10.20.4，2026-10-09 · 已发布、已部署）
 
@@ -537,7 +548,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）v10.20.5 —— 英文第三批**（**已准备，未部署**）：同一份轮次文件的「第三批」一节。
+- **2026-10-09（Claude）v10.20.5 —— 英文第三批**（**已发布、已部署**，`d5d2b91`）：同一份轮次文件的「第三批」一节。
   覆盖检查的去注释有洞，设置页等处一直没被检查到；已修，新暴露的 48 句已补。
 - **2026-10-09（Claude）v10.20.4 —— CMS 英文覆盖，和两条用词裁定**（**已发布、已部署**，`411f78b`）：
   轮次文件 `docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`。静态中文没有英文词条的从 579 句降到 0 句无理由的；
