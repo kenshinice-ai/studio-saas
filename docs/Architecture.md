@@ -64,6 +64,7 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 | Route | Surface |
 |---|---|
 | `/studio`, `/zh/studio/` | PWE Studio product home — the canonical address from v10.18.0 (`/studio/llms.txt` carries the product's `llms.txt`) |
+| `/studio/assist/version.json`, `index.json`, `knowledge.en.txt`, `knowledge.zh.txt` | Read-only. The product site's own text, published for PWE Assist (the `pwe-assist` Worker in pwe-ai-bots) to answer from. Built from the functions that serve the pages; the format is a contract with that Worker (`backend/studiosaas/services/assist_knowledge.py`). Any failure is 503 on all four. Not served by the Edition |
 | `/`, `/zh/` | Interim: still the product home inside the application, but from v10.18.0 the house website (PWE · 天域) owns `/`, `/zh/`, `/production/`, `/work/`, `/tools/`, `/labs/`, `/about/`, `/services/`, `/contact/`, `/zh/ai/`, `/_pwe/`, `/llms.txt`, `/sitemap-pwe.xml` and `/404.html` at the host edge (Caddy since 2026-09-17, nginx before); those names are reserved slugs so no tenant can be created under them. A later release turns the root into a redirect to `/studio` |
 | `/platform-admin` | Direct StudioSaaS Super Admin login |
 | `/super-admin` | Optional Cloudflare Access-protected alias of the same dashboard |

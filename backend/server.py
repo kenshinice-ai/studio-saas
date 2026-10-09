@@ -10,6 +10,7 @@ from studiosaas import api_v1, video_embed
 from studiosaas.auth import init_auth_blueprints
 from studiosaas.config import is_standalone
 from studiosaas.errors import api_error
+from studiosaas.services import assist_knowledge
 from studiosaas.services.public_site import (
     HTML_LANG,
     RESOURCE_PAGES,
@@ -1629,6 +1630,143 @@ def serve_llms_txt():
     resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
+
+
+# ── PWE Assist knowledge ────────────────────────────────────────────────────
+#
+# Four read-only addresses that publish the product site's own text for the
+# visitor assistant (the `pwe-assist` Worker) to answer from. The format is a
+# contract with that Worker; see studiosaas/services/assist_knowledge.py.
+#
+# The text is taken from the functions that serve the pages, called here
+# exactly as the routes call them. A second copy of the copy would drift, and
+# the pricing page's numbers only exist once it has been rendered from the
+# plan table.
+#
+# All four answer from one bundle or none of them answers: any failure is 503
+# on every address, never three documents and a missing fourth.
+
+def _assist_render(page, language):
+    """The HTML one public address serves, from the function that serves it."""
+
+    kind = page['kind']
+    if kind == 'home':
+        served = _serve_product_home(language)
+    elif kind == 'pricing':
+        served = _serve_pricing(language)
+    elif kind == 'manual':
+        served = _serve_manual(language)
+    else:
+        served = _serve_customer_resource_page(page['resource'], language)
+    # An error path returns (body, status); `make_response` reads both shapes.
+    resp = make_response(served)
+    if resp.status_code != 200:
+        raise assist_knowledge.KnowledgeUnavailable(f'the page answered {resp.status_code}')
+    return resp.get_data(as_text=True)
+
+
+_assist_cache = {'key': None, 'bundle': None}
+_assist_lock = Lock()
+
+
+def _assist_bundle():
+    """The current knowledge. Raises if it cannot be produced whole.
+
+    Rebuilt only when something it is made of changes: the plan rows, the
+    source files, or the release. The plan query runs on every request, so a
+    price edited in the platform console moves `version.json` on the very next
+    read — there is no interval during which the old number is still served.
+    """
+
+    # Deliberately not `_plan_rows_or_empty`. A page may lose its pricing grid
+    # to a database outage and stay up; knowledge that lost it must not exist.
+    plans = public_plan_rows()
+    stamps = []
+    for relative in assist_knowledge.SOURCE_FILES:
+        info = os.stat(os.path.join(PROJECT_ROOT, relative))
+        stamps.append((relative, info.st_mtime_ns, info.st_size))
+    key = (APP_VERSION, RELEASE_DATE,
+           json.dumps(plans, default=str, sort_keys=True), tuple(stamps))
+    with _assist_lock:
+        if _assist_cache['key'] == key:
+            return _assist_cache['bundle']
+    bundle = assist_knowledge.build(_assist_render, plans, APP_VERSION)
+    with _assist_lock:
+        _assist_cache['key'], _assist_cache['bundle'] = key, bundle
+    return bundle
+
+
+def _assist_response(body, content_type, cache_key):
+    """One knowledge document.
+
+    `cache_key` is the value that names this exact content: the commit for the
+    index, the text hash for a knowledge file. A request that carries it as
+    `?v=` is asking for bytes that can never change at that URL, so it may be
+    kept for good. Any other request — no `v`, or the `v` of content that has
+    since moved — is answered with what is current and must not be stored
+    under a key that says otherwise. `None` means never store (version.json).
+    """
+
+    resp = make_response(body)
+    resp.headers['Content-Type'] = content_type
+    resp.headers['Cache-Control'] = (
+        'public, max-age=31536000, immutable'
+        if cache_key is not None and request.args.get('v') == cache_key
+        else 'no-store'
+    )
+    # A copy of the public pages for a machine. It must not compete with them
+    # in a search index.
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
+    return resp
+
+
+def _serve_assist(document):
+    # The Edition has no product site: `/pricing` is a 404 there, and so is
+    # the knowledge that would be drawn from it.
+    if is_standalone():
+        return api_error('Not found', 404)
+    try:
+        bundle = _assist_bundle()
+    except Exception:
+        app.logger.exception('PWE Assist knowledge unavailable')
+        resp = make_response(jsonify({
+            'error': 'service_unavailable',
+            'message': 'Knowledge is temporarily unavailable.',
+        }), 503)
+        resp.headers['Cache-Control'] = 'no-store'
+        resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
+        return resp
+
+    if document == 'version':
+        return _assist_response(
+            json.dumps(bundle.version), 'application/json; charset=utf-8', None)
+    if document == 'index':
+        return _assist_response(
+            json.dumps(bundle.index, ensure_ascii=False, indent=1),
+            'application/json; charset=utf-8', bundle.commit)
+    return _assist_response(
+        bundle.texts[f'knowledge.{document}.txt'],
+        'text/plain; charset=utf-8', bundle.sha(document))
+
+
+@app.route('/studio/assist/version.json')
+def serve_assist_version():
+    return _serve_assist('version')
+
+
+@app.route('/studio/assist/index.json')
+def serve_assist_index():
+    return _serve_assist('index')
+
+
+@app.route('/studio/assist/knowledge.en.txt')
+def serve_assist_knowledge_en():
+    return _serve_assist('en')
+
+
+@app.route('/studio/assist/knowledge.zh.txt')
+def serve_assist_knowledge_zh():
+    return _serve_assist('zh')
 
 @app.route('/setup-password')
 def serve_setup_password():
