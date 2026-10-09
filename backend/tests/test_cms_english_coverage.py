@@ -67,7 +67,7 @@ process.stdout.write(JSON.stringify({ total, uncovered }));
 
 RUNNER = r"""
 const fs = require('fs'), vm = require('vm');
-const [dictionary, mode, payload] = process.argv.slice(1);
+const [dictionary, lib, mode, payload] = process.argv.slice(1);
 const calls = [];
 const window = { StudioI18n: { mount(config) { calls.push(config); } } };
 const context = vm.createContext({
@@ -83,14 +83,25 @@ const CJK = /[一-鿿]/;
 if (mode === 'probe') {
   process.stdout.write(JSON.stringify(JSON.parse(payload).map(s => translate(s))));
 } else {
-  let source = fs.readFileSync(payload, 'utf8')
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
+  const source = require(lib).stripComments(fs.readFileSync(payload, 'utf8'));
   const found = new Set();
   for (const m of source.matchAll(/>([^<>{}]*[一-鿿][^<>{}]*)</g)) found.add(m[1].trim());
-  for (const m of source.matchAll(/(['"])((?:(?!\1)[^\\\n]){1,200})\1/g))
-    if (CJK.test(m[2])) found.add(m[2].trim());
+  // Text beside a {value}: `今日名单{count}` is two nodes, and the first pass
+  // only takes text that runs from one tag to the next.
+  for (const m of source.matchAll(/[>}]([^<>{}`\n]*[一-鿿][^<>{}`\n]*)(?=[<{])/g)) {
+    const text = m[1].trim();
+    if (text && !/['"=;]|\$$|\|\|/.test(text)) found.add(text);
+  }
+  // JSX text that spans lines: React trims each line and joins them with one
+  // space. The single-line pass above drops anything with a newline in it, so
+  // a paragraph wrapped in the source was invisible to this test.
+  for (const m of source.matchAll(/[>}]([^<>{}`]*\n[^<>{}`]*)(?=[<{])/g)) {
+    if (!CJK.test(m[1])) continue;
+    const text = m[1].split('\n').map(line => line.trim()).filter(Boolean).join(' ');
+    if (text && !/['"=;]|\|\|/.test(text)) found.add(text);
+  }
+  for (const text of require(lib).quotedStrings(fs.readFileSync(payload, 'utf8')))
+    if (CJK.test(text) && text.length <= 200) found.add(text.replace(/\\n/g, '\n').trim());
   // Code that happens to sit between a `>` and a `<` is not a string, and
   // neither is a slice of a template literal caught between two quotes.
   const strings = [...found].filter(s => s && !/===|=>|&&|\n|\$\{|^[})]/.test(s));
@@ -103,7 +114,7 @@ if (mode === 'probe') {
 
 
 def _node(*arguments: str) -> object:
-    result = subprocess.run([NODE, "-e", RUNNER, str(DICTIONARY), *arguments],
+    result = subprocess.run([NODE, "-e", RUNNER, str(DICTIONARY), str(ASSEMBLED_LIB), *arguments],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr[-800:]
     return json.loads(result.stdout)
@@ -222,6 +233,13 @@ def test_every_exemption_is_still_needed() -> None:
     ("每月", "每月"),
     ("素描集", "素描集"),
     ("小张", "小张"),
+    # A tenant's own words pass through whole. This enquiry note contains 的作品,
+    # and a row for `${name}的作品` once rewrote the middle of it.
+    ("看到你们的作品页找过来的，想问周三晚上。 / Found you through the work page.",
+     "看到你们的作品页找过来的，想问周三晚上。 / Found you through the work page."),
+    ("Holly Chen的作品 3", "Holly Chen's work 3"),
+    ("周一 05/10/2026，0 人", "Mon 05/10/2026, 0 students"),
+    ("2026 年 10 月", "Oct 2026"),
     # The two fallbacks: a known label before a colon, and a ` · ` list.
     ("加载失败：Network error", "Could not load: Network error"),
     ("未填写手机 · 14:30", "No mobile number · 14:30"),

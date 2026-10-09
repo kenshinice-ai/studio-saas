@@ -4604,7 +4604,7 @@
           className: "cms-roster-date-button"
         },
         /* @__PURE__ */ React.createElement(Icon, { name: "chevronLeft", className: "w-4 h-4" })
-      ), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800" }, year, " 年 ", month + 1, " 月"), /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800" }, `${year} 年 ${month + 1} 月`), /* @__PURE__ */ React.createElement(
         "button",
         {
           type: "button",
@@ -6282,7 +6282,7 @@
              could act on. Headings take the neutral ramp; the upload button is
              the primary action here and takes the accent, like every other
              filled action in this console. */
-          /* @__PURE__ */ React.createElement("div", { className: "border border-gray-200 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 px-4 py-3 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-900 flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-4 h-4" }), " ", workNoun, "集", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-500 text-xs ml-1" }, `(${items.length} 张)`)), /* @__PURE__ */ React.createElement(
+          /* @__PURE__ */ React.createElement("div", { className: "border border-gray-200 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 px-4 py-3 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-900 flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "image", className: "w-4 h-4" }), " ", `${workNoun}集`, /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-500 text-xs ml-1" }, `(${items.length} 张)`)), /* @__PURE__ */ React.createElement(
             "button",
             {
               onClick: () => setPortUpload(true),

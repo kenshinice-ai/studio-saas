@@ -319,7 +319,7 @@ export function StudentProfileModal(props) {
                                    filled action in this console. */
                                 <div className="border border-gray-200 rounded-2xl overflow-hidden">
                                     <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
-                                        <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {workNoun}集
+                                        <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {`${workNoun}集`}
                                             <span className="font-normal text-gray-500 text-xs ml-1">{`(${items.length} 张)`}</span>
                                         </span>
                                         <button onClick={()=>setPortUpload(true)}

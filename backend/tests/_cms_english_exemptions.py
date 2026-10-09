@@ -58,11 +58,25 @@ EXEMPT: dict[str, str] = {
     "，已读": PIECE,
     "，未读": PIECE,
     "中文": ENDONYM,
+    # Slices of the family templates above: the test reads `{student}` as a JSX
+    # value and sees the words on either side of it as text beside a value.
+    "今日已完成签到 ✓ 当前剩余": FAMILY,
+    "课时。": FAMILY,
+    "成长陪伴": FAMILY,
+    "家长您好！温馨提醒：您在": FAMILY,
+    "的剩余课时为": FAMILY,
+    "您好！已为您成功充值": FAMILY,
+    "，当前账户共": FAMILY,
+    "课时。感谢您对": FAMILY,
+    "您好！": FAMILY,
 }
 
 #: Sentences the app assembles from a template literal, keyed by the sample the
 #: test builds: holes filled with `Zed` and `7` in turn.
 EXEMPT_ASSEMBLED: dict[str, str] = {
+    "Zed 7，Zed 人": HAND,
+    "Zed 年 7 月": HAND,
+    "课包:Zed": CSV,
     "Studio_经营月报_Zed.csv": CSV,
     "Zed（剩余7课时）": FAMILY,
     "【Zed 7 人 - Zed】\n7": FAMILY,

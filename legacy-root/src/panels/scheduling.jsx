@@ -184,7 +184,7 @@ export function RosterSection(props) {
             <div className="flex items-center justify-between gap-2">
                 <button type="button" onClick={()=>jump(-1)} aria-label="上个月"
                     className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
-                <span className="text-sm font-bold text-gray-800">{year} 年 {month + 1} 月</span>
+                <span className="text-sm font-bold text-gray-800">{`${year} 年 ${month + 1} 月`}</span>
                 <button type="button" onClick={()=>jump(1)} aria-label="下个月"
                     className="cms-roster-date-button"><Icon name="chevronRight" className="w-4 h-4"/></button>
             </div>
