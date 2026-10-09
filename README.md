@@ -25,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.4, release candidate** — on `main`, not deployed | Wording and screenshots only; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.4.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.4.tar.gz`. |
-| Production | **v10.20.3** (`pwestudio.online`, Oracle ARM, commit `3a7b36a`) | v10.20.4 is not deployed. Measured 2026-10-09 for v10.20.3: deep health `db=ok`, `mode=saas`, 5 tenants. |
+| Source | **v10.20.4, released** — deployed commit `411f78b` on `main` | Wording and screenshots only; **zero migrations**. Local gate `All checks passed`, pytest 2554 passed / 41 skipped; CI gate passed on the same commit. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.4.tar.gz` SHA-256 `ed419b232d226045602034cf55493dcf1efe0d1a976719049c3e8da0c6c0bcc9` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.4.tar.gz` SHA-256 `e2d326c78d47717b2fbb78ff4282eb20038c51e84c0077e64d38956b53cab127`. Three-way commit guard equal. |
+| Production | **v10.20.4** (`pwestudio.online`, Oracle ARM, commit `411f78b`) | Measured 2026-10-09: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Browser matrix 642 assertions, 0 failed, 21/22 pages. Thirteen CMS views were read in English on production; one line on the activity-log page is still Chinese. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

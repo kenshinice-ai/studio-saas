@@ -1,6 +1,6 @@
 # 2026-10-09 · CMS 英文覆盖一轮，和两条用词裁定
 
-> 状态：**已提交、已推 `main`，未发布、未部署。** 生产仍是 v10.20.3（`3a7b36a`）。
+> 状态：**已随 v10.20.4 发布并部署**（2026-10-09，`411f78b`）。生产证据在 `docs/HANDOFF_LATEST.md` 的四层身份表。
 > 授权：Lee 2026-10-09「1. 单独做一轮 … 2. 按照推荐 3. 按照推荐 4. 提交 同步 推送」。
 > 提交：`8277b17`（`.gitignore`）、`2551815`（两条用词裁定）、`8994506`（静态中文）、拼接句一笔。
 
@@ -110,6 +110,6 @@ API 用法见 `~/.config/anthropic/README.md`。密钥从 `~/.config/anthropic/e
 ## 三、给下一个会话
 
 1. 发布前按 `docs/Release_Runbook.md` 走九步。本轮有模板改动，`regenerate_tenant_workspaces.py` 已跑，产物已提交。
-2. 手册截图里的英文导航还写着 `Recharge & refunds`。发布前用 `capture_manual_shots.py` 重拍。成功判据：`04-topup.en.webp` 的侧栏显示 `Top-up & refunds`。
+2. 手册 48 张截图已在 `ca9ab7f` 重拍。截图工具有两处检查还按排课页拆标签之前的结构写，一并修了。
 3. 如果做下一轮英文覆盖，先用英文把每个抽屉和弹窗点开看一遍，再处理 `name + '…'` 这种拼接。
 4. 改了 `legacy-root/src/*.jsx` 里的模板字符串后，跑 `pytest backend/tests/test_cms_english_coverage.py`。成功判据：`passed`，没有点名任何句子。

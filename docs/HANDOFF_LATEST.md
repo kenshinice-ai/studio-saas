@@ -17,25 +17,37 @@
 
 - **[决定] 英文覆盖第三轮做到哪里为止** — 推荐：把每个抽屉和弹窗用英文点开看一遍，补完即止，不再扩范围 · 不定会卡住：`name + '…'` 这种拼接和只有点开才出现的界面没有核实 · 自 2026-10-09
 
-## 当前四层身份（v10.20.4，2026-10-09 · **已准备，未部署**）
+## 当前四层身份（v10.20.4，2026-10-09 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（2026-10-09「按照推荐 提交 推送 部署 英文再做一轮」）。
 > 轮次文件：`docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。进运行时的改动都是文字和截图：`2551815` 公开页用 `%WORK%`、`Insights` 改 `Analytics`；`8994506`、`2e5deab` CMS 英文词条与拼接句；`ca9ab7f` 手册 48 张截图重拍。**零迁移**，不动安全、RLS、计费逻辑、Xero、账务代码。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.4.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.4.tar.gz`。未构建。 |
-| Production | 仍是 **v10.20.3**（`3a7b36a`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.4`，公网深健康 `appVersion=10.20.4`。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `411f78b90e5c75286d8e1674875951c5adc1eca8`，已在 `origin/main`。进运行时的改动都是文字和截图：`2551815` 公开页用 `%WORK%`、`Insights` 改 `Analytics`；`8994506`、`2e5deab` CMS 英文词条与拼接句；`ca9ab7f` 手册 48 张截图重拍。**零迁移**，不动安全、RLS、计费逻辑、Xero、账务代码。local gate `All checks passed`，pytest 2554 passed / 41 skipped；CI gate 在同一提交上通过（run 37904495411）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.4.tar.gz`，SHA-256 `ed419b232d226045602034cf55493dcf1efe0d1a976719049c3e8da0c6c0bcc9`，`BUILD_INFO` commit `411f78b…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.4.tar.gz`，SHA-256 `e2d326c78d47717b2fbb78ff4282eb20038c51e84c0077e64d38956b53cab127`，`BUILD_INFO` commit `411f78b…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。这次在主 checkout 里打包，工作树干净。 |
+| Production | `pwestudio.online` = **v10.20.4**（Oracle ARM `pwe-arm`，commit `411f78b`，镜像 `studiosaas:10.20.4`）。2026-10-09 由 `bash deploy/oracle/pwestudio_arm.sh deploy 411f78b90e5c75286d8e1674875951c5adc1eca8` 部署，脚本末行 `Deployed: 411f78b90e5c as v10.20.4`。实测公网深健康：`appVersion=10.20.4`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`、磁盘 14.9%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-09 实测主机 `/var/log/pwe-backup.status`：`db` 最近四次（10-06 至 10-09，约 03:15 AEDT）都是 `exit=0`；下一次定时 2026-10-10 03:15 AEDT。部署脚本本身不做部署前备份。 |
 
-### STOP GATE（第 8 步之前）
+### 部署后验收（生产实测，2026-10-09）
 
-- local gate 输出 `All checks passed`。
-- CI gate 在发布提交上通过。
-- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+| 验的东西 | 结果 |
+|---|---|
+| 浏览器矩阵 | 642 条断言、0 失败、21/22 页。`cms_roster_teacher` 仍跳过：直连 403，浏览器登录 401 |
+| CMS 13 个视图，英文（owner，`lets-paint-showcase`，只读） | `<html lang>` = `en`，页面脚本错误 0。11 个视图里剩下的中文都是租户自己录入的课程名、课包名、家庭名、跟进备注 |
+| 上一行的例外 | 操作日志页有一句仍是中文：「只载入了最近 200 条服务端操作记录。…」。它在源码里跨两行，两道覆盖检查都不看跨行的 JSX 文字 |
+| 公开页，`music-studio-showcase`，中英文 | 展示页、报名页、首页都没有「作品」，没有露出 `%WORK%`；英文展示页 `6 published pieces`；同意条款写 `the student's pieces` |
+| 公开页，`lets-paint-showcase`，中英文 | 展示页 `共 13 项` / `13 published works`；同意条款仍写「学员作品」；没有露出 `%WORK%`；页面脚本错误 0 |
+| 公开地址 | `/`、`/studio`、`/zh/studio/`、`/pricing`、`/manual/`、`/zh/manual/`、两个租户的首页、展示页、报名页、两张新截图都是 200；`/nope` 带 `Sec-Fetch-Dest: document` 是 404 `text/html` |
+
+### 这次不声称的
+
+- **英文覆盖没有做完。** 跨行的 JSX 文字、`name + '…'` 拼接、只有点开才出现的界面都没有进检查。生产上已见到一句（上表）。
+- **生产上没有点开任何弹窗。** 充值确认框的英文只在本机点出来看过；生产验收全程只读。
+- **CMS 验收只看了 owner 角色**，没有看手机宽度。
+- **pwe-clinic 没有改，也没有打开核对。**
 
 ## 上一版四层身份（v10.20.3，2026-10-09 · 已发布、已部署）
 
@@ -505,7 +517,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）v10.20.4 —— CMS 英文覆盖，和两条用词裁定**（**已准备，未部署**）：
+- **2026-10-09（Claude）v10.20.4 —— CMS 英文覆盖，和两条用词裁定**（**已发布、已部署**，`411f78b`）：
   轮次文件 `docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`。静态中文没有英文词条的从 579 句降到 0 句无理由的；
   覆盖测试扩到全部 CMS 源文件。程序拼出来的句子 245 句里 174 句原先出中文，现在 0 句无理由的。公开页面的「作品」改用 `%WORK%`；`Insights` 导航组改为 `Analytics / 数据分析`。
 - **2026-10-09（Claude）v10.20.3 —— 充值页的英文补齐，字典用词随版本带上**（**已发布、已部署**，`3a7b36a`）：
