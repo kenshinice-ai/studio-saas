@@ -1,16 +1,16 @@
 # PWE Studio
 
-## v10.20.5 release identity — the places the last release missed in English
+## v10.20.6 release identity — the product site's text, published for PWE Assist
 
-`VERSION` = **10.20.5** and `backend/server.py` reports `APP_VERSION=10.20.5`.
-**Zero migrations.** Wording and screenshots only. The two coverage tests
-added in v10.20.4 stripped comments with regexes, and `accept="image/*"`
-opened a comment that hid up to two hundred lines of source from both; the
-Settings page stayed half Chinese behind a green gate. The stripper now walks
-the text, 48 newly visible strings have entries, wrapped JSX text and text
-beside a value are in the gate, and short table rows no longer rewrite a
-tenant's own notes. Round notes:
-`docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`.
+`VERSION` = **10.20.6** and `backend/server.py` reports `APP_VERSION=10.20.6`.
+**Zero migrations.** Four read-only addresses under `/studio/assist/` publish
+the product site's own text — product home, pricing, manual, service FAQ and
+support policy in full; privacy policy, terms and release notes by title and
+address only — for PWE Assist, the visitor assistant, to answer from. The text
+is taken from the functions that serve those pages, so the plan prices in it
+are the ones the pricing page prints from the plan table. Any failure is 503 on
+all four addresses. No tenant data is read. Round notes:
+`docs/handoff/claude/2026-10-09-assist-knowledge.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -25,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.5, released** — deployed commit `d5d2b91` on `main` | Wording and screenshots only; **zero migrations**. Local gate `All checks passed`, pytest 2558 passed / 41 skipped; CI gate passed on the same commit. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.5.tar.gz` SHA-256 `fa486954062629af02bd7803565abe12c6b4f60391766fec0bec2def9156432f` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.5.tar.gz` SHA-256 `39089c21e9d05a14c0e0ef70422f6e27b8e167e5bb2764d04a4806a76906950c`. Three-way commit guard equal. |
-| Production | **v10.20.5** (`pwestudio.online`, Oracle ARM, commit `d5d2b91`) | Measured 2026-10-09: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Browser matrix 642 assertions, 0 failed, 21/22 pages. Thirteen CMS views and six Settings sections were read in English on production; only tenant-entered text is Chinese. |
+| Source | **v10.20.6, release candidate** — not deployed | Four read-only public addresses and their tests; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
+| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.6.tar.gz`. |
+| Production | **v10.20.5** (`pwestudio.online`, Oracle ARM, commit `d5d2b91`) | v10.20.6 is not deployed. Measured 2026-10-09 for v10.20.5: `/v1/health` reports `appVersion=10.20.5`, `mode=saas`. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

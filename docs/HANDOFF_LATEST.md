@@ -1,4 +1,4 @@
-# PWE Studio v10.20.5 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.6 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -17,7 +17,27 @@
 
 没有。
 
-## 当前四层身份（v10.20.5，2026-10-09 · **已发布、已部署**）
+## 当前四层身份（v10.20.6，2026-10-09 · **已准备，未部署**）
+
+> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-09「1. 发布 2. 提交 推送 同步 3. 加入 执行」）。
+> 轮次文件：`docs/handoff/claude/2026-10-09-assist-knowledge.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 候选是 `release/10.20.6` 上的发布提交（提交后回填哈希）。进运行时的改动：`f68a66e` 新增 `/studio/assist/` 下四个只读地址，发布 Assist 知识；新模块 `backend/studiosaas/services/assist_knowledge.py`。**零迁移**。不动安全、RLS、计费逻辑、Xero、账务代码。不读租户数据。 |
+| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
+| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.6.tar.gz`。未构建。Edition 不提供这四个地址（404）。 |
+| Production | 仍是 **v10.20.5**（`d5d2b91`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.6`，公网 `/v1/health` 的 `appVersion=10.20.6`，四个地址都是 200。 |
+| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+
+### STOP GATE（第 8 步之前）
+
+- local gate 输出 `All checks passed`。
+- CI gate 在发布提交上通过。
+- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+
+## 上一版四层身份（v10.20.5，2026-10-09 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（2026-10-09「按照你的推荐 执行 同步 推送 部署」）。
@@ -548,7 +568,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）Assist 知识的四个地址（A 块）**（分支 `feat/assist-knowledge`，**未发布、未部署**；Lee 2026-10-10 同意发布）：
+- **2026-10-09（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已准备，未部署**；Lee 2026-10-09 同意发布）：
   轮次文件 `docs/handoff/claude/2026-10-09-assist-knowledge.md`。应用新增四个只读地址，把 product site 的文字
   发布给 PWE Assist。内容来自渲染页面的同一组函数；任何一处出错，四个地址都返回 503。
 - **2026-10-09（Claude）v10.20.5 —— 英文第三批**（**已发布、已部署**，`d5d2b91`）：同一份轮次文件的「第三批」一节。
