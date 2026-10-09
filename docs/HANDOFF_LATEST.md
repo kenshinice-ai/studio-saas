@@ -15,25 +15,40 @@
 
 ## 等 Lee
 
-- **[动手] 部署 v10.20.3 到生产主机** — 推荐：先跑 `bash deploy/oracle/pwestudio_arm.sh verify-target`，再跑 `bash deploy/oracle/pwestudio_arm.sh deploy "$(git log -1 --format=%H --grep='^release: v10.20.3' origin/main)"`，末行应是 `Deployed: … as v10.20.3` · 不做会卡住：生产停在 v10.20.2，新用词和充值页英文不上线，第 9 步 evidence closure 做不了 · 自 2026-10-09
 - **[决定] CMS 其它面板的英文覆盖要不要单独做一轮** — 推荐：做，先做 `billing.jsx`、`finance.jsx`、`scheduling.jsx` 三个 · 不定会卡住：英文界面里最多 579 句仍显示中文（上界，没有逐句核实），明细见 `docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md` · 自 2026-10-09
 - **[决定] Studio「作品」的禁用范围** — 推荐：只禁共享代码和公开模板里硬编码的「作品」，员工界面（CMS / Studio Admin）保留「作品 / Portfolio」 · 不定会卡住：审计 S-B08/B10/B12/B15/B18/B20 和「画室 · 空间」「画艺」共 8 组用词 · 自 2026-10-09
 - **[决定] Studio 的 Insights 导航组要不要跟 Clinic 一样叫「数据分析」** — 推荐：改为「数据分析 / Analytics」，组里只有官网数据分析，不是经营统计页 · 不定会卡住：`admin-i18n.js` 的 `经营洞察` 留着，和术语表禁的「洞察」冲突 · 自 2026-10-09
 
-## 当前四层身份（v10.20.3，2026-10-09 · 源码候选，未部署）
+## 当前四层身份（v10.20.3，2026-10-09 · **已发布、已部署**）
 
-> 本表是 runbook 第 3 步的 prepared ledger。Source 是事实；Package、Production 写的是预期。
-> 第 9 步 evidence closure 时换成实测。
-> 操作者：Claude 会话准备发布；第 8 步部署由 Lee 执行。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
+> 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（「提交 推送 部署 更新文档」）。
 > 轮次文件：`docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md`。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选提交在 `main`，标题以 `release: v10.20.3` 开头。取完整哈希：`git log -1 --format=%H --grep='^release: v10.20.3' origin/main`。进运行时的改动都是界面文案：`fdc488a`、`d21927d` 两本字典改用术语表的词（课包、课时、官网）；本轮给充值页补 22 条英文词条和 2 条单复数规则，改两句夹英文的中文，重拍 `04-topup` 手册截图。**零迁移**，schema 仍至 `0047_xero_transport.sql`。安全、RLS、计费逻辑、Xero、账务代码没有改。2026-10-09 本机 local gate `All checks passed`，pytest `2527 passed, 41 skipped`。 |
-| Package / SaaS | **预期** `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz`。Oracle 路径不消费它，作归档。 |
-| Package / Edition | **预期** `dist/PWE-Studio-Edition-10.20.3.tar.gz`。 |
-| Production | **仍是 v10.20.2**（2026-10-09 实测公网 `/v1/health`：`appVersion=10.20.2`）。部署后预期 `appVersion=10.20.3`。 |
-| Backup / migration | **本版零迁移**，不需要设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `3a7b36ab0bbe781c15388862b87eb4b54bd8c736`，已在 `origin/main`。进运行时的改动都是界面文案：`fdc488a`、`d21927d` 两本字典改用术语表的词（课包、课时、官网）；`3a7b36a` 给充值页补 22 条英文词条和 2 条单复数规则，改两句夹英文的中文，重拍 `04-topup` 手册截图。**零迁移**，schema 仍至 `0047_xero_transport.sql`。安全、RLS、计费逻辑、Xero、账务代码没有改。2026-10-09 本机 local gate `All checks passed`，pytest `2527 passed, 41 skipped`；CI gate 在 `3a7b36a` 上通过。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz`，SHA-256 `fbd6efb82405583c99c542cdd4cffbbe1c552e7cb82d6e3eb9ba467b34f91594`，`BUILD_INFO` commit `3a7b36a…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.3.tar.gz`，SHA-256 `78765613ed49b6a85b1b935707506b9984948272b4faccfb5a089acc5b193987`，`BUILD_INFO` commit `3a7b36a…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。两个包在一个临时的干净 worktree 里构建，原因见下面「这次不声称的」。 |
+| Production | `pwestudio.online` = **v10.20.3**（Oracle ARM `pwe-arm`，commit `3a7b36a`，镜像 `studiosaas:10.20.3`）。2026-10-09 由 `bash deploy/oracle/pwestudio_arm.sh deploy 3a7b36ab0bbe781c15388862b87eb4b54bd8c736` 部署，脚本末行 `Deployed: 3a7b36ab0bbe as v10.20.3`。实测公网 `/v1/health?deep=1`：`appVersion=10.20.3`、`db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 14.5%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-09 实测主机 `/var/log/pwe-backup.status`：`pwe-backup@db` 最近三次（10-07、10-08、10-09 约 03:15 AEDT）都是 `exit=0`；下一次定时 2026-10-10 03:15 AEDT。部署脚本本身不做部署前备份。 |
+
+### 部署后验收（生产实测，2026-10-09）
+
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 14.1%、公网 14.1%，同一台主机 |
+| 浏览器矩阵 | 642 条断言、0 失败、21/22 页。`cms_roster_teacher` 仍跳过：直连 403，浏览器登录 401 |
+| 充值页，中文（owner，`lets-paint-showcase`） | `<html lang>` = `zh-CN`；看到 `课包管理`、`添加课包`、`课包快选`、`确认退款退课`；没有 `套餐`、`门户网站`；页面脚本错误 0 |
+| 充值页，英文 | `<html lang>` = `en`；除租户自己起的课包名外没有中文；看到 `Credit packs`、`Add credit pack`、`Confirm refund`、`User manual`、`1 credit`；没有 `1 credits` |
+| 公开地址 | `/`、`/studio`、`/zh/studio/`、`/pricing`、`/manual/`、`/zh/manual/`、`/lets-paint-showcase`、`/assets/manual/04-topup.zh.webp` 都是 200；`/nope` 带 `Sec-Fetch-Dest: document` 是 404 `text/html` |
+
+### 这次不声称的
+
+- **其它 CMS 面板的英文没有补。** 上界 579 句，没有逐句核实。决定见「等 Lee」。
+- **打包不是在主 checkout 里做的。** `build_aws_bundle.sh` 要求工作树干净，而主 checkout 里有另一个会话没提交的 `.gitignore` 和 `AGENTS.md`。本会话没有提交也没有 stash 它们，改在临时 worktree 里对同一个提交打包。那两个文件到本次 evidence closure 时仍未提交。
+- **充值页的验收只看了 owner 角色。** manager、front_desk 没有单独看。
+- **pwe-clinic 没有改。** 它的充值页很可能有同样的英文缺口（not verified：没有打开 Clinic 核对）。
 
 ## 上一版四层身份（v10.20.2，2026-10-08 · 已发布、已部署）
 
@@ -472,7 +487,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）v10.20.3 —— 充值页的英文补齐，字典用词随版本带上**（**源码候选，未部署**）：
+- **2026-10-09（Claude）v10.20.3 —— 充值页的英文补齐，字典用词随版本带上**（**已发布、已部署**，`3a7b36a`）：
   轮次文件 `docs/handoff/claude/2026-10-09-v10.20.3-topup-english.md`。发布前在浏览器里看充值页：
   英文的退款分页一半是中文，提交按钮也是；课包列表写 `1 credits`。补 22 条词条。
   其它面板的英文覆盖没有做，上界 579 句，见轮次文件。

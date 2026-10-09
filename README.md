@@ -25,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.3 candidate on `main`** | Interface wording only; **zero migrations**. The full commit hash is in `docs/HANDOFF_LATEST.md`. Local gate result recorded there. |
-| Package | **expected** | `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.3.tar.gz`. Hashes are recorded at the evidence closure. |
-| Production | **still v10.20.2** (`pwestudio.online`, Oracle ARM) | Measured 2026-10-09: public `/v1/health` reports `appVersion=10.20.2`. Step 8 is `bash deploy/oracle/pwestudio_arm.sh deploy <commit>`, run by Lee. |
+| Source | **v10.20.3, released** — deployed commit `3a7b36a` on `main` | Interface wording only; **zero migrations**. Local gate `All checks passed`, pytest 2527 passed / 41 skipped; CI gate passed on the same commit. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.3.tar.gz` SHA-256 `fbd6efb82405583c99c542cdd4cffbbe1c552e7cb82d6e3eb9ba467b34f91594` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.3.tar.gz` SHA-256 `78765613ed49b6a85b1b935707506b9984948272b4faccfb5a089acc5b193987`. Three-way commit guard equal. |
+| Production | **v10.20.3** (`pwestudio.online`, Oracle ARM, commit `3a7b36a`) | Measured 2026-10-09: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Browser matrix 642 assertions, 0 failed, 21/22 pages. The top-up page was read in both languages on production. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
