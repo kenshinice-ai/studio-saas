@@ -101,3 +101,6 @@ ui_matrix_out/
 
 # pytest's own cache.
 .pytest_cache/
+
+# Claude Code per-machine settings (auto-memory group wiring)
+**/.claude/settings.local.json
