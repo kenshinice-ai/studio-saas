@@ -17,25 +17,43 @@
 
 没有。
 
-## 当前四层身份（v10.20.6，2026-10-09 · **已准备，未部署**）
+## 当前四层身份（v10.20.6，2026-10-10 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-09「1. 发布 2. 提交 推送 同步 3. 加入 执行」）。
 > 轮次文件：`docs/handoff/claude/2026-10-09-assist-knowledge.md`。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `release/10.20.6` 上的发布提交（提交后回填哈希）。进运行时的改动：`f68a66e` 新增 `/studio/assist/` 下四个只读地址，发布 Assist 知识；新模块 `backend/studiosaas/services/assist_knowledge.py`。**零迁移**。不动安全、RLS、计费逻辑、Xero、账务代码。不读租户数据。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.6.tar.gz`。未构建。Edition 不提供这四个地址（404）。 |
-| Production | 仍是 **v10.20.5**（`d5d2b91`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.6`，公网 `/v1/health` 的 `appVersion=10.20.6`，四个地址都是 200。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `d0020083f6aaa5cffdc03cf8b677788a943a2557`，已在 `origin/main`。进运行时的改动：`f68a66e` 新增 `/studio/assist/` 下四个只读地址，发布 Assist 知识；新模块 `backend/studiosaas/services/assist_knowledge.py`。**零迁移**。不动安全、RLS、计费逻辑、Xero、账务代码。不读租户数据。local gate `All checks passed`，pytest 2532 passed / 41 skipped，租户隔离 257 passed / 0 failed；CI gate 在同一提交上通过（run 37933999479）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz`，SHA-256 `cc7f7f8462ae8f78c34ba40154572a4746ae95d77b48772f8f71f7cb46aa3a18`，`BUILD_INFO` commit `d002008…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.6.tar.gz`，SHA-256 `bc66afd158e1ec61c51c9f846eff8f57f95eaaf5e19775d967b2e3f36e1f49ea`，`BUILD_INFO` commit `d002008…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（BUILD_INFO == 本地 HEAD == `origin/main`）。两个包在仓库外的 worktree 里构建，随后移到主检出的 `dist/`。 |
+| Production | `pwestudio.online` = **v10.20.6**（Oracle ARM `pwe-arm`，commit `d002008`，镜像 `studiosaas:10.20.6`）。2026-10-10 00:04–00:05 AEDT 由 `bash deploy/oracle/pwestudio_arm.sh deploy d0020083f6aaa5cffdc03cf8b677788a943a2557` 部署，脚本末行 `Deployed: d0020083f6aa as v10.20.6`。实测公网 `/v1/health?deep=1`：`appVersion=10.20.6`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`、磁盘 15.9%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-10 实测主机 `/var/log/pwe-backup.status`：`db` 最近四次（10-06 至 10-09 约 03:15 AEDT）都是 `exit=0`；下一次定时 2026-10-10 03:15 AEDT。部署脚本本身不做部署前备份。 |
 
-### STOP GATE（第 8 步之前）
+### 部署后验收（生产实测，2026-10-10）
 
-- local gate 输出 `All checks passed`。
-- CI gate 在发布提交上通过。
-- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 15.5%、公网 15.5%，同一台主机 |
+| 四个 Assist 知识地址 | `/studio/assist/version.json`、`index.json`、`knowledge.en.txt`、`knowledge.zh.txt` 都是 200 |
+| 四份文档互相一致 | `index.json` 的 `commit` 等于 `version.json` 的（`10.20.6-8f138d7c`）；两种语言的 `sha` 都等于各自文字的 SHA-256 前 12 位 |
+| 套餐数字 | Assist 知识里是 49 / 99 / 189，学员上限 50 / 250 / 500，与同一时刻的 `/pricing.md` 相同；`numbers` 里有 189、没有 199 |
+| 披露句 | 两种语言各一句，取自首页原文 |
+| 缓存头（经 Cloudflare） | `version.json` 是 `no-store`；`?v=` 等于当前 `commit` 或 `sha` 时是 `immutable`；其余是 `no-store`。四个地址都带 `X-Robots-Tag: noindex` |
+| 原有公开地址 | `/`、`/studio`、`/zh/studio/`、`/pricing`、`/zh/pricing`、`/manual/`、`/zh/manual/`、服务 FAQ、版本记录、`/studio/llms.txt`、`/pricing.md`、`/sitemap.xml`、`/lets-paint-showcase`、`/v1/public/plans` 都是 200 |
+| 浏览器里打开 `/pricing` 和 `/zh/studio/` | 三张套餐卡是 $49 / $99 / $189，主推徽标在 Studio plan 上；首页披露句在；没有坏图 |
+| 版本记录页 | v10.20.6 的条目已在线上 |
+| 主机上的容器 | `pwestudio-app-1` 镜像 `studiosaas:10.20.6`，`healthy` |
+
+### 这次不声称的
+
+- **没有跑带登录的浏览器矩阵。** 这一版没有改任何登录后的界面。验收只覆盖公开地址。
+- **PWE Assist 的 Worker 还没有读过这四个地址。** 能否读到由 pwe-ai-bots 一侧验证。2026-10-10 实测：`curl` 默认的客户端标识得到 200；Python `urllib` 默认的客户端标识得到 403（Cloudflare 拒绝）。
+- **Assist 知识里有版本号。** 手册和 FAQ 页面上印着 `v10.20.6`。所以每次发布之后两种语言的 `sha` 都会变，即使正文没有改。
+- **浏览器控制台有一条不是本版引入的报错。** Cloudflare 注入的 `beacon.min.js` 被本应用的 CSP 拦下。本版没有改 CSP，也没有处理这一条。
+- **没有在真正的 Edition 里验证四个地址是 404。** 只有测试。
+- **pwe-clinic 没有改。** 这一版不涉及安全、RLS、计费、Xero 或账务代码，不需要同样的改动。
 
 ## 上一版四层身份（v10.20.5，2026-10-09 · 已发布、已部署）
 
@@ -568,7 +586,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已准备，未部署**；Lee 2026-10-09 同意发布）：
+- **2026-10-10（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已发布、已部署**，`d002008`）：
   轮次文件 `docs/handoff/claude/2026-10-09-assist-knowledge.md`。应用新增四个只读地址，把 product site 的文字
   发布给 PWE Assist。内容来自渲染页面的同一组函数；任何一处出错，四个地址都返回 503。
 - **2026-10-09（Claude）v10.20.5 —— 英文第三批**（**已发布、已部署**，`d5d2b91`）：同一份轮次文件的「第三批」一节。

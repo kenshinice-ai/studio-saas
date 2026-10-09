@@ -25,9 +25,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.6, release candidate** — not deployed | Four read-only public addresses and their tests; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.6.tar.gz`. |
-| Production | **v10.20.5** (`pwestudio.online`, Oracle ARM, commit `d5d2b91`) | v10.20.6 is not deployed. Measured 2026-10-09 for v10.20.5: `/v1/health` reports `appVersion=10.20.5`, `mode=saas`. |
+| Source | **v10.20.6, released** — deployed commit `d002008` on `main` | Four read-only public addresses and their tests; **zero migrations**. Local gate `All checks passed`, pytest 2532 passed / 41 skipped; CI gate passed on the same commit (run 37933999479). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.6.tar.gz` SHA-256 `cc7f7f8462ae8f78c34ba40154572a4746ae95d77b48772f8f71f7cb46aa3a18` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.6.tar.gz` SHA-256 `bc66afd158e1ec61c51c9f846eff8f57f95eaaf5e19775d967b2e3f36e1f49ea`. Three-way commit guard equal. |
+| Production | **v10.20.6** (`pwestudio.online`, Oracle ARM, commit `d002008`) | Measured 2026-10-10: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The four `/studio/assist/` addresses answer 200; `index.json` and `version.json` carry the same commit `10.20.6-8f138d7c`; the plan prices in the Assist knowledge equal `/pricing.md` (49 / 99 / 189). The logged-in browser matrix was not run: no signed-in surface changed. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
