@@ -612,3 +612,5 @@ Which tenant/theme/language states were checked where relevant.
 Only genuine unresolved risks or follow-up work.
 
 Keep it concise.
+
+## Imported Claude Cowork project instructions
