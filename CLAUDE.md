@@ -50,6 +50,8 @@ UI wording is governed by `docs/Glossary.md` and enforced by `backend/scripts/ch
 | Edition | The single-tenant delivery a customer installs on their own host (`STUDIOSAAS_MODE=standalone`). Full name: PWE Studio Edition. | Standalone Edition, 独立版, 单店独立版, standalone (as a noun). Keep `standalone` only as the mode value. |
 | pwe-house | The static site at the root of `pwestudio.online`, built from paradise-production. Brand name PWE · 天域 only in external copy. | 房子, house, 门户 |
 | product site | The PWE Studio marketing pages at `/studio` and `/zh/studio/`. | 门户, L1 门户, portal |
+| PWE Assist | The visitor assistant that answers on pwe-house and the product site. It runs in the `pwe-assist` Worker (repository pwe-ai-bots), not in this application. | AI 客服, 虚拟客服, chatbot, 助手 (alone) |
+| Assist knowledge (zh: Assist 知识) | The four documents under `/studio/assist/` that publish the product site's text for PWE Assist: `version.json`, `index.json` and the two `knowledge.<lang>.txt`. | 知识库, knowledge base, 知识 (alone), 语料 |
 | tenant portal | The public pages of one tenant at `/<slug>`. | 门户 (alone) |
 | host (zh: 主机) | A server that runs PWE Studio. Name which one, e.g. the production host. | box, machine, instance, 机器, 实例 (for a server) |
 | local machine (zh: 本机) | The Mac where this repo is checked out and the local gate runs. | laptop, dev machine, 笔记本, 开发机; 本机 for anything on the host |
