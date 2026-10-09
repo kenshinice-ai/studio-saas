@@ -63,7 +63,7 @@ TAB = {
     # "Students", so only the Chinese pass noticed when this drifted.
     "students": {"en": "Students", "zh": "学员档案"},
     "pending":  {"en": "Pending", "zh": "待处理"},
-    "topup":    {"en": "Recharge & refunds", "zh": "充值与退款"},
+    "topup":    {"en": "Top-up & refunds", "zh": "充值与退款"},
     "logs":     {"en": "Activity Log", "zh": "操作日志"},
     "stats":    {"en": "Business Stats", "zh": "经营统计"},
 }
