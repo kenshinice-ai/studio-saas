@@ -462,10 +462,15 @@ TIMETABLE_EDITOR = """
 # at v9.9.5 it rendered no booking buttons at all and failed this capture. The
 # shot photographs the real seeded timetable now, like every other shot here.
 
-# The one-to-one block is a collapsed <details> at the foot of the roster
-# page since v10.13, and the CMS scrolls `main`, not the document.
+# The one-to-one block is a collapsed <details> since v10.13, and the CMS
+# scrolls `main`, not the document. Since v10.14 it sits under the roster
+# page's second tab, which renders nothing until it is selected — so select
+# it first and let the caller's retry find the block on the next pass.
 OPEN_PRIVATE_LESSONS = """
 (() => {
+  const tab = [...document.querySelectorAll('[role="tab"]')].find(
+    t => /排课设置|Scheduling setup/.test(t.textContent || ''));
+  if (tab && tab.getAttribute('aria-selected') !== 'true') { tab.click(); return 'WAIT'; }
   const block = [...document.querySelectorAll('details')].find(
     d => /一对一循环课|Recurring private lessons/.test((d.querySelector('summary') || {}).textContent || ''));
   if (!block) return 'MISSING';
@@ -484,7 +489,9 @@ ROSTER_UI_CONTRACT = """
   const dateNav = planner?.querySelector('.cms-roster-date-nav');
   const week = planner?.querySelector('.cms-roster-week');
   const summary = planner?.querySelector('.cms-roster-summary');
-  const slots = planner?.querySelector('.cms-roster-slot-panel');
+  // The slot panel left the planner card when the page split into two tabs
+  // (v10.14); it still has to sit between the summary and the list.
+  const slots = document.querySelector('.cms-roster-slot-panel');
   const list = document.querySelector('.cms-roster-list');
   const add = document.querySelector('.cms-roster-add');
   const row = document.querySelector('.cms-roster-row');
