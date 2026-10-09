@@ -1,4 +1,4 @@
-# PWE Studio v10.20.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.4 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -15,13 +15,29 @@
 
 ## 等 Lee
 
-- **[决定] 要不要把 `main` 上未发布的提交发成 v10.20.4 并部署** — 推荐：发，随版本重拍手册截图 · 不定会卡住：英文覆盖、公开页用词、Analytics 改名都停在 `main`，生产仍是 v10.20.3 · 自 2026-10-09
-- **[动手] 提交或丢弃主 checkout 里的 `AGENTS.md`** — 推荐：提交（末尾多一个空标题 `## Imported Claude Cowork project instructions`，是 Cowork 加的）· 不定会卡住：自动模式不让 Claude 提交这个文件，打包脚本要求工作树干净，下次打包仍要绕到临时 worktree · 自 2026-10-09
-- **[决定] 英文覆盖要不要再做一轮** — 推荐：发布后再定，先用英文把每个抽屉和弹窗点开看一遍 · 不定会卡住：`name + '…'` 这种拼接和只有点开才出现的界面没有核实，明细见 `docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md` · 自 2026-10-09
+- **[决定] 英文覆盖第三轮做到哪里为止** — 推荐：把每个抽屉和弹窗用英文点开看一遍，补完即止，不再扩范围 · 不定会卡住：`name + '…'` 这种拼接和只有点开才出现的界面没有核实 · 自 2026-10-09
 
-## 当前四层身份（v10.20.3，2026-10-09 · **已发布、已部署**）
+## 当前四层身份（v10.20.4，2026-10-09 · **已准备，未部署**）
 
-> `main` 在 v10.20.3 之后还有未发布的提交（2026-10-09）。下表只描述 v10.20.3。
+> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（2026-10-09「按照推荐 提交 推送 部署 英文再做一轮」）。
+> 轮次文件：`docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。进运行时的改动都是文字和截图：`2551815` 公开页用 `%WORK%`、`Insights` 改 `Analytics`；`8994506`、`2e5deab` CMS 英文词条与拼接句；`ca9ab7f` 手册 48 张截图重拍。**零迁移**，不动安全、RLS、计费逻辑、Xero、账务代码。 |
+| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.4.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
+| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.4.tar.gz`。未构建。 |
+| Production | 仍是 **v10.20.3**（`3a7b36a`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.4`，公网深健康 `appVersion=10.20.4`。 |
+| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+
+### STOP GATE（第 8 步之前）
+
+- local gate 输出 `All checks passed`。
+- CI gate 在发布提交上通过。
+- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+
+## 上一版四层身份（v10.20.3，2026-10-09 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；第 8 步部署由 Lee 在会话里授权（「提交 推送 部署 更新文档」）。
@@ -489,7 +505,7 @@
 
 ## 最新轮次
 
-- **2026-10-09（Claude）CMS 英文覆盖一轮，和两条用词裁定**（`main`，**未发布、未部署**）：
+- **2026-10-09（Claude）v10.20.4 —— CMS 英文覆盖，和两条用词裁定**（**已准备，未部署**）：
   轮次文件 `docs/handoff/claude/2026-10-09-english-coverage-and-noun-rulings.md`。静态中文没有英文词条的从 579 句降到 0 句无理由的；
   覆盖测试扩到全部 CMS 源文件。程序拼出来的句子 245 句里 174 句原先出中文，现在 0 句无理由的。公开页面的「作品」改用 `%WORK%`；`Insights` 导航组改为 `Analytics / 数据分析`。
 - **2026-10-09（Claude）v10.20.3 —— 充值页的英文补齐，字典用词随版本带上**（**已发布、已部署**，`3a7b36a`）：
