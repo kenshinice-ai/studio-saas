@@ -1635,9 +1635,9 @@
       grid.className = 'surface-link-grid';
       // CMS and Admin are tenant-scoped: without an active support session the
       // backend answers 403 support_session_required, so those two route
-      // through the support-mode modal. Portal and Register stay public links.
+      // through the support-mode modal. Website and Register stay public links.
       [
-        ['portal', 'Portal', false],
+        ['portal', 'Website', false],
         ['cms', 'CMS', true],
         ['register', 'Register', false],
         ['admin', 'Admin', true]

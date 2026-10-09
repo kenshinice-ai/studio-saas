@@ -1861,7 +1861,7 @@ function App() {
     };
     const savePackage = async () => {
         if (busy) return;
-        if (!pkgName.trim() || !pkgCredits || !pkgPrice) { showToast('请填写套餐名称、课时数和价格', 'warn'); return; }
+        if (!pkgName.trim() || !pkgCredits || !pkgPrice) { showToast('请填写课包名称、课时数和价格', 'warn'); return; }
         const credits = parseInt(pkgCredits, 10);
         const price = parseFloat(pkgPrice);
         if (!Number.isFinite(credits) || credits < 1 || !Number.isFinite(price) || price < 0) { showToast('课时数必须大于 0，价格不能为负数', 'warn'); return; }
@@ -1872,14 +1872,14 @@ function App() {
         if (!ok) return;
         const adding = pkgEditId === 0;
         resetPackageEditor();
-        showToast(adding ? '套餐已添加' : '套餐已更新');
+        showToast(adding ? '课包已添加' : '课包已更新');
     };
     const archivePackage = (pkg) => {
-        if ((db.packages || []).length <= 1) { showToast('至少保留一个套餐', 'warn'); return; }
-        confirm(`删除套餐「${pkg.name}」？已有充值记录不会被删除。`, async () => {
+        if ((db.packages || []).length <= 1) { showToast('至少保留一个课包', 'warn'); return; }
+        confirm(`删除课包「${pkg.name}」？已有充值记录不会被删除。`, async () => {
             const ok = await save({...db, packages:(db.packages || []).filter(item => item.id !== pkg.id)});
-            if (ok) showToast('套餐已删除', 'warn');
-        }, {danger:true, confirmText:'删除套餐'});
+            if (ok) showToast('课包已删除', 'warn');
+        }, {danger:true, confirmText:'删除课包'});
     };
 
     const reviewBooking = async (bk, status) => {
@@ -2677,9 +2677,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const s = db.students.find(x => x.id === tuStu);
         if (!s) { showToast('请选择学员', 'error'); return; }
         if (!source) { showToast('请选择一笔原充值，再继续退款', 'error'); return; }
-        if (!Number.isFinite(credits) || credits <= 0) { showToast('请输入有效退课节数', 'error'); return; }
+        if (!Number.isFinite(credits) || credits <= 0) { showToast('请输入有效退课课时数', 'error'); return; }
         if (credits > Number(source.availableCredits || 0)) {
-            showToast(`退课节数不能超过所选原充值剩余 ${source.availableCredits} 节`, 'error'); return;
+            showToast(`退课课时数不能超过所选原充值剩余 ${source.availableCredits} 课时`, 'error'); return;
         }
         if (amountCents < 0) { showToast('退款金额无效', 'error'); return; }
         if (rfAdjustDocuments && (amountCents <= 0 || amountCents > Number(source.availableAmountCents || 0))) {
@@ -2697,8 +2697,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const requestId = nextRefundRequestId(signature);
         const invoiceLabel = source.invoiceNumber || '未关联发票';
         const confirmation = rfAdjustDocuments
-            ? `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），同时开具贷记单并登记付款退款？`
-            : `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}）？只改课时账本和现金净额，不改变发票或付款记录。`;
+            ? `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 课时、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），同时开具贷记单并登记付款退款？`
+            : `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 课时、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}）？只改课时账本和现金净额，不改变发票或付款记录。`;
         confirm(confirmation, async () => {
             if (busy) return;
             setBusy(true);
@@ -2741,7 +2741,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     'warn', action);
             } catch (err) { showToast(`退款失败：${err.message}`, 'error'); }
             finally { setBusy(false); }
-        }, {danger:true, confirmText: rfAdjustDocuments ? '确认退款并开贷记单' : `确认退课 ${credits} 节`});
+        }, {danger:true, confirmText: rfAdjustDocuments ? '确认退款并开贷记单' : `确认退课 ${credits} 课时`});
     };
 
     const handleAddStudent = (e) => {
@@ -4063,7 +4063,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
                                 className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
                                 网站、Logo、配色与注册表设置 →
-                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
+                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理官网、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
                         {canManageOperations && <TabPanel idBase="settings" name="team" active={settingsSection==='team'}>
@@ -4097,7 +4097,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                     className="mt-0.5 w-4 h-4 accent-indigo-600"/>
                                                 <span className="flex-1">
                                                     <span className="text-xs font-bold text-gray-600">可在公开课表显示姓名</span>
-                                                    <span className="block text-[11px] text-gray-400 mt-0.5">默认关闭。被排了一节课不等于同意把名字放到公网上，这一项由本人决定后再开。</span>
+                                                    <span className="block text-[11px] text-gray-400 mt-0.5">默认关闭。被排进班次不等于同意把名字放到公网上，这一项由本人决定后再开。</span>
                                                 </span>
                                             </label>
                                             {member.show_on_public_timetable && (

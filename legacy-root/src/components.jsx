@@ -1091,11 +1091,11 @@ export function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify
         </div>
         {/* 待续课阈值 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="bolt" className="w-4 h-4"/>待续课提醒阈值（剩余 ≤N 节）</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="bolt" className="w-4 h-4"/>待续课提醒阈值（剩余 ≤N 课时）</p>
             <div className="flex gap-2">
                 {[1,2,3,5].map(d=>(
                     <button key={d} onClick={()=>{saveRenewTh(d); post('/api/config',{renew_threshold:d}).catch(()=>{});}}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border ${renewTh===d?'bg-indigo-600 text-white border-indigo-600':'bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100'}`}>{d} 节</button>))}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border ${renewTh===d?'bg-indigo-600 text-white border-indigo-600':'bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100'}`}>{`${d} 课时`}</button>))}
             </div>
             <p className="text-[11px] text-gray-400">影响学员页「低余额」筛选和每周邮件中的待续课名单</p>
         </div>

@@ -1160,7 +1160,7 @@ def create_credit_transaction(student_id: str):
             tx_type, legacy_type, amount, fee_cents
         )
         if requires_balance_check and abs(delta) > current_balance:
-            return _error("退课节数不能超过剩余课时。", 400)
+            return _error("退课课时数不能超过剩余课时。", 400)
 
         new_balance = current_balance + delta
 

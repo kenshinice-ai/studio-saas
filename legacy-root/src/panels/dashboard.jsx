@@ -74,7 +74,7 @@ export function DashboardSection(props) {
                      go:allowedTabs.includes('pending') ? ()=>setTab('pending') : null, cta:'看待处理'},
                     {done:false, label:'建立课程与班次', go:allowedTabs.includes('courses') ? ()=>setTab('courses') : null, cta:'去课程目录'},
                     {done:false, label:'添加第一位学员', go:allowedTabs.includes('new_student') ? ()=>setTab('new_student') : null, cta:'新建学员'},
-                    {done:false, label:'配好充值套餐，才能收钱', go:allowedTabs.includes('topup') ? ()=>setTab('topup') : null, cta:'去充值与退款'},
+                    {done:false, label:'配好课包，才能收钱', go:allowedTabs.includes('topup') ? ()=>setTab('topup') : null, cta:'去充值与退款'},
                 ].map(({done, label, go, cta}, index) => (
                     <li key={label} className="flex items-center gap-2.5 text-sm">
                         <span className={`flex-shrink-0 w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${done ? 'bg-emerald-600 text-white' : 'bg-white border border-indigo-200 text-indigo-600'}`}>

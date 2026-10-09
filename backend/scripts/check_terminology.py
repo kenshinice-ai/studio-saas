@@ -64,6 +64,14 @@ BANNED = [
     (r"客户总数", "Students are 学员, not 客户. See docs/Glossary.md."),
     (r"商业洞察", "Use 经营统计 (Business Stats). See docs/Glossary.md."),
     (r"classes remaining", "One class may draw several credits — use 'credits remaining'."),
+    # Added 2026-10-09 when the dictionaries were brought onto the Glossary.
+    # Each names a phrase that was on screen, not the bare word: 套餐 is still
+    # right for the SaaS plan, and "portal" for the tenant portal's own name.
+    (r"套餐管理|添加套餐|套餐快选|Quick pack|[Aa]dd package",
+     "A pack of prepaid credits is 课包 / credit pack; 套餐 is the SaaS plan. See docs/Glossary.md."),
+    (r"退课节数|均价/课(?!时)", "节 and 课 are not credit units — use 课时 (credit). See docs/Glossary.md."),
+    (r"门户网站|Portal site|Open Portal|on the portal",
+     "The public site is 官网 / website; 'Portal' names only the tenant portal surface. See docs/Glossary.md."),
 ]
 
 # Industry-specific nouns must not be hard-coded in the shared public template;

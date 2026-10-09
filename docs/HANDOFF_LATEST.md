@@ -15,7 +15,8 @@
 
 ## 等 Lee
 
-没有。
+- **[决定] Studio「作品」的禁用范围** — 推荐：只禁共享代码和公开模板里硬编码的「作品」，员工界面（CMS / Studio Admin）保留「作品 / Portfolio」 · 不定会卡住：审计 S-B08/B10/B12/B15/B18/B20 和「画室 · 空间」「画艺」共 8 组用词 · 自 2026-10-09
+- **[决定] Studio 的 Insights 导航组要不要跟 Clinic 一样叫「数据分析」** — 推荐：改为「数据分析 / Analytics」，组里只有官网数据分析，不是经营统计页 · 不定会卡住：`admin-i18n.js` 的 `经营洞察` 留着，和术语表禁的「洞察」冲突 · 自 2026-10-09
 
 ## 当前四层身份（v10.20.2，2026-10-08 · **已发布、已部署**）
 
@@ -454,6 +455,9 @@
 
 ## 最新轮次
 
+- **2026-10-09（Claude）两本字典改用术语表已定的词**（界面文案，**已推分支 `feat/wording-dictionaries`，未合并、未发布**，随 v10.20.3 带上）：
+  轮次文件 `docs/handoff/claude/2026-10-09-wording-dictionaries.md`。课包、课时、官网三组词按术语表改；删 11 条死键；
+  `check_terminology.py` 加 3 条规则。作品和 Insights 两组等 Lee 定。
 - **2026-10-08（Claude）v10.20.2 —— CMS 英文词典恢复，CI gate 在 werkzeug 3.1.9 下转绿**（**已发布、已部署**，`dc15be4`）：
   轮次文件 `docs/handoff/claude/2026-10-08-v10.20.2-cms-dictionary.md`。`cms-i18n.js` 少一个逗号，
   CMS 自 v10.16.0 起没有英文模式；补回并加执行两份词典的回归测试。CI 从 `a03cfa4` 起红：

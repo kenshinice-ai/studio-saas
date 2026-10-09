@@ -269,7 +269,7 @@ export function StatsSection(props) {
                 <div className="flex gap-4 text-sm">
                     <span className="text-gray-500">合计: <span className="font-bold text-green-600">${statsData.totalRev.toFixed(2)}</span></span>
                     <span className="text-gray-500">消课: <span className="font-bold text-indigo-600">{statsData.totalCI} 次</span></span>
-                    {statsData.totalCI>0 && <span className="text-gray-500">均价/课: <span className="font-bold">${(statsData.totalRev/statsData.totalCI).toFixed(1)}</span></span>}
+                    {statsData.totalCI>0 && <span className="text-gray-500">均价/课时: <span className="font-bold">${(statsData.totalRev/statsData.totalCI).toFixed(1)}</span></span>}
                 </div>
             )}
         </div>
@@ -277,7 +277,7 @@ export function StatsSection(props) {
             <table className="w-full text-left">
                 <thead><tr className="border-b border-gray-100 text-gray-400 text-xs">
                     <th className="p-3 font-bold">周期</th><th className="p-3 font-bold">入账流水</th>
-                    <th className="p-3 font-bold">消课</th><th className="p-3 font-bold">充值次数</th><th className="p-3 font-bold">均价/课</th>
+                    <th className="p-3 font-bold">消课</th><th className="p-3 font-bold">充值次数</th><th className="p-3 font-bold">均价/课时</th>
                 </tr></thead>
                 <tbody>
                     {statsData.rows.map(r => (

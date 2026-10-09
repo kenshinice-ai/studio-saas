@@ -472,7 +472,7 @@ export function PendingSection(props) {
                             const match = db.students.filter(s=>!s.archived && normP(s.mobile)===normP(pen.mobile));
                             return match.length > 0 ? <p className="inline-flex items-center gap-1.5 text-xs text-blue-500 mt-0.5"><Icon name="device" className="w-4 h-4"/>此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
                         })()}
-                        <p className="text-xs text-gray-400 mt-0.5">提交时间: <span title={pen.submittedAt||''}>{fmtDT(pen.submittedAt)}</span> · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {REG_STATUS_ZH[pen.status||'pending']||pen.status}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">提交时间: <span title={pen.submittedAt||''}>{fmtDT(pen.submittedAt)}</span> · 来源: {pen.source==='portal'?'官网':'快速报名'} · 状态: {REG_STATUS_ZH[pen.status||'pending']||pen.status}</p>
                         {(() => {
                             /* 到期状态摆在卡上，而不是只在筛选器里 —— 一屏里
                                有三条时，得看得出哪条是今天的。 */

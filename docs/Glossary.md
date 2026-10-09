@@ -26,6 +26,11 @@ whether they mean the same thing — and sometimes they don't.
 | The platform admin | 平台管理 | Super Admin | 总后台 | — |
 | Business figures screen | 经营统计 | Business Stats | 商业洞察 | "Insights" oversells attendance and revenue counts for a small studio. |
 
+**Stored data keeps its old word.** A top-up writes `套餐: <pack name>` into the
+ledger note, and the pack-sales ranking in `api_v1/tenant.py` reads it back with
+a regex. That prefix is data, not copy: leave it as 套餐 even though the screen
+now says 课包. Renaming it would drop every past top-up from the ranking.
+
 ## Placeholders
 
 Public templates and family-facing messages use these tokens. Never hard-code

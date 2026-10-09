@@ -129,7 +129,7 @@ Manager / Owner 权限。**
 | 经营统计 / 财务报表 | ❌ | 需要 analytics:read |
 | 操作日志查看 | ✅ | 导出 CSV 仅 Owner/Manager |
 | 系统设置：改自己的密码、退出登录 | ✅ | — |
-| 团队管理 / 套餐管理 | ❌ | 仅 Owner（/Manager 可见部分） |
+| 团队管理 / 课包管理 | ❌ | 仅 Owner（/Manager 可见部分） |
 
 ---
 相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Owner 手册](Studio_Owner_Guide.md) · [前台/员工手册](Front_Desk_Staff_Guide.md) · [学员/家长手册](Student_Parent_Guide.md) · [手册总览](README.md) · 角色权限矩阵见 [Admin_Guide](../Admin_Guide.md)

@@ -1113,7 +1113,7 @@
       await updateProducerCredit();
       const slug = currentTenantSlug();
       const checks = [
-        ['surfacePortalHealth', 'portal', '官网', 'Portal'],
+        ['surfacePortalHealth', 'portal', '官网', 'Website'],
         ['surfaceCmsHealth', 'cms', '运营 CMS', 'CMS'],
         ['surfaceRegisterHealth', 'register', '报名', 'Register'],
         ['surfaceAdminHealth', 'admin', '工作室管理', 'Studio Admin']
@@ -3703,7 +3703,7 @@
       const rows = data.campaigns || [];
       if (!rows.length) {
         box.className = 'empty-state';
-        box.textContent = 'No public portal events in this period.';
+        box.textContent = 'No website visits in this period.';
         return;
       }
       box.className = '';
