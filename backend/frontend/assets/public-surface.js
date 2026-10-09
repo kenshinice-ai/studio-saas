@@ -99,6 +99,23 @@
       visible: module.visible, reasonCode: module.reasonCode, nextAction: module.nextAction } };
   }
 
+  /* %VENUE% / %WORK% / %WORKS% stand for the industry's own nouns, which
+     /brand reports from the preset. This is the one resolver for every public
+     page: the showcase and registration pages each hard-coded 「作品」 until
+     2026-10-09 because only the home page had a copy of it. The two defaults
+     below are the only place the public pages may spell the nouns out. */
+  function fillNouns(value, brand, language) {
+    const source = brand || {};
+    const workNoun = source.workNoun || source.work_noun || { zh: '作品', en: 'work', en_plural: 'works' };
+    const venueNoun = source.venueNoun || source.venue_noun || { zh: '工作室', en: 'studio' };
+    const work = text(workNoun[language] || workNoun.zh || '作品');
+    const works = language === 'en'
+      ? text(workNoun.en_plural || workNoun.enPlural || workNoun.en || work || 'works')
+      : work;
+    const venue = text(venueNoun[language] || venueNoun.zh || '工作室');
+    return text(value).split('%WORKS%').join(works).split('%WORK%').join(work).split('%VENUE%').join(venue);
+  }
+
   function resolve(input) {
     const brand = input?.brand || {};
     const website = websiteOf(brand);
@@ -112,27 +129,17 @@
     const timetable = input?.timetable || {};
     const faqItems = list(brand.faqItems || brand.faq_items);
     const publishedVersion = input?.publishedVersion ?? brand.publishedVersion ?? null;
-    const workNoun = brand.workNoun || brand.work_noun || { zh: '作品', en: 'work', en_plural: 'works' };
-    const venueNoun = brand.venueNoun || brand.venue_noun || { zh: '工作室', en: 'studio' };
-    const nouns = (value, language) => {
-      let result = text(value);
-      const work = text(workNoun[language] || workNoun.zh || '作品');
-      const works = language === 'en'
-        ? text(workNoun.en_plural || workNoun.en || work || 'works')
-        : work;
-      const venue = text(venueNoun[language] || venueNoun.zh || '工作室');
-      return result.split('%WORKS%').join(works).split('%WORK%').join(work).split('%VENUE%').join(venue);
-    };
+    const nouns = (value, language) => fillNouns(value, brand, language);
     const label = (value, fallbackZh, fallbackEn, limits) => ({
       zh: clipNavLabel(nouns(pairText(value) || fallbackZh, 'zh'), 'zh', limits),
       en: clipNavLabel(nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'), 'en', limits),
     });
     const labels = {
       principal: { zh: '主理人', en: 'Principal' },
-      showcase: label(website.showcase_label || website.showcaseLabel, '工作室作品', 'Selected Work'),
+      showcase: label(website.showcase_label || website.showcaseLabel, '工作室%WORK%', 'Selected Work'),
       courses: label(localized.courses_label || localized.coursesLabel, '课程与班次', 'Courses & Classes'),
       timetable: label(website.timetable_label || website.timetableLabel, '课程安排', 'Timetable'),
-      gallery: label(localized.gallery_label || localized.galleryLabel, '学员作品', 'Student Works'),
+      gallery: label(localized.gallery_label || localized.galleryLabel, '学员%WORK%', 'Student %WORKS%'),
       faq: label(localized.faq_label || localized.faqLabel, '常见问题', 'Questions & Answers'),
       student: { zh: '学员专区', en: 'Student Login' },
       register: label(localized.primary_cta || localized.primaryCta, '预约体验', 'Book a Trial', CTA_LABEL_LIMIT),
@@ -615,6 +622,6 @@
   global.StudioSaaS = global.StudioSaaS || {};
   global.StudioSaaS.publicSurface = {
     resolve, apply, clearLoading, fetch: fetchContract,
-    fitNavigation, queueFitNavigation, settleNavigation, applyBrandLockup,
+    fitNavigation, queueFitNavigation, settleNavigation, applyBrandLockup, fillNouns,
   };
 })(window);

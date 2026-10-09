@@ -247,8 +247,6 @@
     /* ── Reports ── */
     ['完成作品', 'Pieces completed'], ['生日', 'Birthday'],
     ['祝', 'Happy birthday to'],
-    ['生日快乐！愿新的一年里画艺大进，心想事成！',
-     'Happy birthday — wishing you a year of progress and everything you hope for.'],
     ['经营真账（估算）', 'Live revenue (estimated)'],
     ['经营月报（近 6 个月）', 'Monthly report (last 6 months)'],
     ['近 6 个月上课足迹', 'Attendance, last 6 months'],

@@ -417,7 +417,7 @@ def test_the_home_board_requests_the_six_item_preview_and_links_to_the_archive()
     portal = PORTAL.read_text(encoding="utf-8")
     assert 'id="showcaseMore" href="/{{TENANT_SLUG}}/showcase"' in portal
     assert "?surface=home&offset=" in portal
-    assert "查看全部作品" in portal
+    assert "查看全部%WORK%" in portal
 
 
 def test_the_standalone_showcase_surface_has_c_pagination_and_shared_shell():

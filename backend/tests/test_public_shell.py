@@ -604,3 +604,27 @@ def test_public_nav_uses_one_wide_shell_and_four_measurement_rungs():
             r"(?m)^\s*\.navrow\s*\{[^}]*width\s*:\s*min\(1180px",
             source,
         ), f"{name} still owns a conflicting 1180px nav width"
+
+
+def test_every_page_that_carries_noun_tokens_resolves_them():
+    """%VENUE% / %WORK% in a template is only copy once something fills it.
+
+    The home page had its own resolver; the showcase and registration pages had
+    none, so they spelled 「作品」 out instead (until 2026-10-09). The opposite
+    slip is worse: a page that carries the token and never fills it prints
+    `%WORK%` to a family. One resolver lives in public-surface.js; a page with
+    tokens in its own markup must call it. The shell partials are not read
+    here: apply() writes their labels, already resolved.
+    """
+
+    assert "fillNouns" in SURFACE_JS.read_text(encoding="utf-8")
+    carrying = []
+    for name in PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        if "%WORK" in source or "%VENUE%" in source:
+            carrying.append(name)
+            assert "publicSurface.fillNouns" in source, (
+                f"{name} carries %WORK% / %VENUE% but never calls "
+                "StudioSaaS.publicSurface.fillNouns — the token would be printed as-is."
+            )
+    assert {"index.html", "showcase.html", "register.html"} <= set(carrying)

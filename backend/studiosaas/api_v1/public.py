@@ -545,10 +545,10 @@ def public_surface(tenant_slug: str):
 
     labels = {
         "principal": {"zh": "主理人", "en": "Principal"},
-        "showcase": surface_label(profile.get("showcase_label"), {"zh": "工作室作品", "en": "Selected Work"}),
+        "showcase": surface_label(profile.get("showcase_label"), {"zh": "工作室%WORK%", "en": "Selected Work"}),
         "courses": surface_label(localized_copy.get("courses_label"), {"zh": "课程与班次", "en": "Courses & Classes"}),
         "timetable": surface_label(profile.get("timetable_label"), {"zh": "课程安排", "en": "Timetable"}),
-        "gallery": surface_label(localized_copy.get("gallery_label"), {"zh": "学员作品", "en": "Student Works"}),
+        "gallery": surface_label(localized_copy.get("gallery_label"), {"zh": "学员%WORK%", "en": "Student %WORKS%"}),
         "faq": surface_label(localized_copy.get("faq_label"), {"zh": "常见问题", "en": "Questions & Answers"}),
         "student": {"zh": "学员专区", "en": "Student Login"},
         "register": surface_label(localized_copy.get("primary_cta"), {"zh": "预约体验", "en": "Book a Trial"},

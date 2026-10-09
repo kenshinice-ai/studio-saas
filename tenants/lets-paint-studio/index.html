@@ -652,7 +652,7 @@
      Every entry starts hidden. The contract decides what a visitor is
      promised; a link that has not been confirmed is not shown. -->
       <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-zh="工作室%WORK%" data-en="Selected Work" style="display:none">工作室%WORK%</a>
       <a id="navCourses" href="/lets-paint-studio#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
       <a id="navTimetable" href="/lets-paint-studio/timetable" data-analytics-label="nav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
       <a id="navGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="nav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
@@ -674,7 +674,7 @@
      Every entry starts hidden. The contract decides what a visitor is
      promised; a link that has not been confirmed is not shown. -->
       <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="mnav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-analytics-label="mnav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-analytics-label="mnav_showcase" data-zh="工作室%WORK%" data-en="Selected Work" style="display:none">工作室%WORK%</a>
       <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-analytics-label="mnav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
       <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-analytics-label="mnav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
       <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="mnav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
@@ -765,14 +765,14 @@
 <section id="showcase" data-awaits-data>
   <div class="wrap">
     <div class="sec-head reveal">
-      <p id="showcaseLabel" class="eyebrow" data-en="Selected Work">工作室作品</p>
+      <p id="showcaseLabel" class="eyebrow" data-en="Selected Work">工作室%WORK%</p>
       <h2 id="showcaseTitle" class="serif" data-en="Work from this studio">出自这间%VENUE%</h2>
       <p id="showcaseLead" data-en="A short selection, chosen by the studio."></p>
     </div>
     <div class="sc-filters" id="showcaseFilters"></div>
     <div class="showcase-grid reveal" id="showcaseGrid"></div>
     <div class="showcase-rest reveal" id="showcaseRest"></div>
-    <div class="sc-more-wrap"><a class="btn btn-line" id="showcaseMore" href="/lets-paint-studio/showcase" hidden data-en="View all work">查看全部作品</a></div>
+    <div class="sc-more-wrap"><a class="btn btn-line" id="showcaseMore" href="/lets-paint-studio/showcase" hidden data-en="View all %WORKS%">查看全部%WORK%</a></div>
   </div>
 </section>
 
@@ -790,8 +790,8 @@
     </div>
     <div class="sc-lb-nav">
       <span class="sc-lb-count" id="scLbCount"></span>
-      <button type="button" class="sc-lb-btn" id="scLbPrev" data-en-aria="Previous work" aria-label="上一件作品"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <button type="button" class="sc-lb-btn" id="scLbNext" data-en-aria="Next work" aria-label="下一件作品"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button type="button" class="sc-lb-btn" id="scLbPrev" data-en-aria="Previous" aria-label="上一个"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button type="button" class="sc-lb-btn" id="scLbNext" data-en-aria="Next" aria-label="下一个"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M9 5l7 7-7 7"/></svg></button>
       <button type="button" class="sc-lb-btn" id="scLbClose" data-en-aria="Close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" width="18" height="18"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
@@ -1033,13 +1033,13 @@
     <div>
       <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:20px" id="footName">Let&#x27;s Paint Studio</span></div>
       <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by PWE</span></p>
-      <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。</p>
+      <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物与内容均为虚构，数据由运营手动重置。</p>
     </div>
     <div class="fl">
 <!-- Same list as the header, same rule: the contract decides. `Home` and
      `Privacy` are not contract entries — they always exist. -->
       <a href="/lets-paint-studio" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室%WORK%" data-en="Selected Work" style="display:none">工作室%WORK%</a>
       <a id="footCourses" href="/lets-paint-studio#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
       <a id="footTimetable" href="/lets-paint-studio/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
       <a id="footGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
@@ -1176,16 +1176,9 @@
      from the industry preset that /brand reports. */
   function nouns(value){
     if(value==null) return '';
-    var venue = state.venueNoun[lang()] || state.venueNoun.zh;
-    var work = state.workNoun[lang()] || state.workNoun.zh;
-    /* Chinese has no plural inflection, so %WORKS% only differs under EN. */
-    var works = lang()==='en'
-      ? (state.workNoun.en_plural || state.workNoun.enPlural || (work + 's'))
-      : work;
-    return String(value)
-      .split('%VENUE%').join(venue)
-      .split('%WORKS%').join(works)
-      .split('%WORK%').join(work);
+    /* One resolver for every public page, in public-surface.js. */
+    return window.StudioSaaS.publicSurface.fillNouns(
+      value, { workNoun: state.workNoun, venueNoun: state.venueNoun }, lang());
   }
   /* Batch 5: studio-identity fields (slogan, welcome, principal, section labels)
      now arrive as {zh, en} the same way brand copy already did. Legacy tenants
@@ -1693,7 +1686,7 @@
       if(index>=0 && lbOpen(index, button)) return;
       var frameEl=document.createElement('iframe');
       frameEl.src=item.video_embed_url||item.videoEmbedUrl||'';
-      frameEl.title=name||T('工作室作品视频','Studio work video');
+      frameEl.title=name||T('展示视频','Showcase video');
       frameEl.setAttribute('loading','lazy');
       frameEl.setAttribute('allowfullscreen','');
       frameEl.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
@@ -1785,7 +1778,7 @@
       // for a still. Still no third-party request until this point.
       var frame=document.createElement('iframe');
       frame.src=embed;
-      frame.title=pickLocalized(item.title)||T('工作室作品视频','Studio work video');
+      frame.title=pickLocalized(item.title)||T('展示视频','Showcase video');
       frame.setAttribute('allowfullscreen','');
       frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
       figure.appendChild(frame);
@@ -1936,7 +1929,7 @@
 
     var more=document.getElementById('showcaseMore');
     more.hidden=false;
-    more.textContent=T('查看全部作品','View all work');
+    more.textContent=nouns(T('查看全部%WORK%','View all %WORKS%'));
     resolveSection('showcase', true);
     setNavVisible(['navShowcase','mnavShowcase','footShowcase'], true);
     refreshPublicSurfaceContract();

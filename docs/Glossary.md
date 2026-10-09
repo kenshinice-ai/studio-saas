@@ -18,18 +18,39 @@ whether they mean the same thing — and sometimes they don't.
 | Marking a student present | 签到 | check-in | 打卡 | — |
 | The business renting StudioSaaS | 工作室 | studio | 门店, 商家 | The tenant record; also the default `%VENUE%`. |
 | The public venue noun shown to families | `%VENUE%` | `%VENUE%` | 画室 (hard-coded) | Resolved per industry: 画室 / 琴行 / 教室 / 舞蹈教室 / 训练中心. |
-| What a student produces | `%WORK%` | `%WORK%` | 作品 (hard-coded) | Resolved per industry: 作品 / 曲目 / 练习 / 舞蹈录像 / 项目. |
+| What a student or the studio produces, on a page families read | `%WORK%` | `%WORK%` | 作品 (hard-coded, public pages only) | Resolved per industry: 作品 / 曲目 / 练习 / 舞蹈录像 / 训练记录 / 项目. See "Where 作品 is banned". |
+| The same thing, on a staff screen | 作品 | work, Works, Portfolio | — | Names a feature and a data concept; one fixed word serves staff better than one that changes per tenant. |
 | The SaaS subscription tier | 套餐 | plan | 计划, package | — |
 | The public marketing site | 官网 | website | 门户, portal | "Portal" is reserved for the tenant portal surface name. |
 | The staff operations app | 运营 CMS | CMS | 后台 | 后台 is ambiguous between CMS and Studio Admin. |
 | The brand/website admin | 工作室管理 | Studio Admin | 管理后台 | — |
 | The platform admin | 平台管理 | Super Admin | 总后台 | — |
-| Business figures screen | 经营统计 | Business Stats | 商业洞察 | "Insights" oversells attendance and revenue counts for a small studio. |
+| Business figures screen (CMS) | 经营统计 | Business Stats | 商业洞察, 经营洞察 | "Insights" oversells attendance and revenue counts for a small studio. |
+| The Studio Admin group that holds website analytics | 数据分析 | Analytics | 经营洞察, Insights | It holds visit counts for the public site, not business figures, so it must not share a name with 经营统计. Same word as pwe-clinic. |
 
 **Stored data keeps its old word.** A top-up writes `套餐: <pack name>` into the
 ledger note, and the pack-sales ranking in `api_v1/tenant.py` reads it back with
 a regex. That prefix is data, not copy: leave it as 套餐 even though the screen
 now says 课包. Renaming it would drop every past top-up from the ranking.
+
+## Where 作品 is banned
+
+Decided by Lee on 2026-10-09.
+
+- **Banned:** hard-coded 「作品」 on anything a family reads — every file in
+  `tenant-template/`, the navigation labels in `public-surface.js`, the label
+  fallbacks in `api_v1/public.py`, and outbound message templates. Use
+  `%WORK%` / `%WORKS%`. Where the noun adds nothing, leave it out: the lightbox
+  buttons say 「上一个 / 下一个」, not 「上一件作品」.
+- **Kept:** 「作品 / Works / Portfolio」 on staff screens — the CMS, Studio Admin,
+  Super Admin and their dictionaries (`cms-i18n.js`, `admin-i18n.js`).
+- **Banned everywhere:** 「画室」 and 「画艺」. A venue noun is `%VENUE%`; a
+  placeholder that shows the default shows the token (`%VENUE% · 空间`).
+- **Not a breach:** the bare default `'作品'` in the resolver, and the nouns
+  inside `presets.py`, which is where they are defined.
+
+Chinese measure words do not survive the token: 「12 件公开作品」 becomes
+「12 件公开曲目」. Write the count without one (「共 12 项」).
 
 ## Placeholders
 

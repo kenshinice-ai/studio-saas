@@ -192,7 +192,7 @@
             <div class="field"><label for="email" data-zh="电子邮箱" data-en="Email">电子邮箱</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
             <div id="optionalCustomFields"></div>
             <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
-            <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。" data-en="I consent to the studio displaying the student's work on its website or promotional materials. This can be withdrawn at any time.">我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。</span></label>
+            <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="我同意工作室在官网或招生材料中展示学员%WORK%（可随时联系工作室撤回）。" data-en="I consent to the studio displaying the student's %WORKS% on its website or promotional materials. This can be withdrawn at any time.">我同意工作室在官网或招生材料中展示学员%WORK%（可随时联系工作室撤回）。</span></label>
             <div id="publicationConsentDetails" hidden>
               <div class="field"><label for="publicationConsentBy" data-zh="授权人姓名 *" data-en="Consenting person *">授权人姓名 *</label><input id="publicationConsentBy" autocomplete="name" maxlength="120"><span class="field-error" data-zh="请填写授权人姓名" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
               <div class="field"><label for="publicationRelationship" data-zh="与学员关系 *" data-en="Relationship to student *">与学员关系 *</label><select id="publicationRelationship"><option value="" data-zh="请选择" data-en="Select">请选择</option><option value="self" data-zh="本人" data-en="Self">本人</option><option value="parent" data-zh="家长/监护人" data-en="Parent / guardian">家长/监护人</option><option value="other_guardian" data-zh="其他授权监护人" data-en="Other authorised guardian">其他授权监护人</option></select><span class="field-error" data-zh="请选择与学员的关系" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
@@ -230,7 +230,7 @@
 <!-- Same list as the header, same rule: the contract decides. `Home` and
      `Privacy` are not contract entries — they always exist. -->
       <a href="/lets-paint-studio" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室%WORK%" data-en="Selected Work" style="display:none">工作室%WORK%</a>
       <a id="footCourses" href="/lets-paint-studio#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
       <a id="footTimetable" href="/lets-paint-studio/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
       <a id="footGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
@@ -241,7 +241,7 @@
     </nav>
     © 2026 <span id="footName">Let&#x27;s Paint Studio</span>
     <span id="producerCredit" hidden> · Powered by PWE</span>
-    <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。</p>
+    <p class="cp" id="demoNotice" hidden data-zh="演示站点：本页所有人物与内容均为虚构，数据由运营手动重置。" data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物与内容均为虚构，数据由运营手动重置。</p>
   </footer>
 
   <!-- P1-3: the same four sections the portal's privacy view shows, so the
@@ -250,9 +250,9 @@
   <dialog class="privacy" id="privacyDialog" aria-labelledby="privacyDialogTitle">
     <div class="privacy-body">
       <h2 id="privacyDialogTitle" data-zh="隐私说明" data-en="Privacy note">隐私说明</h2>
-      <div><h3 data-zh="一 · 我们收集哪些信息" data-en="1 · What we collect">一 · 我们收集哪些信息</h3><p data-zh="当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员作品拍照存档。" data-en="When you register or enquire, we collect the student's name and contact details, and photograph their work during classes.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员作品拍照存档。</p></div>
+      <div><h3 data-zh="一 · 我们收集哪些信息" data-en="1 · What we collect">一 · 我们收集哪些信息</h3><p data-zh="当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员%WORK%拍照存档。" data-en="When you register or enquire, we collect the student's name and contact details, and photograph their %WORKS% during classes.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员%WORK%拍照存档。</p></div>
       <div><h3 data-zh="二 · 信息的用途" data-en="2 · How we use it">二 · 信息的用途</h3><p data-zh="仅用于教学：联系课程事宜、准确记录课时、维护学员的私人记录。我们不会将您的信息出售或用于第三方营销。" data-en="Only for teaching: contacting you about classes, keeping accurate credit records, and maintaining each student's private records. We never sell or share your information for marketing.">仅用于教学：联系课程事宜、准确记录课时、维护学员的私人记录。我们不会将您的信息出售或用于第三方营销。</p></div>
-      <div><h3 data-zh="三 · 照片与作品" data-en="3 · Photos & work">三 · 照片与作品</h3><p data-zh="所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。" data-en="All photos are private by default — visible only after verifying the student's name, mobile and the access code the studio issued. Public display happens only with explicit consent, which can be withdrawn at any time.">所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
+      <div><h3 data-zh="三 · 照片与%WORK%" data-en="3 · Photos & %WORKS%">三 · 照片与%WORK%</h3><p data-zh="所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。" data-en="All photos are private by default — visible only after verifying the student's name, mobile and the access code the studio issued. Public display happens only with explicit consent, which can be withdrawn at any time.">所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
       <div><h3 data-zh="四 · 您的权利" data-en="4 · Your choices">四 · 您的权利</h3><p data-zh="您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。" data-en="You may ask us at any time to view, correct or delete the information we hold, or to withdraw photo consent.">您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。</p></div>
     </div>
     <div class="privacy-foot">
@@ -330,12 +330,18 @@
         history.replaceState(null, '', location.pathname + (query ? `?${query}` : '') + location.hash);
       } catch (_) {}
     }
+    /* %VENUE% / %WORK% / %WORKS% → this tenant's industry nouns. Runs again
+       when /brand answers, because the nouns arrive with it. */
+    function fillStaticCopy() {
+      const fill = window.StudioSaaS.publicSurface.fillNouns;
+      document.querySelectorAll('[data-zh][data-en]').forEach((element) => {
+        element.textContent = fill(element.dataset[currentLanguage], currentBrand, currentLanguage);
+      });
+    }
     function applyLanguage() {
       document.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
       syncLocaleMeta();
-      document.querySelectorAll('[data-zh][data-en]').forEach((element) => {
-        element.textContent = element.dataset[currentLanguage];
-      });
+      fillStaticCopy();
       document.querySelectorAll('[data-language]').forEach((button) => {
         const active = button.dataset.language === currentLanguage;
         button.classList.toggle('active', active);
@@ -453,6 +459,7 @@
       const copyContactBtn = document.getElementById('copyContactBtn');
       copyContactBtn.hidden = !quickContact;
       copyContactBtn.dataset.contact = quickContact;
+      fillStaticCopy();
       applyBrandContent();
       applyPublicSurfaceContract();
     }
