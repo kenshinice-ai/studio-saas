@@ -23,9 +23,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.9, release candidate** — not deployed | Wording on two public pages and the tests that pin it; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.9.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.9.tar.gz`. |
-| Production | **v10.20.8** (`pwestudio.online`, Oracle ARM, commit `40ba01b`) | v10.20.9 is not deployed. Measured 2026-10-10 for v10.20.8: deep health `db=ok`, 5 tenants; the PWE Assist window is open on the product site. |
+| Source | **v10.20.9, released** — deployed commit `b73dea7` on `main` | Wording on two public pages and the tests that pin it; **zero migrations**. Local gate `All checks passed`, pytest 2575 passed / 41 skipped; CI gate passed on the same commit (run 38022179821). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.9.tar.gz` SHA-256 `89ab5d9d62dbce0b3858bda9ac9d47f9b8a994e8f207f0ca91ad190c78effdbf` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.9.tar.gz` SHA-256 `9a01ee5f5d261760a4602657ed00ee12f4f2324e7e9873a8c3065013fe6a928b`. Three-way commit guard equal. |
+| Production | **v10.20.9** (`pwestudio.online`, Oracle ARM, commit `b73dea7`) | Measured 2026-10-10: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. The service FAQ and the privacy policy say the encrypted backup copy is in Cloudflare's Oceania region; section 10 names both exceptions to Anthropic's deletion. Assist knowledge commit `10.20.9-c955c8b6` equals the Worker's. The logged-in browser matrix was not run: no signed-in surface changed. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

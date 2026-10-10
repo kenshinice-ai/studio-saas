@@ -17,25 +17,38 @@
 
 没有。
 
-## 当前四层身份（v10.20.9，2026-10-10 · **已准备，未部署**）
+## 当前四层身份（v10.20.9，2026-10-10 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-10「1. 同意 2. 我已经通知了 3. r2 也在cloudflare 大洋洲」）。
 > 轮次文件：`docs/handoff/claude/2026-10-10-assist-followups.md`。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `release/10.20.9` 上的发布提交（提交后回填哈希）。进运行时的改动都是文字：`3dcb170` 隐私政策第十节补上 Anthropic 删除期的第二个例外；加密备份副本的位置写成 Cloudflare 的大洋洲区域。**零迁移**。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.9.tar.gz`。未构建。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.9.tar.gz`。未构建。 |
-| Production | 仍是 **v10.20.8**（`40ba01b`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.9`；服务 FAQ 写着「Oceania region」。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `b73dea7b2eda0ae939592d6d762c73b7a33a92ae`，已在 `origin/main`。进运行时的改动都是文字：隐私政策第十节补上 Anthropic 删除期的第二个例外（`3dcb170`）；服务 FAQ 和隐私政策把加密备份副本的位置写成 Cloudflare 的大洋洲区域。**零迁移**。local gate `All checks passed`，pytest 2575 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38022179821）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.9.tar.gz`，SHA-256 `89ab5d9d62dbce0b3858bda9ac9d47f9b8a994e8f207f0ca91ad190c78effdbf`，`BUILD_INFO` commit `b73dea7…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.9.tar.gz`，SHA-256 `9a01ee5f5d261760a4602657ed00ee12f4f2324e7e9873a8c3065013fe6a928b`，`BUILD_INFO` commit `b73dea7…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。 |
+| Production | `pwestudio.online` = **v10.20.9**（Oracle ARM `pwe-arm`，commit `b73dea7`）。2026-10-10 14:56–14:57 AEDT 由 `bash deploy/oracle/pwestudio_arm.sh deploy b73dea7b2eda0ae939592d6d762c73b7a33a92ae` 部署，脚本末行 `Deployed: b73dea7b2eda as v10.20.9`。实测公网深健康：`appVersion=10.20.9`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`、磁盘 17.5%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-10 实测主机定时器：`pwe-backup-db.timer` 上一次 2026-10-10 03:15 AEDT，下一次 2026-10-11 03:19 AEDT。部署脚本本身不做部署前备份。 |
 
-### STOP GATE（第 8 步之前）
+### 部署后验收（生产实测，2026-10-10，v10.20.9）
 
-- local gate 输出 `All checks passed`。
-- CI gate 在发布提交上通过。
-- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 17.1%、公网 17.1%，同一台主机 |
+| 服务 FAQ | 有「Oceania region, which is wider than Australia」；没有「not pinned it to Australia」 |
+| 隐私政策（英文、中文） | 有「in its Oceania region」和「or is required by law to keep」；中文页有对应两句 |
+| 公开地址 | `/studio`、`/pricing`、`/manual/`、服务条款、`/lets-paint-showcase` 都是 200 |
+| 窗口 | `/studio` 仍有 1 处加载脚本 |
+| Assist 知识与 Worker | `version.json` 的 `commit` 是 `10.20.9-c955c8b6`；`/v1/assist/health?site=pwe-studio` 的 `knowledge` 相同（部署后约一分钟读的） |
+
+### 这次不声称的
+
+- **加密备份副本在大洋洲区域，依据是 Lee 2026-10-10 的话，不是本仓库量到的。** 主机上 rclone 的 `region` 写的是 `auto`，看不出位置。
+- **已通知已订阅的工作室，依据同样是 Lee 2026-10-10 的话。** 通知的内容和日期本仓库没有记录。
+- **Anthropic 删除期的第二个例外，依据是 pwe-ai-bots 与 paradise-production 两个会话读 Anthropic 隐私中心的结果。** 本仓库没有自己去读原文。
+- **没有跑带登录的浏览器矩阵。** 这一版只改两页文字。
+- **pwe-clinic 没有改。** 这一版不涉及安全、RLS、计费、Xero 或账务代码。它的文档是否还写着 AWS，没有打开核对。
 
 ## 上一版四层身份（v10.20.8，2026-10-10 · 已发布、已部署）
 
@@ -70,7 +83,7 @@
 - **加密备份副本存在哪个地区，没有核实。** Lee 2026-10-10 说不确定。页面写的是「没有限定在澳大利亚境内」。
 - **旧的 AWS 实例上已没有客户数据，这一条没有核实。** Lee 2026-10-10 说数据已清理。页面没有写这句话。2026-10-10 实测那台主机的 80 端口仍返回 301。
 - **隐私政策第十节没有照 Lee 的一句原话写。** Lee 说「最终数据还是在 oracle 那边」。助手的对话和留言实际保存在 Cloudflare 的数据库里（pwe-ai-bots 的 `wrangler.jsonc`，`--location oc`），不在 Oracle 主机上。页面写的是事实：记录由我们保存、不由 Anthropic 保存、在 Cloudflare；工作室自己的记录在墨尔本的主机上，不会发给助手。已在汇报里告诉 Lee。
-- **没有通知已订阅的工作室。** 隐私政策第十一节写着：实质影响信息处理方式的变更，会在生效前书面告知。数据所在地 2026-09-17 就变了。要不要补发通知由 Lee 定。
+- **没有通知已订阅的工作室。** 隐私政策第十一节写着：实质影响信息处理方式的变更，会在生效前书面告知。数据所在地 2026-09-17 就变了。（Lee 2026-10-10 稍后答复：他已经通知了。）
 - **浏览器控制台仍有一条旧报错。** Cloudflare 注入的 `beacon.min.js` 被本应用的 CSP 拦下。不是这两版引入的，没有处理。
 - **pwe-clinic 没有改。** 这两版不涉及安全、RLS、计费、Xero 或账务代码。它的文档是否也写着 AWS，没有打开核对。
 
@@ -669,7 +682,7 @@
 
 ## 最新轮次
 
-- **2026-10-10（Claude）v10.20.7 至 v10.20.9 —— 主机位置更正、表单提交、PWE Assist 窗口、两句措辞**（v10.20.7、v10.20.8 **已发布、已部署**；v10.20.9 已准备）：
+- **2026-10-10（Claude）v10.20.7 至 v10.20.9 —— 主机位置更正、表单提交、PWE Assist 窗口、两句措辞**（三版都**已发布、已部署**；`dd6610e`、`40ba01b`、`b73dea7`）：
   轮次文件 `docs/handoff/claude/2026-10-10-assist-followups.md`。`fix/assist-knowledge-cleanup` 已推送，CI gate 通过；
   `feat/assist-widget-form` 只在本机的 worktree 里，带着等 Lee 过目的隐私政策草稿。读页面时发现四个公开页面写的主机位置是错的，见「等 Lee」。
 - **2026-10-10（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已发布、已部署**，`d002008`）：
