@@ -1,4 +1,4 @@
-# PWE Studio v10.20.9 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.10 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -15,9 +15,29 @@
 
 ## 等 Lee
 
-- **[决定] 隐私政策第十节加一句「谁会看到」：PWE 的人会读助手没答上的提问** — 推荐加上并发一个补丁版本；改动已在本机分支 `fix/privacy-who-reads-unanswered`（`9a631a5`，未推送）。我的判断：这是把已经在做的事写明，不涉及工作室的数据，不属于第十一节要事先书面通知的情形 · 不定的话政策少写了一件正在发生的事 · 自 2026-10-10
+没有。
 
-## 当前四层身份（v10.20.9，2026-10-10 · **已发布、已部署**）
+## 当前四层身份（v10.20.10，2026-10-10 · **已准备，未部署**）
+
+> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-10「加 然后不用通知」）。
+> 轮次文件：`docs/handoff/claude/2026-10-10-assist-followups.md`。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 候选是 `release/10.20.10` 上的发布提交（提交后回填哈希）。进运行时的改动：`9a631a5` 隐私政策第十节加一句「谁会看到」，中英各一句。**零迁移**。 |
+| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.10.tar.gz`。未构建。 |
+| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.10.tar.gz`。未构建。 |
+| Production | 仍是 **v10.20.9**（`b73dea7`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.10`；隐私政策页面里有「people at PWE read the questions the assistant could not answer」。 |
+| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+
+### STOP GATE（第 8 步之前）
+
+- local gate 输出 `All checks passed`。
+- CI gate 在发布提交上通过。
+- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+
+## 上一版四层身份（v10.20.9，2026-10-10 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-10「1. 同意 2. 我已经通知了 3. r2 也在cloudflare 大洋洲」）。
@@ -50,7 +70,7 @@
 - **没有跑带登录的浏览器矩阵。** 这一版只改两页文字。
 - **pwe-clinic 没有改。** 这一版不涉及安全、RLS、计费、Xero 或账务代码。它的文档是否还写着 AWS，没有打开核对。
 
-## 上一版四层身份（v10.20.8，2026-10-10 · 已发布、已部署）
+## 更早一版四层身份（v10.20.8，2026-10-10 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）和放开窗口由 Lee 在会话里授权（2026-10-10「5 可以发版本 6 窗口可以开了」）。
@@ -682,7 +702,7 @@
 
 ## 最新轮次
 
-- **2026-10-10（Claude）v10.20.7 至 v10.20.9 —— 主机位置更正、表单提交、PWE Assist 窗口、两句措辞**（三版都**已发布、已部署**；`dd6610e`、`40ba01b`、`b73dea7`）：
+- **2026-10-10（Claude）v10.20.7 至 v10.20.10 —— 主机位置更正、表单提交、PWE Assist 窗口、隐私政策的三处措辞**（v10.20.7 至 v10.20.9 **已发布、已部署**；v10.20.10 已准备）：
   轮次文件 `docs/handoff/claude/2026-10-10-assist-followups.md`。`fix/assist-knowledge-cleanup` 已推送，CI gate 通过；
   `feat/assist-widget-form` 只在本机的 worktree 里，带着等 Lee 过目的隐私政策草稿。读页面时发现四个公开页面写的主机位置是错的，见「等 Lee」。
 - **2026-10-10（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已发布、已部署**，`d002008`）：
