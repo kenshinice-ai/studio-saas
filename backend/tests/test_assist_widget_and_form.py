@@ -359,15 +359,17 @@ def test_the_backup_answer_states_its_own_limits() -> None:
     for phrase in (
         "encrypted on the host before it leaves",
         "Media is copied monthly, not nightly",
-        "we have not pinned it to Australia",
+        "kept in Cloudflare’s Oceania region, which is wider than Australia",
         "no automated alert if a backup run fails",
         "媒体是每月备份，不是每晚",
-        "没有把它限定在澳大利亚境内",
+        "存放在 Cloudflare 的大洋洲区域",
     ):
         assert phrase in faq, phrase
     privacy = PRIVACY
-    assert "Apart from that encrypted backup copy, we do not send a studio’s personal information overseas" in privacy
-    assert "we have not pinned that location to Australia" in privacy
+    assert "Apart from that encrypted backup copy, which may sit outside Australia within Oceania, we do not send a studio’s personal information overseas" in privacy
+    # Oceania is a region, not a country. The page may say the copy is in
+    # Oceania; it must not let that read as "in Australia".
+    assert "we do not describe that encrypted copy as held in Australia" in privacy
 
 
 def test_the_support_policy_describes_the_form_that_exists() -> None:

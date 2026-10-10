@@ -282,7 +282,7 @@ def test_privacy_policy_discloses_the_open_gaps() -> None:
     # because it was asserting the old facts. A test that pins a fact about
     # the world has to be changed by whoever changes the world.
     assert "Uploaded media is copied off the host monthly rather than nightly" in source
-    assert "we have not pinned that location to Australia" in source
+    assert "we do not describe that encrypted copy as held in Australia" in source
     assert "ap-melbourne-1" in source and "ap-southeast-2" not in source
 
 
