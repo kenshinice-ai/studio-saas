@@ -17,25 +17,38 @@
 
 没有。
 
-## 当前四层身份（v10.20.10，2026-10-10 · **已准备，未部署**）
+## 当前四层身份（v10.20.10，2026-10-10 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-10「加 然后不用通知」）。
 > 轮次文件：`docs/handoff/claude/2026-10-10-assist-followups.md`。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `release/10.20.10` 上的发布提交（提交后回填哈希）。进运行时的改动：`9a631a5` 隐私政策第十节加一句「谁会看到」，中英各一句。**零迁移**。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.10.tar.gz`。未构建。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.10.tar.gz`。未构建。 |
-| Production | 仍是 **v10.20.9**（`b73dea7`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.10`；隐私政策页面里有「people at PWE read the questions the assistant could not answer」。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `7bdf3538c37734238a0f70fe82ad165d3d518d66`，已在 `origin/main`。进运行时的改动：`9a631a5` 隐私政策第十节加一句「谁会看到」，中英各一句。**零迁移**。local gate `All checks passed`，pytest 2575 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38048003468）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.20.10.tar.gz`，SHA-256 `1fbc940bb175a15ba5b95107bed40a8b103e1317bcd6858c76ec01b9ce604105`，`BUILD_INFO` commit `7bdf353…`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.20.10.tar.gz`，SHA-256 `0a83453208c98048a79ecc9c3a022456be37b242ddf61c061e3ef8cf05f428c2`，`BUILD_INFO` commit `7bdf353…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。 |
+| Production | `pwestudio.online` = **v10.20.10**（Oracle ARM `pwe-arm`，commit `7bdf353`）。2026-10-10 22:22–22:23 AEDT 由 `bash deploy/oracle/pwestudio_arm.sh deploy 7bdf3538c37734238a0f70fe82ad165d3d518d66` 部署，脚本末行 `Deployed: 7bdf3538c377 as v10.20.10`。实测公网深健康：`appVersion=10.20.10`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`、磁盘 18.0%。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-10 下午实测主机定时器：`pwe-backup-db.timer` 下一次 2026-10-11 03:19 AEDT。部署脚本本身不做部署前备份。 |
 
-### STOP GATE（第 8 步之前）
+### 部署后验收（生产实测，2026-10-10，v10.20.10）
 
-- local gate 输出 `All checks passed`。
-- CI gate 在发布提交上通过。
-- 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 17.6%、公网 17.6%，同一台主机 |
+| 隐私政策，英文页 | 有「people at PWE read the questions the assistant could not answer」 |
+| 隐私政策，中文页 | 有「我们的人会读助手没答上的提问」 |
+| 公开地址 | `/studio`、`/zh/studio/`、`/pricing`、`/manual/`、服务 FAQ、版本记录、`/lets-paint-showcase` 都是 200 |
+| 版本记录页 | v10.20.10 的条目已在线上 |
+| 窗口 | `/studio` 仍有 1 处加载脚本 |
+| Assist 知识与 Worker | `version.json` 的 `commit` 是 `10.20.10-a63e0cbd`；`/v1/assist/health?site=pwe-studio` 的 `knowledge` 相同（部署后约一分钟读的） |
+
+### 这次不声称的
+
+- **「PWE 的人会读没答上的提问」这件事本身，本仓库没有核实。** 它描述的是 pwe-ai-bots 一侧的做法，文字由那边的会话提供。
+- **不事先书面通知已订阅的工作室，是 Lee 2026-10-10 的决定。** 理由：这句话讲的是 product site 访客的助手提问，不涉及工作室的数据。
+- **没有跑带登录的浏览器矩阵。** 这一版只加一句文字。
+- **pwe-clinic 没有改。** 这一版不涉及安全、RLS、计费、Xero 或账务代码。
 
 ## 上一版四层身份（v10.20.9，2026-10-10 · 已发布、已部署）
 
@@ -702,7 +715,7 @@
 
 ## 最新轮次
 
-- **2026-10-10（Claude）v10.20.7 至 v10.20.10 —— 主机位置更正、表单提交、PWE Assist 窗口、隐私政策的三处措辞**（v10.20.7 至 v10.20.9 **已发布、已部署**；v10.20.10 已准备）：
+- **2026-10-10（Claude）v10.20.7 至 v10.20.10 —— 主机位置更正、表单提交、PWE Assist 窗口、隐私政策的三处措辞**（四版都**已发布、已部署**；`dd6610e`、`40ba01b`、`b73dea7`、`7bdf353`）：
   轮次文件 `docs/handoff/claude/2026-10-10-assist-followups.md`。`fix/assist-knowledge-cleanup` 已推送，CI gate 通过；
   `feat/assist-widget-form` 只在本机的 worktree 里，带着等 Lee 过目的隐私政策草稿。读页面时发现四个公开页面写的主机位置是错的，见「等 Lee」。
 - **2026-10-10（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已发布、已部署**，`d002008`）：
