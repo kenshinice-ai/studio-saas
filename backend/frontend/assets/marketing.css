@@ -405,6 +405,26 @@ a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent);
 .field select option { background: var(--card); color: var(--ink); }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); background: var(--control-fill); }
 .form-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+/* A field's error is text under the field, named by the control's
+   aria-describedby. It is set in ink at full weight rather than in a warning
+   hue: this band is amber, and a red or amber message on it fails contrast
+   exactly where the reader most needs to read. The control's own boundary
+   thickens to say which field is meant. */
+.field-error { margin: 0; color: var(--ink); font-size: var(--f-sm); font-weight: 600; line-height: 1.45; }
+.field [aria-invalid="true"] { border-color: var(--ink); border-width: 2px; padding: 12px 13px; }
+.form-status { min-height: 1.45em; margin: var(--s-2) 0 0; color: var(--ink); font-size: var(--f-sm); font-weight: 600; line-height: 1.45; }
+.form-status:empty { min-height: 0; margin: 0; }
+/* Off-screen, not display:none — see the comment beside the field. */
+.form-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.form-fallback { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--control-line); }
+.form-fallback p { margin: 0; color: var(--ink); font-size: var(--f-sm); line-height: 1.6; }
+/* The focus ring lands on this block when the form is replaced by it, so it
+   needs room of its own: without padding the ring sat on the first letter. */
+.form-done { padding: var(--s-3); border-radius: 10px; }
+.form-done h3 { margin: 0 0 var(--s-2); }
+.form-done p { margin: 0; color: var(--ink); line-height: 1.6; }
+.form-done:focus { outline: none; }
+.form-done:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 /* ── footer ────────────────────────────────────────────────────────── */
 .foot { padding: var(--s-6) 0 max(var(--s-5), env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--hairline); }

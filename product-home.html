@@ -488,35 +488,73 @@
         <p class="lead" data-lang="en">Book a 30-minute walkthrough and we build a previewable portal live, using your studio’s name, courses and work.</p>
         <p class="lead" data-lang="zh">预约一次 30 分钟演示：用你工作室的名字、作品和课程，现场生成一个可预览的门户。</p>
 
-        <form class="form" id="supportForm">
+        <form class="form" id="supportForm" novalidate>
           <div class="form-grid">
             <div class="field">
+              <label for="supportName"><span data-lang="en">Your name</span><span data-lang="zh">姓名</span></label>
+              <input id="supportName" name="name" maxlength="100" autocomplete="name" required aria-describedby="supportNameError">
+              <p class="field-error" id="supportNameError" hidden></p>
+            </div>
+            <div class="field">
+              <label for="supportEmail"><span data-lang="en">Email</span><span data-lang="zh">邮箱</span></label>
+              <input id="supportEmail" name="email" type="email" maxlength="254" autocomplete="email" inputmode="email" required aria-describedby="supportEmailError">
+              <p class="field-error" id="supportEmailError" hidden></p>
+            </div>
+            <div class="field">
               <label for="supportTopic"><span data-lang="en">Topic</span><span data-lang="zh">主题</span></label>
-              <select id="supportTopic">
+              <select id="supportTopic" name="type" aria-describedby="supportTopicError">
                 <option>Product demonstration</option>
                 <option>Onboarding and migration</option>
                 <option>Technical support</option>
                 <option>Pricing and contract</option>
                 <option>Product feedback</option>
               </select>
+              <p class="field-error" id="supportTopicError" hidden></p>
             </div>
             <div class="field">
-              <label for="supportStudio"><span data-lang="en">Studio name</span><span data-lang="zh">工作室名称</span></label>
-              <input id="supportStudio" maxlength="120" autocomplete="organization">
+              <label for="supportStudio"><span data-lang="en">Studio name (optional)</span><span data-lang="zh">工作室名称（选填）</span></label>
+              <input id="supportStudio" name="organisation" maxlength="120" autocomplete="organization" aria-describedby="supportStudioError">
+              <p class="field-error" id="supportStudioError" hidden></p>
             </div>
             <div class="field full">
               <label for="supportMessage"><span data-lang="en">Message</span><span data-lang="zh">内容</span></label>
-              <textarea id="supportMessage" maxlength="1500" required></textarea>
+              <textarea id="supportMessage" name="brief" maxlength="4000" required aria-describedby="supportMessageError"></textarea>
+              <p class="field-error" id="supportMessageError" hidden></p>
             </div>
           </div>
-          <p class="note" data-lang="en">These buttons open your device’s Mail or Messages app; PWE Studio does not silently transmit or store the form. Review the message before sending, and do not include passwords, payment details or sensitive student information.</p>
-          <p class="note" data-lang="zh">按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。发送前请再次检查，请勿包含密码、付款信息或敏感学员资料。</p>
+          <!-- A field no person sees or tabs into. Off-screen rather than
+               display:none, because a form-filling bot skips what is not
+               rendered and fills what is. The enquiry service discards
+               anything that arrives with it filled. -->
+          <div class="form-trap" aria-hidden="true">
+            <label for="supportWebsite">Website</label>
+            <input id="supportWebsite" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <p class="note" data-lang="en">Sending this stores your message with PWE and emails it to our team so that we can reply. Do not include passwords, payment details or sensitive student information. How it is handled: <a href="/customer-resources/Privacy_Policy.html#website-enquiries">privacy policy</a>.</p>
+          <p class="note" data-lang="zh">发送后，这条留言会保存在 PWE，并以邮件发给我们的团队，用于回复你。请勿包含密码、付款信息或敏感学员资料。处理方式见<a href="/customer-resources/Privacy_Policy.html#website-enquiries">隐私政策</a>。</p>
+          <p class="form-status" id="supportStatus" role="status" aria-live="polite"></p>
           <div class="form-actions">
-            <button class="btn" type="submit"><span data-lang="en">Open Mail</span><span data-lang="zh">打开邮件</span></button>
-            <button class="btn btn-ghost" type="button" id="openMessages"><span data-lang="en">Open Messages</span><span data-lang="zh">打开信息</span></button>
+            <button class="btn" type="submit" id="supportSend"><span data-lang="en">Send</span><span data-lang="zh">发送</span></button>
             <a class="btn btn-ghost" href="tel:+61488885850">0488 885 850</a>
           </div>
+          <!-- Shown only when the message could not be sent from the page.
+               Nothing the visitor wrote is lost: the same text opens in their
+               own mail or messages app, addressed to us. -->
+          <div class="form-fallback" id="supportFallback" hidden>
+            <p data-lang="en"><strong>This page could not send your message.</strong> Nothing you wrote is lost. Send it from your own app instead — it opens with the text prepared and addressed to us.</p>
+            <p data-lang="zh"><strong>这个页面没能把留言发出去。</strong>你写的内容还在。可以改用自己的应用发送：打开时文字已经填好，收件人是我们。</p>
+            <div class="form-actions">
+              <button class="btn btn-ghost" type="button" id="openMail"><span data-lang="en">Open Mail</span><span data-lang="zh">打开邮件</span></button>
+              <button class="btn btn-ghost" type="button" id="openMessages"><span data-lang="en">Open Messages</span><span data-lang="zh">打开信息</span></button>
+            </div>
+          </div>
         </form>
+        <div class="form form-done" id="supportDone" role="status" tabindex="-1" hidden>
+          <h3 data-lang="en">Received.</h3>
+          <h3 data-lang="zh">已收到。</h3>
+          <p data-lang="en">We reply to the email you gave on the same business day. The next step is a 30-minute walkthrough.</p>
+          <p data-lang="zh">我们会在工作日当天回复，下一步是一次 30 分钟演示。</p>
+        </div>
 
         <p class="note" data-lang="en">Migrating from spreadsheets? Start from the import template: <a href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download>CSV</a> · <a href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download>Excel</a>.</p>
         <p class="note" data-lang="zh">从表格迁移？先下载导入模版：<a href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download>CSV</a> · <a href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download>Excel</a>。</p>
@@ -559,5 +597,6 @@
       </div>
     </div>
   </footer>
+<!--ASSIST-WIDGET-->
 </body>
 </html>

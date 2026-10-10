@@ -309,6 +309,55 @@ def render_robots() -> str:
     return "\n".join(lines) + "\n"
 
 
+# ── PWE Assist ──────────────────────────────────────────────────────────────
+#
+# The visitor assistant's window is one script, served by the `pwe-assist`
+# Worker at the same origin (`/v1/assist/widget.js`). It adds a button to the
+# corner of the page and requests nothing until the visitor presses it.
+#
+# One switch, three positions:
+#
+#   "off"   no script at all
+#   "gate"  loaded only for a visit that arrived with `?assist=1` (remembered
+#           for that tab), so it can be tried on production before any
+#           visitor meets it
+#   "on"    loaded for everyone
+#
+# Moving from "gate" to "on" is a release of its own, taken after someone has
+# used the gated window on the live site.
+ASSIST_SITE_ID = "pwe-studio"
+ASSIST_WIDGET_MODE = "gate"
+
+_ASSIST_GATE = (
+    "<script>(function(){{try{{if(/[?&]assist=1/.test(location.search))"
+    "sessionStorage.setItem('pwe-assist:try','1');"
+    "if(sessionStorage.getItem('pwe-assist:try')!=='1')return;}}catch(e){{return;}}"
+    "var s=document.createElement('script');s.defer=true;s.src='/v1/assist/widget.js';"
+    "s.setAttribute('data-site','{site}');s.setAttribute('data-lang','{lang}');"
+    "document.body.appendChild(s);}})();</script>"
+)
+_ASSIST_STATIC = (
+    '<script defer src="/v1/assist/widget.js" data-site="{site}" data-lang="{lang}"></script>'
+)
+
+
+def render_assist_widget(language: str, mode: str | None = None) -> str:
+    """The markup that puts the PWE Assist window on one product-site page.
+
+    Only the product site's own pages call this. A tenant portal, the
+    registration flow and every signed-in surface never do: the assistant
+    knows the product site's words and nothing about any tenant.
+    """
+
+    mode = ASSIST_WIDGET_MODE if mode is None else mode
+    if mode == "off":
+        return ""
+    if mode not in ("gate", "on"):
+        raise ValueError(f"unknown assist widget mode: {mode!r}")
+    template = _ASSIST_GATE if mode == "gate" else _ASSIST_STATIC
+    return template.format(site=ASSIST_SITE_ID, lang="zh" if language == "zh" else "en")
+
+
 # ── pricing ─────────────────────────────────────────────────────────────────
 
 _LABELS = {

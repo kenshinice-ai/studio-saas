@@ -202,7 +202,14 @@ def test_the_page_keeps_its_commercial_boundaries() -> None:
                      "数据清洗", "消息供应商费用", "自定义域名", "多校区汇总"):
         assert excluded in source, f"the scope limit '{excluded}' is no longer published"
     assert "campus runs as its own tenant" in source
-    assert "PWE Studio does not silently transmit or store the form." in source
+    # The form used to open the visitor's own mail app and the page said so:
+    # "PWE Studio does not silently transmit or store the form." From the
+    # release that sends the form to the enquiry service that sentence is
+    # false, and the page must say what now happens instead.
+    assert "does not silently transmit or store" not in source
+    assert "不会静默提交或保存" not in source
+    assert "stores your message with PWE and emails it to our team" in source
+    assert "这条留言会保存在 PWE" in source
     # The marketing page does not publish a build number. It said
     # "PWE Studio · v10.3.0" in the hero and again in the footer, which tells a
     # prospective studio nothing it can act on and tells everyone else exactly

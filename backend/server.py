@@ -17,6 +17,7 @@ from studiosaas.services.public_site import (
     apply_language,
     localise_links,
     public_plan_rows,
+    render_assist_widget,
     render_llms_txt,
     render_manual_jsonld,
     render_plan_cards,
@@ -1076,6 +1077,15 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
     return _serve_versioned_shell(
         legacy_dir, filename, mimetype or 'text/html; charset=utf-8')
 
+def _assist_widget(language):
+    """The PWE Assist window for a product-site page, or nothing.
+
+    Nothing in the Edition: the Worker that serves the window lives at
+    pwestudio.online, and a customer's own host has no `/v1/assist/`.
+    """
+
+    return '' if is_standalone() else render_assist_widget(language)
+
 def _serve_manual(language):
     """The user manual, in exactly one language.
 
@@ -1103,6 +1113,7 @@ def _serve_manual(language):
     html = html.replace(
         '<!--MANUAL-JSONLD-->', render_manual_jsonld(html, language, RELEASE_DATE))
     html = html.replace('__RELEASE_DATE__', RELEASE_DATE)
+    html = html.replace('<!--ASSIST-WIDGET-->', _assist_widget(language))
 
     resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
@@ -1163,6 +1174,7 @@ def _serve_product_home(language):
     html = localise_links(apply_language(html, language), language)
     html = html.replace(
         '<!--PRODUCT-JSONLD-->', render_product_jsonld(plans, language, html))
+    html = html.replace('<!--ASSIST-WIDGET-->', _assist_widget(language))
 
     resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
@@ -1267,6 +1279,7 @@ def _serve_pricing(language):
     # end the attribute. The calculator only ever reads it back with JSON.parse.
     html = html.replace('__PLAN_DATA__', html_escape(json.dumps(plans, ensure_ascii=False), quote=True))
     html = localise_links(apply_language(html, language), language)
+    html = html.replace('<!--ASSIST-WIDGET-->', _assist_widget(language))
 
     resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
@@ -1507,6 +1520,7 @@ def _serve_customer_resource_page(filename, language):
     html = localise_links(apply_language(html, language), language)
     html = html.replace(
         '<!--RESOURCE-JSONLD-->', render_resource_jsonld(html, language, filename))
+    html = html.replace('<!--ASSIST-WIDGET-->', _assist_widget(language))
 
     resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
