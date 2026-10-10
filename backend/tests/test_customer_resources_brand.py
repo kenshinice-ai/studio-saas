@@ -276,8 +276,14 @@ def test_privacy_policy_discloses_the_open_gaps() -> None:
 
     source = (CUSTOMER_RESOURCES / "Privacy_Policy.html").read_text(encoding="utf-8")
     assert "Multi-factor authentication is not yet enforced" in source
-    assert "same instance" in source
-    assert "ap-southeast-2" in source
+    # These two lines used to read `"same instance" in source` and
+    # `"ap-southeast-2" in source`. Production left AWS on 2026-09-17, and for
+    # three weeks the policy went on naming Sydney — with this test passing,
+    # because it was asserting the old facts. A test that pins a fact about
+    # the world has to be changed by whoever changes the world.
+    assert "Uploaded media is copied off the host monthly rather than nightly" in source
+    assert "we have not pinned that location to Australia" in source
+    assert "ap-melbourne-1" in source and "ap-southeast-2" not in source
 
 
 def test_privacy_policy_promises_no_response_deadline() -> None:
@@ -289,16 +295,23 @@ def test_privacy_policy_promises_no_response_deadline() -> None:
 
 
 def test_faq_states_the_live_deployment_rather_than_the_old_boundary() -> None:
-    """The AWS answer was inverted by the 30 July 2026 deployment."""
+    """The service is live, and the page says where — as of today.
+
+    This test pinned `AWS Lightsail`, `ap-southeast-2` and "off-box copy is
+    still an open item" until 2026-10-10, three weeks after production moved to
+    Oracle Cloud in Melbourne and began keeping an encrypted off-site copy.
+    Correcting the page would have turned the gate red, so the page stayed
+    wrong. It now pins what was measured on the host that day.
+    """
 
     source = (CUSTOMER_RESOURCES / "FAQ.html").read_text(encoding="utf-8")
-    assert "no longer the production path" in source
-    assert "will not be reintroduced for this hostname" in source
-    assert "AWS Lightsail" in source
-    assert "ap-southeast-2" in source
+    assert "Oracle Cloud in the Melbourne region" in source and "ap-melbourne-1" in source
+    assert "AWS Lightsail" not in source and "ap-southeast-2" not in source
+    assert "It ran on AWS in Sydney until 17 September 2026" in source
     # The service is live, so the remaining gaps are gaps on a live service.
-    assert "restore rehearsal" in source
-    assert "off-box copy is still an open item" in source
+    assert "A restore was rehearsed on 17 September 2026" in source
+    assert "off-box copy is still an open item" not in source
+    assert "Media is copied monthly, not nightly" in source
     assert "open gap on a live service" in source
     # And it must not have kept the superseded claim.
     assert "runs locally with PostgreSQL" not in source

@@ -41,8 +41,8 @@
   <div class="notice">
     <p data-lang="en"><strong>This is a draft, not legal advice.</strong> It describes how PWE Studio actually behaves today, in plain English, so that it can be reviewed against reality. It has not been reviewed by an Australian lawyer. Where it and a signed service agreement differ, the signed agreement prevails. Two sections in particular — <em>consent for children</em> and <em>retention and deletion</em> — should be reviewed by an Australian legal practitioner before this page is relied on commercially.</p>
     <p data-lang="zh"><strong>本文为草案，不构成法律意见。</strong>它以平实语言描述 PWE Studio 目前的实际行为，便于与事实逐条核对。本文尚未经澳大利亚律师复核。若本文与已签署的服务协议不一致，以签署协议为准。其中两节——<em>儿童相关同意</em>与<em>数据留存与删除</em>——建议在正式商业依赖前由澳大利亚执业律师复核。</p>
-    <p data-lang="en">Last internally reviewed: 1 August 2026 · applies to PWE Studio v__APP_VERSION__ and later.</p>
-    <p data-lang="zh">我方最近一次内部复核：2026 年 8 月 1 日 · 适用于 PWE Studio v__APP_VERSION__ 及之后版本。</p>
+    <p data-lang="en">Last internally reviewed: 10 October 2026 · applies to PWE Studio v__APP_VERSION__ and later.</p>
+    <p data-lang="zh">我方最近一次内部复核：2026 年 10 月 10 日 · 适用于 PWE Studio v__APP_VERSION__ 及之后版本。</p>
   </div>
 
   <h2 data-lang="en">1 · Who we are</h2>
@@ -142,10 +142,10 @@
 
   <h2 data-lang="en">5 · Where information is held</h2>
   <h2 data-lang="zh">五 · 信息保存位置</h2>
-  <p data-lang="en">For subscription customers, data is held in Amazon Web Services’ Sydney region (<code>ap-southeast-2</code>), on the instance that runs the service: PostgreSQL beside the application, and media files on an attached volume. Backups are produced daily and are currently stored on the same instance; an off-instance copy is an open item we disclose rather than imply. Transport is encrypted with TLS, HTTP requests are redirected to HTTPS, and the application is not directly reachable from the internet.</p>
-  <p data-lang="zh">订阅客户的数据保存在 Amazon Web Services 悉尼区域（<code>ap-southeast-2</code>），位于运行本服务的实例上：PostgreSQL 与应用同机，媒体文件存放于挂载卷。备份每日生成，目前保存在同一实例上；异地副本是我方主动披露的未完成项，而非暗示已具备。传输使用 TLS 加密，HTTP 请求跳转至 HTTPS，应用不可从互联网直接访问。</p>
-  <p data-lang="en">We do not transfer a studio’s personal information overseas for our own purposes. Support correspondence you send us may pass through the email provider you chose to use. Messages and assistant conversations on our own website are handled differently; section 10 sets that out.</p>
-  <p data-lang="zh">我方不会为自身目的将工作室的个人信息传输至境外。你发送给我方的支持往来邮件，可能经由你自己选用的邮件服务商传输。我们自己网站上的留言与助手对话处理方式不同，见第十节。</p>
+  <p data-lang="en">For subscription customers, data is held in Australia, on the host that runs the service: Oracle Cloud’s Melbourne region (<code>ap-melbourne-1</code>), with PostgreSQL beside the application and media files on the host’s own storage. It was held on Amazon Web Services in Sydney until 17 September 2026 and moved on that day. The database is backed up nightly and media monthly. Each backup is encrypted on the host before it leaves and is then stored by Cloudflare, which does not hold the key and which chooses where the encrypted copy is kept; we have not pinned that location to Australia. Transport is encrypted with TLS, HTTP requests are redirected to HTTPS, and the application is not directly reachable from the internet.</p>
+  <p data-lang="zh">订阅客户的数据保存在澳大利亚境内，位于运行本服务的主机上：Oracle Cloud 墨尔本区域（<code>ap-melbourne-1</code>），PostgreSQL 与应用同机，媒体文件存放在主机自己的存储上。2026 年 9 月 17 日之前，数据保存在 Amazon Web Services 悉尼区域，当天完成迁移。数据库每晚备份，媒体每月备份。每份备份先在主机上加密，再离开主机，由 Cloudflare 存放；Cloudflare 不持有密钥，加密副本存放在哪里由它决定，我方没有把这个位置限定在澳大利亚境内。传输使用 TLS 加密，HTTP 请求跳转至 HTTPS，应用不可从互联网直接访问。</p>
+  <p data-lang="en">Apart from that encrypted backup copy, we do not send a studio’s personal information overseas for our own purposes. Support correspondence you send us may pass through the email provider you chose to use. Messages and assistant conversations on our own website are handled differently; section 10 sets that out.</p>
+  <p data-lang="zh">除上述加密备份副本外，我方不会为自身目的将工作室的个人信息传输至境外。你发送给我方的支持往来邮件，可能经由你自己选用的邮件服务商传输。我们自己网站上的留言与助手对话处理方式不同，见第十节。</p>
 
   <h2 data-lang="en">6 · How information is protected, and what is still missing</h2>
   <h2 data-lang="zh">六 · 如何保护，以及仍缺什么</h2>
@@ -157,8 +157,8 @@
     </article>
     <article class="card">
       <strong data-lang="en">Open gaps we disclose</strong><strong data-lang="zh">我方披露的缺口</strong>
-      <p data-lang="en">Multi-factor authentication is not yet enforced for privileged accounts; this is our highest-priority security item. Backup copies currently live on the same instance as the service. There is no uptime or backup-failure monitoring and no on-call roster, so failures are found by operator checks rather than alerts. There is no contractual availability commitment unless a signed order form states one.</p>
-      <p data-lang="zh">特权账号尚未强制多因素认证，这是我方优先级最高的安全事项。备份副本目前与服务位于同一实例。没有运行监控与备份失败告警，也没有值班名单，因此故障依靠运维检查发现，而非自动告警。除已签署订单另有约定外，不存在合同化可用性承诺。</p>
+      <p data-lang="en">Multi-factor authentication is not yet enforced for privileged accounts; this is our highest-priority security item. Uploaded media is copied off the host monthly rather than nightly. There is no uptime or backup-failure monitoring and no on-call roster, so failures are found by operator checks rather than alerts. There is no contractual availability commitment unless a signed order form states one.</p>
+      <p data-lang="zh">特权账号尚未强制多因素认证，这是我方优先级最高的安全事项。上传的媒体每月而不是每晚复制到主机之外。没有运行监控与备份失败告警，也没有值班名单，因此故障依靠运维检查发现，而非自动告警。除已签署订单另有约定外，不存在合同化可用性承诺。</p>
     </article>
   </div>
   <p data-lang="en">We list the gaps because a privacy policy that only lists controls is a sales document. The Australian Cyber Security Centre treats multi-factor authentication, patching and tested backups as core measures for a small business; we treat MFA and an off-instance backup copy as work owed, not optional polish.</p>
@@ -227,8 +227,8 @@
     <li data-lang="zh"><strong>保存什么：</strong>你输入的问题、助手的回答、你所在的页面、时间。</li>
     <li data-lang="en"><strong>Abuse limits:</strong> the same as for messages — a limit per IP address, kept in a form that cannot be turned back into the address.</li>
     <li data-lang="zh"><strong>防滥用：</strong>与留言相同——按 IP 地址限制频率，保存的是不能还原成原地址的形式。</li>
-    <li data-lang="en"><strong>Who answers:</strong> answers are generated by Claude, an AI model made by Anthropic, which we use through its API. Under Anthropic’s commercial terms for API customers, it does not use this content to train its models by default. The processing that generates an answer takes place outside Australia.</li>
-    <li data-lang="zh"><strong>谁在回答：</strong>回答由 Anthropic 公司的 AI 模型 Claude 生成，我们通过它的 API 调用。按 Anthropic 对 API 客户的商业条款，它默认不用这些内容训练模型。生成回答的处理在澳大利亚境外进行。</li>
+    <li data-lang="en"><strong>Who answers:</strong> answers are generated by Claude, an AI model made by Anthropic, which we use through its API. To generate an answer, your question and the relevant text of these pages are sent to Anthropic for processing, which may take place outside Australia. Anthropic states that, for API customers, it does not use this content to train its models by default and keeps it for no more than 30 days before deleting it from its systems (other than content it finds to breach its usage policy). The record of the conversation is kept by us, not by Anthropic; see “Where this information is” below.</li>
+    <li data-lang="zh"><strong>谁在回答：</strong>回答由 Anthropic 公司的 AI 模型 Claude 生成，我们通过它的 API 调用。生成回答时，你的问题和这些页面上的相关文字会发给 Anthropic 处理，处理可能在澳大利亚境外进行。按 Anthropic 对 API 客户的说明，它默认不用这些内容训练模型，并在 30 天内从它的系统里删除（被它判定为违反使用政策的内容除外）。对话的记录由我们保存，不由 Anthropic 保存，见下面「这些信息在哪里」。</li>
     <li data-lang="en"><strong>What the answers are:</strong> the assistant answers only from what is published on these pages, and it can be wrong. It does not give legal, financial or compliance advice, and it does not interpret this policy or the terms of service — it points you to them.</li>
     <li data-lang="zh"><strong>回答的性质：</strong>助手只根据这些页面上公开的内容回答，可能出错。它不提供法律、财务或合规方面的意见，也不解释本政策或服务条款——它会指给你原文。</li>
     <li data-lang="en"><strong>What it cannot see:</strong> it has no access to any studio’s records. It cannot look up a student, a balance or an account, and it should not be given one.</li>
@@ -240,8 +240,8 @@
   </ul>
   <h3 data-lang="en">Where this information is</h3>
   <h3 data-lang="zh">这些信息在哪里</h3>
-  <p data-lang="en">Messages and conversations are stored in Cloudflare’s database service, separately from any studio’s data. We ask for them to be kept in the Oceania region; Cloudflare is a global network, and processing may take place outside Australia. The assistant’s answers are generated by Anthropic outside Australia.</p>
-  <p data-lang="zh">留言与对话保存在 Cloudflare 的数据库服务里，与任何工作室的数据分开存放。我们请求把它们放在大洋洲区域；但 Cloudflare 是全球网络，处理可能发生在澳大利亚境外。AI 助手的回答由 Anthropic 在澳大利亚境外生成。</p>
+  <p data-lang="en">Messages and conversations are kept by us in Cloudflare’s database service, separately from any studio’s data. We ask for them to be kept in the Oceania region; Cloudflare is a global network, and processing may take place outside Australia. Anthropic processes content only to generate an answer and is not where these records are kept; the copy it holds for a short time is in the United States. None of this touches a studio’s own records — students, classes, credits and work stay on our host in Melbourne, as section 5 describes, and are never sent to the assistant or to Anthropic.</p>
+  <p data-lang="zh">留言与对话由我们保存在 Cloudflare 的数据库服务里，与任何工作室的数据分开存放。我们请求把它们放在大洋洲区域；但 Cloudflare 是全球网络，处理可能发生在澳大利亚境外。Anthropic 只在生成回答时处理内容，不是这些记录的存放处；它短期保留的那一份在美国。这一切都不涉及工作室自己的记录——学员、课程、课时与作品始终保存在我们位于墨尔本的主机上（见第五节），不会发给助手，也不会发给 Anthropic。</p>
   <h3 data-lang="en">Your choices</h3>
   <h3 data-lang="zh">你的选择</h3>
   <p data-lang="en">If you neither send a message nor use the assistant, neither kind of record exists; you can phone or email us instead. To see, correct or delete a message or a conversation, email <a href="mailto:info@pwestudio.site">info@pwestudio.site</a> with the approximate time and the email address you gave. Section 8 describes how we handle such a request.</p>

@@ -49,27 +49,27 @@
   <h1 data-lang="zh">常见问题</h1>
   <p class="lede" data-lang="en">What v__APP_VERSION__ does today, where it runs, and which commitments are still open. Answers state the current position rather than the plan.</p>
   <p class="lede" data-lang="zh">v__APP_VERSION__ 目前的能力、运行位置，以及仍未完成的承诺。以下回答陈述现状，不描述计划。</p>
-  <p class="status"><span data-lang="en">Live on AWS Lightsail since 30 July 2026 · monitoring and SLA still open</span><span data-lang="zh">2026 年 7 月 30 日起运行于 AWS Lightsail · 监控与 SLA 仍未完成</span></p>
+  <p class="status"><span data-lang="en">Live since 30 July 2026 · on Oracle Cloud in Melbourne since 17 September 2026 · monitoring and SLA still open</span><span data-lang="zh">2026 年 7 月 30 日起正式运行 · 2026 年 9 月 17 日起位于 Oracle Cloud 墨尔本 · 监控与 SLA 仍未完成</span></p>
 
   <h2 data-lang="en">Hosting, data and recovery</h2>
   <h2 data-lang="zh">托管、数据与恢复</h2>
 
   <details open>
-    <summary><span data-lang="en">Is this a production AWS deployment?</span><span data-lang="zh">这是正式的 AWS 生产部署吗？</span></summary>
-    <p data-lang="en">Yes, since 30 July 2026. <a href="https://pwestudio.online">pwestudio.online</a> runs from an AWS Lightsail instance in the Sydney region. The host terminates TLS with a Let’s Encrypt certificate covering the apex and <code>www</code>, renewed automatically; HTTP redirects to HTTPS and HSTS is set for one year. The application listens only on the instance’s loopback interface and is reached through that edge. The Cloudflare Tunnel used for earlier demonstrations is no longer the production path and will not be reintroduced for this hostname.</p>
-    <p data-lang="zh">是，自 2026 年 7 月 30 日起。<a href="https://pwestudio.online">pwestudio.online</a> 由位于悉尼区域的 AWS Lightsail 实例提供服务。主机使用 Let’s Encrypt 证书终止 TLS，覆盖主域与 <code>www</code> 并自动续期；HTTP 跳转至 HTTPS，HSTS 有效期一年。应用只监听实例本地回环地址，对外一律经该边缘转发。此前用于演示的 Cloudflare Tunnel 已不再是生产路径，本域名也不会再启用。</p>
+    <summary><span data-lang="en">Is this a production deployment, and where does it run?</span><span data-lang="zh">这是正式的生产部署吗？运行在哪里？</span></summary>
+    <p data-lang="en">Yes, since 30 July 2026. <a href="https://pwestudio.online">pwestudio.online</a> runs from one host on Oracle Cloud in the Melbourne region (<code>ap-melbourne-1</code>). It ran on AWS in Sydney until 17 September 2026 and moved on that day. Requests reach the host through Cloudflare, which carries the public certificate; a web server on the host receives them over TLS and passes them to the application. HTTP redirects to HTTPS and HSTS is set for one year. The application listens only on the host’s loopback interface and is reached through that edge.</p>
+    <p data-lang="zh">是，自 2026 年 7 月 30 日起。<a href="https://pwestudio.online">pwestudio.online</a> 由位于 Oracle Cloud 墨尔本区域（<code>ap-melbourne-1</code>）的一台主机提供服务。2026 年 9 月 17 日之前它运行在 AWS 悉尼，当天完成迁移。请求经 Cloudflare 到达主机，公开证书由 Cloudflare 提供；主机上的 Web 服务器以 TLS 接收请求，再转给应用。HTTP 跳转至 HTTPS，HSTS 有效期一年。应用只监听主机本地回环地址，对外一律经该边缘转发。</p>
   </details>
 
   <details>
     <summary><span data-lang="en">Where is our data stored?</span><span data-lang="zh">我们的数据存放在哪里？</span></summary>
-    <p data-lang="en">In the Sydney region (<code>ap-southeast-2</code>), on the instance itself: PostgreSQL 16 runs beside the application, and media files sit on an attached volume. The runtime connects with a restricted database role; the owner role is used only for schema migrations at start-up. Managed services — Amazon RDS for the database, S3 for media, SES for mail — are not in use.</p>
-    <p data-lang="zh">在悉尼区域（<code>ap-southeast-2</code>），且就在该实例上：PostgreSQL 16 与应用同机运行，媒体文件存放于挂载卷。运行时使用受限数据库角色连接；只有启动时的结构迁移才使用 owner 角色。托管服务尚未启用——数据库未用 Amazon RDS，媒体未用 S3，邮件未用 SES。</p>
+    <p data-lang="en">In the Melbourne region (<code>ap-melbourne-1</code>), on the host itself: PostgreSQL 16 runs beside the application, and media files sit on the host’s own storage. The runtime connects with a restricted database role; the owner role is used only for schema migrations at start-up. No managed database, object-storage or mail service holds the live data. The one copy that leaves the host is the encrypted backup described in the next answer.</p>
+    <p data-lang="zh">在墨尔本区域（<code>ap-melbourne-1</code>），且就在这台主机上：PostgreSQL 16 与应用同机运行，媒体文件存放在主机自己的存储上。运行时使用受限数据库角色连接；只有启动时的结构迁移才使用 owner 角色。没有任何托管数据库、对象存储或邮件服务保存线上数据。唯一离开主机的副本，是下一条回答里说的加密备份。</p>
   </details>
 
   <details>
     <summary><span data-lang="en">Are there backups, and has a restore actually been tested?</span><span data-lang="zh">有备份吗？恢复真的演练过吗？</span></summary>
-    <p data-lang="en">Yes to both. A scheduled job runs daily at 03:15 UTC and produces a logical PostgreSQL dump plus an archive of the media volume. A restore rehearsal has been run against those artefacts and passes. Two limits are worth stating plainly: the copies currently live on the same instance, so an off-box copy is still an open item; and there is no automated alert if a backup run fails, so backup output is checked as an operator task rather than by monitoring.</p>
-    <p data-lang="zh">两者都有。定时任务每日 UTC 03:15 执行，产出 PostgreSQL 逻辑备份与媒体卷归档。已针对这些产物完成恢复演练并通过。有两点需要明说：备份目前保存在同一实例上，异地副本仍是未完成项；备份失败没有自动告警，因此备份结果依赖运维人工检查，而非监控系统。</p>
+    <p data-lang="en">Yes to both. The database is backed up every night at about 03:15 Melbourne time; uploaded media and the rest of the host’s files are backed up on the first of each month. Each backup is encrypted on the host before it leaves, then stored off the host in Cloudflare’s object storage; Cloudflare does not hold the key. A restore was rehearsed on 17 September 2026: a database backup was fetched from that off-site copy, decrypted and restored into a separate database, and its tables and tenants matched production. Three limits are worth stating plainly. Media is copied monthly, not nightly, so an upload can be up to a month old before it has an off-site copy. Cloudflare chooses where the encrypted copy is stored and we have not pinned it to Australia. And there is no automated alert if a backup run fails, so backup output is checked as an operator task rather than by monitoring.</p>
+    <p data-lang="zh">两者都有。数据库每晚约 03:15（墨尔本时间）备份一次；上传的媒体和主机上的其余文件每月 1 日备份一次。每份备份先在主机上加密，再离开主机，存放在 Cloudflare 的对象存储里；Cloudflare 不持有密钥。恢复在 2026 年 9 月 17 日演练过：从这份异地副本取回一份数据库备份，解密后恢复进一个独立的数据库，表和租户与生产一致。有三点需要明说：媒体是每月备份，不是每晚，所以一次上传最长可能一个月后才有异地副本；加密副本存放在哪里由 Cloudflare 决定，我们没有把它限定在澳大利亚境内；备份失败没有自动告警，因此备份结果依赖运维人工检查，而非监控系统。</p>
   </details>
 
   <details>

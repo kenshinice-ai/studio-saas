@@ -264,7 +264,11 @@ def test_the_privacy_policy_covers_the_form_and_the_assistant(client, no_plan_qu
             "your name, your email address, the studio name if you gave one",
             "24 months after our last contact",
             "an AI model made by Anthropic",
-            "takes place outside Australia",
+            "which may take place outside Australia",
+            "keeps it for no more than 30 days before deleting it",
+            "The record of the conversation is kept by us, not by Anthropic",
+            "the copy it holds for a short time is in the United States",
+            "stay on our host in Melbourne",
             "deleted after 90 days",
             "it has no access to any studio’s records",
             "11 · Changes to this policy",
@@ -288,8 +292,68 @@ def test_the_policy_no_longer_says_nothing_goes_overseas() -> None:
     Australia that is true of a studio's data and false of a visitor's."""
 
     assert "We do not transfer personal information overseas for our own purposes." not in PRIVACY
-    assert "We do not transfer a studio’s personal information overseas for our own purposes." in PRIVACY
+    assert "we do not send a studio’s personal information overseas for our own purposes." in PRIVACY
     assert "section 10 sets that out" in PRIVACY
+
+
+# ── where the service runs ──────────────────────────────────────────────────
+#
+# Production moved from AWS in Sydney to Oracle Cloud in Melbourne on
+# 2026-09-17. The internal documents were aligned that day. The four pages a
+# customer reads — and two of them are in the Assist knowledge in full — went
+# on saying Sydney for three weeks, privacy policy included.
+
+HOSTING_PAGES = (
+    "product-home.html",
+    "customer-resources/FAQ.html",
+    "customer-resources/Privacy_Policy.html",
+    "customer-resources/Terms_of_Service.html",
+)
+
+
+@pytest.mark.parametrize("relative", HOSTING_PAGES)
+def test_no_public_page_places_the_service_in_sydney(relative) -> None:
+    source = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
+    for stale in ("ap-southeast-2", "Lightsail", "on the same instance", "同一实例"):
+        assert stale not in source, (relative, stale)
+    # Sydney and AWS may be named only as where the service USED to run.
+    for line in source.splitlines():
+        if re.search(r"Sydney|悉尼|AWS|Amazon Web Services", line):
+            assert "17 September 2026" in line or "9 月 17 日" in line, (relative, line.strip()[:120])
+    assert "Melbourne" in source and "墨尔本" in source, relative
+
+
+def test_the_pages_agree_on_the_region_and_the_assist_knowledge_carries_it(client, monkeypatch) -> None:
+    import server
+
+    monkeypatch.setattr(server, "public_plan_rows", lambda: [])
+    for relative in ("product-home.html", "customer-resources/FAQ.html", "customer-resources/Privacy_Policy.html"):
+        assert "ap-melbourne-1" in (PROJECT_ROOT / relative).read_text(encoding="utf-8"), relative
+
+    from studiosaas.services.assist_knowledge import text_of
+
+    faq = "\n".join(text_of(client.get("/customer-resources/FAQ.html").get_data(as_text=True), "main"))
+    assert "Oracle Cloud in the Melbourne region" in faq
+    assert "Sydney region" not in faq and "same instance" not in faq
+
+
+def test_the_backup_answer_states_its_own_limits() -> None:
+    """A privacy page that lists only controls is a sales document. The three
+    limits are the point of the answer, not its small print."""
+
+    faq = (PROJECT_ROOT / "customer-resources/FAQ.html").read_text(encoding="utf-8")
+    for phrase in (
+        "encrypted on the host before it leaves",
+        "Media is copied monthly, not nightly",
+        "we have not pinned it to Australia",
+        "no automated alert if a backup run fails",
+        "媒体是每月备份，不是每晚",
+        "没有把它限定在澳大利亚境内",
+    ):
+        assert phrase in faq, phrase
+    privacy = PRIVACY
+    assert "Apart from that encrypted backup copy, we do not send a studio’s personal information overseas" in privacy
+    assert "we have not pinned that location to Australia" in privacy
 
 
 def test_the_support_policy_describes_the_form_that_exists() -> None:
