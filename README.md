@@ -1,14 +1,13 @@
 # PWE Studio
 
-## v10.20.8 release identity — PWE Assist is open on the product site
+## v10.20.9 release identity — two sentences made more exact
 
-`VERSION` = **10.20.8** and `backend/server.py` reports `APP_VERSION=10.20.8`.
-**Zero migrations.** One switch moves: `ASSIST_WIDGET_MODE` goes from `gate`
-to `on`, so the PWE Assist window is offered to every visitor of the eight
-product-site pages rather than only to a tab that arrived with `?assist=1`.
-v10.20.7, released earlier the same day, carried the corrected hosting
-statements, the enquiry form and the gated window; both were used on
-production before this switch moved. Round notes:
+`VERSION` = **10.20.9** and `backend/server.py` reports `APP_VERSION=10.20.9`.
+**Zero migrations.** Wording on two public pages. The encrypted backup copy is
+described as kept in Cloudflare's Oceania region — wider than Australia, and
+the pages say so — instead of "not pinned to Australia". Privacy policy
+section 10 names the second exception to Anthropic's 30-day deletion: content
+it is required by law to keep. Round notes:
 `docs/handoff/claude/2026-10-10-assist-followups.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
@@ -24,9 +23,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.8, released** — deployed commit `40ba01b` on `main` | One switch (`ASSIST_WIDGET_MODE` to `on`) and its tests; **zero migrations**. Local gate `All checks passed`, pytest 2575 passed / 41 skipped; CI gate passed on the same commit (run 38021504308). |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.8.tar.gz` SHA-256 `d23d7bcc73f39d1e967f91e54a5c5d19c25c0bd6532c1690cab542202dd9c654` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.8.tar.gz` SHA-256 `89dbd2be490ea58d2bf1e12ee5c3437fa8f9b162edb40dbd4edb75664f3aa833`. Three-way commit guard equal. |
-| Production | **v10.20.8** (`pwestudio.online`, Oracle ARM, commit `40ba01b`) | Measured 2026-10-10: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Nine product-site addresses carry the PWE Assist loader with no gate; a tenant portal, its registration page and both consoles carry none. In a browser, `/zh/pricing` without `?assist=1` shows the window in Chinese. Assist knowledge commit `10.20.8-3e4d49e8` equals the Worker's. The logged-in browser matrix was not run: no signed-in surface changed. |
+| Source | **v10.20.9, release candidate** — not deployed | Wording on two public pages and the tests that pin it; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
+| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.9.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.9.tar.gz`. |
+| Production | **v10.20.8** (`pwestudio.online`, Oracle ARM, commit `40ba01b`) | v10.20.9 is not deployed. Measured 2026-10-10 for v10.20.8: deep health `db=ok`, 5 tenants; the PWE Assist window is open on the product site. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
