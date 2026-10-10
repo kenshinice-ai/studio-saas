@@ -135,17 +135,28 @@ DISCLOSURES: tuple[dict[str, Any], ...] = (
 # are skipped: a form's labels and its fallback notes are interface, not
 # something the assistant should repeat as a fact about the product.
 #
-# One difference, and it is load-bearing: `article` and `aside` end a line
-# here. The plan cards are sibling <article>s whose first child is an inline
-# badge, so without the break the recommended plan's badge was glued onto the
-# end of the card BEFORE it — the text read "Start with StarterRecommended",
-# which tells a model that Starter is the recommended plan. It is Studio.
+# Two differences from that original.
+#
+# `article`, `aside` and `small` end a line here. The plan cards are sibling
+# <article>s whose first child is an inline badge, so without the break the
+# recommended plan's badge was glued onto the end of the card BEFORE it — the
+# text read "Start with StarterRecommended", which tells a model that Starter
+# is the recommended plan. It is Studio. `small` is the same defect one size
+# down: every <small> on these pages is a second line under a label, and
+# "One studio core" + "One record" came out as "One studio coreOne record".
+#
+# And a page may mark a region `data-assist="skip"`. It is for interface that
+# prints values rather than statements: the pricing calculator's sliders read
+# "Active students 60 … Your plan —", which is a default and an empty result,
+# not something true about the product. The heading and the sentence that say
+# the calculator exists stay in; only its controls are left out.
 
 _BLOCK = frozenset({
     "p", "li", "h1", "h2", "h3", "h4", "h5", "summary", "figcaption", "dt", "dd",
     "blockquote", "td", "th", "div", "section", "details", "tr", "ul", "ol", "br",
-    "article", "aside",
+    "article", "aside", "small",
 })
+_SKIP_MARKER = ("data-assist", "skip")
 _SKIP = frozenset({"script", "style", "svg", "form", "nav", "template", "noscript", "button"})
 _VOID = frozenset({
     "area", "base", "br", "col", "embed", "hr", "img", "input",
@@ -177,8 +188,9 @@ class _VisibleText(HTMLParser):
         self.lines: list[str] = []
         self.cur: list[str] = []
         self.prefix = ""
-        # Elements carrying `hidden` that have not closed yet. A success
-        # message that only appears after a submit is not page copy.
+        # Elements carrying `hidden` or `data-assist="skip"` that have not
+        # closed yet. A success message that only appears after a submit is
+        # not page copy, and neither is a slider's default value.
         self.hidden: list[str] = []
 
     def _flush(self) -> None:
@@ -193,7 +205,10 @@ class _VisibleText(HTMLParser):
             return
         if not self.depth:
             return
-        if tag not in _VOID and (self.hidden or any(k == "hidden" for k, _v in attrs)):
+        if tag not in _VOID and (
+            self.hidden
+            or any(k == "hidden" or (k, v) == _SKIP_MARKER for k, v in attrs)
+        ):
             self.hidden.append(tag)
         if tag in _SKIP:
             self.skip += 1

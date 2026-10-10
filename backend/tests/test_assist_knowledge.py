@@ -427,6 +427,65 @@ def test_text_a_visitor_cannot_see_is_not_knowledge() -> None:
     assert text_of(html, "main") == ["## Heading", "Shown.", "- One", "- Two"]
 
 
+def test_a_region_marked_skip_is_not_knowledge() -> None:
+    """Interface that prints values is not a statement about the product."""
+
+    from studiosaas.services.assist_knowledge import text_of
+
+    html = (
+        "<main><h2>Which plan is mine?</h2><p>Two questions.</p>"
+        '<div class="calc" data-assist="skip"><label>Active students</label>'
+        "<output>60</output><p>Your plan</p><p>—</p></div>"
+        '<div data-assist="other"><p>Kept: the marker is the value, not the attribute.</p></div>'
+        "<p>After the calculator.</p></main>"
+    )
+    assert text_of(html, "main") == [
+        "## Which plan is mine?", "Two questions.",
+        "Kept: the marker is the value, not the attribute.", "After the calculator.",
+    ]
+
+
+def test_the_calculator_is_named_but_its_controls_are_not_read(client, fixture_plans) -> None:
+    """Its sliders start at 60 students and 3 logins, and its result starts
+    empty. Read as text that is "Active students 60 … Your plan —"."""
+
+    _version, _index, texts = _fetch(client)
+    english, chinese = _chunk(texts["en"], "pricing"), _chunk(texts["zh"], "pricing")
+    assert "## Which plan is mine?" in english and "computed in your browser" in english
+    for control in ("Active students", "People who need a login", "Your plan", "First year, plan only"):
+        assert control not in english, control
+    assert "## 我该选哪一档？" in chinese
+    for control in ("在读学员数", "需要登录的人数", "适合你的套餐"):
+        assert control not in chinese, control
+    # The setup fee was also printed inside the calculator. It must survive
+    # from the section that actually states it.
+    assert "AUD 299–999" in english
+
+
+def test_two_lines_of_a_label_stay_two_lines(client, fixture_plans) -> None:
+    _version, _index, texts = _fetch(client)
+    home = _chunk(texts["en"], "home")
+    assert "coreOne" not in home
+    assert "One studio core\nOne record · one audit trail" in home
+    assert "一个工作室核心\n一套事实 · 一条审计链" in _chunk(texts["zh"], "home")
+    # The renderer's debug label is decoration the page itself hides from
+    # assistive technology; it says nothing about the product.
+    assert "WebGL" not in texts["en"] and "WebGL" not in texts["zh"]
+
+
+def test_both_pages_describe_the_demonstration_the_same_way(client, fixture_plans) -> None:
+    """The home page says the demonstration tenant holds invented people and
+    invented work. The pricing page used to say the walkthrough shows "real
+    data". An assistant answers from whichever sentence it met."""
+
+    _version, _index, texts = _fetch(client)
+    assert "real data" not in texts["en"].lower()
+    assert "真数据" not in texts["zh"] and "真实数据" not in texts["zh"]
+    assert "sample data" in _chunk(texts["en"], "pricing")
+    assert "示例数据" in _chunk(texts["zh"], "pricing")
+    assert "invented" in _chunk(texts["en"], "home") and "虚构" in _chunk(texts["zh"], "home")
+
+
 def test_the_manual_is_read_from_its_article(client, fixture_plans) -> None:
     """It has no <main>; reading the wrong element yields an empty page, and
     an empty page is a failure rather than a short knowledge file."""
