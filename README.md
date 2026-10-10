@@ -24,9 +24,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.8, release candidate** — not deployed | One switch and its tests; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.8.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.8.tar.gz`. |
-| Production | **v10.20.7** (`pwestudio.online`, Oracle ARM, commit `dd6610e`) | v10.20.8 is not deployed. Measured 2026-10-10 for v10.20.7: deep health `db=ok`, 5 tenants; four pages name Melbourne; Assist knowledge commit `10.20.7-94d60592` equals the Worker's; the gated window answered on `/studio`; the form returned 201 with the trap field set. |
+| Source | **v10.20.8, released** — deployed commit `40ba01b` on `main` | One switch (`ASSIST_WIDGET_MODE` to `on`) and its tests; **zero migrations**. Local gate `All checks passed`, pytest 2575 passed / 41 skipped; CI gate passed on the same commit (run 38021504308). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.8.tar.gz` SHA-256 `d23d7bcc73f39d1e967f91e54a5c5d19c25c0bd6532c1690cab542202dd9c654` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.8.tar.gz` SHA-256 `89dbd2be490ea58d2bf1e12ee5c3437fa8f9b162edb40dbd4edb75664f3aa833`. Three-way commit guard equal. |
+| Production | **v10.20.8** (`pwestudio.online`, Oracle ARM, commit `40ba01b`) | Measured 2026-10-10: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Nine product-site addresses carry the PWE Assist loader with no gate; a tenant portal, its registration page and both consoles carry none. In a browser, `/zh/pricing` without `?assist=1` shows the window in Chinese. Assist knowledge commit `10.20.8-3e4d49e8` equals the Worker's. The logged-in browser matrix was not run: no signed-in surface changed. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
