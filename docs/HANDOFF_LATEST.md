@@ -1,4 +1,4 @@
-# PWE Studio v10.20.7 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.20.8 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -17,18 +17,18 @@
 
 没有。
 
-## 当前四层身份（v10.20.7，2026-10-10 · **已准备，未部署**）
+## 当前四层身份（v10.20.8，2026-10-10 · **已准备，未部署**）
 
 > 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
-> 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）由 Lee 在会话里授权（2026-10-10「1. 改正 … 5 可以发版本 6 窗口可以开了 7 改成和线上一致 189」）。
+> 操作者：Claude 会话执行第 1–9 步；发布（含第 8 步部署）和放开窗口由 Lee 在会话里授权（2026-10-10「5 可以发版本 6 窗口可以开了」）。
 > 轮次文件：`docs/handoff/claude/2026-10-10-assist-followups.md`。
 
 | 层 | 精确事实 / 预期 |
 |---|---|
-| Source | 候选是 `release/10.20.7` 上的发布提交（提交后回填哈希）。进运行时的改动：`59bf538` 定价页用词和 Assist 知识的清理；`80c3126` 窗口脚本（`gate` 档）、首页表单提交到询盘接口、隐私政策第十节；`4a5ddd3` 四个公开页面的主机位置改为 Oracle Cloud 墨尔本。**零迁移**。不动安全、RLS、计费逻辑、Xero、账务代码。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.7.tar.gz`。未构建。Oracle 路径不消费它，作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.7.tar.gz`。未构建。Edition 不加载窗口脚本。 |
-| Production | 仍是 **v10.20.6**（`d002008`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.7`，公网 `/v1/health` 的 `appVersion=10.20.7`，服务 FAQ 写着墨尔本。 |
+| Source | 候选是 `release/10.20.8` 上的发布提交（提交后回填哈希）。进运行时的改动只有一处：`ASSIST_WIDGET_MODE` 从 `gate` 改为 `on`。**零迁移**。 |
+| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.20.8.tar.gz`。未构建。 |
+| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.20.8.tar.gz`。未构建。 |
+| Production | 仍是 **v10.20.7**（`dd6610e`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.20.8`；不带 `?assist=1` 打开 `/studio`，页面里有窗口脚本。 |
 | Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
 
 ### STOP GATE（第 8 步之前）
@@ -36,6 +36,32 @@
 - local gate 输出 `All checks passed`。
 - CI gate 在发布提交上通过。
 - 两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。
+
+## 上一版四层身份（v10.20.7，2026-10-10 · 已发布、已部署）
+
+> 第 6–9 步已执行，本表已由实测回填。
+> 操作者：Claude 会话执行第 1–9 步；发布由 Lee 在会话里授权（2026-10-10）。
+
+| 层 | 精确事实 |
+|---|---|
+| Source | 部署的是 `dd6610e98b70ef231bf5199ed19a8b33bb7991df`，已在 `origin/main`。进运行时的改动：`4a5ddd3` 四个公开页面的主机位置改为 Oracle Cloud 墨尔本；`80c3126` 首页表单提交到询盘接口、窗口脚本（`gate` 档）、隐私政策第十节；`59bf538` 定价页用词和 Assist 知识的清理。**零迁移**。local gate `All checks passed`，pytest 2575 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38021032455）。 |
+| Package / SaaS | `PWE-StudioSaaS-aws-10.20.7.tar.gz`，SHA-256 `cbdbd0acd5face4125efbdd9721d7f52ba085e34238d5d854384ff7660a1813a`，`BUILD_INFO` commit `dd6610e…`。 |
+| Package / Edition | `PWE-Studio-Edition-10.20.7.tar.gz`，SHA-256 `e8ef2c43884eb5ea5e975950b55cf7652d60491183ff21b8a9b1705662721e08`，`BUILD_INFO` commit `dd6610e…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。 |
+| Production | `pwestudio.online` = **v10.20.7**，2026-10-10 14:36–14:37 AEDT 由 `bash deploy/oracle/pwestudio_arm.sh deploy dd6610e98b70ef231bf5199ed19a8b33bb7991df` 部署，脚本末行 `Deployed: dd6610e98b70 as v10.20.7`。实测公网深健康：`appVersion=10.20.7`、`db=ok`、`mode=saas`、5 个租户、`workspaces.stale=0`、`themes.unreadable=0`。 |
+| Backup / migration | **本版零迁移**，未设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。2026-10-10 实测主机定时器：`pwe-backup-db.timer` 上一次 2026-10-10 03:15 AEDT，下一次 2026-10-11 03:19 AEDT。 |
+
+### 部署后验收（生产实测，2026-10-10，v10.20.7）
+
+| 验的东西 | 结果 |
+|---|---|
+| 部署前的目标守卫 | `pwe-arm` 磁盘 16.3%、公网 16.3%，同一台主机 |
+| 18 个公开地址 | 全部 200 |
+| 主机位置 | `/studio`、服务 FAQ、隐私政策、服务条款都写着墨尔本；`ap-southeast-2` 和 `Lightsail` 出现 0 次 |
+| 定价页 | 写的是「a full set of sample data」 |
+| Assist 知识 | 四个地址 200；`commit` 是 `10.20.7-94d60592`，`index.json` 与之相同；两种语言的 `sha` 与正文相符；有墨尔本，没有悉尼区域、计算器控件、`coreOne`、「真数据」 |
+| Worker 手里的 Assist 知识 | `/v1/assist/health?site=pwe-studio` 的 `knowledge` 是 `10.20.7-94d60592`，部署后一分钟内已跟上 |
+| 窗口（`gate` 档） | 浏览器带 `?assist=1` 打开 `/studio`：右下角出现「Ask」；点开后点起手问题「Where is our data kept?」，回答是墨尔本、Oracle Cloud、加密的异地备份及其两处不足，出处是 Service FAQ 和 Pricing |
+| 表单 | 浏览器里填合成内容并设上陷阱字段后发送：`POST /v1/assist/enquiries` 返回 201，页面换成成功态。陷阱字段有值时接口不存、不发邮件 |
 
 ## 上一版四层身份（v10.20.6，2026-10-10 · 已发布、已部署）
 
@@ -606,7 +632,7 @@
 
 ## 最新轮次
 
-- **2026-10-10（Claude）v10.20.7 —— 主机位置更正、表单提交、PWE Assist 窗口（`gate` 档）**（**已准备，未部署**；Lee 2026-10-10 同意发布）：
+- **2026-10-10（Claude）v10.20.7 与 v10.20.8 —— 主机位置更正、表单提交、PWE Assist 窗口先 `gate` 后 `on`**（v10.20.7 **已发布、已部署**，`dd6610e`；v10.20.8 已准备）：
   轮次文件 `docs/handoff/claude/2026-10-10-assist-followups.md`。`fix/assist-knowledge-cleanup` 已推送，CI gate 通过；
   `feat/assist-widget-form` 只在本机的 worktree 里，带着等 Lee 过目的隐私政策草稿。读页面时发现四个公开页面写的主机位置是错的，见「等 Lee」。
 - **2026-10-10（Claude）v10.20.6 —— Assist 知识的四个地址（A 块）**（**已发布、已部署**，`d002008`）：

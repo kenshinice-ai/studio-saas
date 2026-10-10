@@ -325,8 +325,13 @@ def render_robots() -> str:
 #
 # Moving from "gate" to "on" is a release of its own, taken after someone has
 # used the gated window on the live site.
+#
+# "on" since v10.20.8 (2026-10-10). v10.20.7 shipped it gated; on production
+# that day the gated window opened on /studio and answered "Where is our data
+# kept?" from the corrected service FAQ, and the home page form reached the
+# enquiry service. Lee approved opening it the same day.
 ASSIST_SITE_ID = "pwe-studio"
-ASSIST_WIDGET_MODE = "gate"
+ASSIST_WIDGET_MODE = "on"
 
 _ASSIST_GATE = (
     "<script>(function(){{try{{if(/[?&]assist=1/.test(location.search))"
@@ -336,8 +341,18 @@ _ASSIST_GATE = (
     "s.setAttribute('data-site','{site}');s.setAttribute('data-lang','{lang}');"
     "document.body.appendChild(s);}})();</script>"
 )
-_ASSIST_STATIC = (
-    '<script defer src="/v1/assist/widget.js" data-site="{site}" data-lang="{lang}"></script>'
+# "on" uses the same loader as "gate", minus the condition — not the plain
+# `<script … data-lang="zh">` tag the Worker's own documentation shows. On
+# these pages `data-lang` is an authoring marker: every element carrying it is
+# filtered to one language before the page is sent, and a test on each page
+# asserts the marker never arrives. A script tag wearing the attribute would
+# break that rule for one tag forever. Setting it from script reaches the
+# widget identically, and it is the path that was exercised on production.
+_ASSIST_OPEN = (
+    "<script>(function(){{"
+    "var s=document.createElement('script');s.defer=true;s.src='/v1/assist/widget.js';"
+    "s.setAttribute('data-site','{site}');s.setAttribute('data-lang','{lang}');"
+    "document.body.appendChild(s);}})();</script>"
 )
 
 
@@ -354,7 +369,7 @@ def render_assist_widget(language: str, mode: str | None = None) -> str:
         return ""
     if mode not in ("gate", "on"):
         raise ValueError(f"unknown assist widget mode: {mode!r}")
-    template = _ASSIST_GATE if mode == "gate" else _ASSIST_STATIC
+    template = _ASSIST_GATE if mode == "gate" else _ASSIST_OPEN
     return template.format(site=ASSIST_SITE_ID, lang="zh" if language == "zh" else "en")
 
 

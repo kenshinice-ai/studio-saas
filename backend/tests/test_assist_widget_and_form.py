@@ -61,28 +61,40 @@ def no_plan_query(monkeypatch):
 def test_every_product_site_page_offers_the_window(client, no_plan_query, path, language) -> None:
     body = client.get(path).get_data(as_text=True)
     assert body.count(WIDGET) == 1, path
-    assert f"'data-site','pwe-studio'" in body
+    assert "'data-site','pwe-studio'" in body
     assert f"'data-lang','{language}'" in body, "the window must open in the page's language"
+    # Open to every visitor: no opt-in condition stands in front of the loader.
+    assert "pwe-assist:try" not in body
+    # `data-lang` is these pages' authoring marker. It reaches the widget from
+    # script, never as an attribute in the markup that is sent.
+    assert "data-lang=" not in body
     assert "<!--ASSIST-WIDGET-->" not in body, "the placeholder was served instead of replaced"
     # It is loaded last, so a failure to load it cannot hold up the page.
     assert body.index(WIDGET) > body.index("</main>") if "</main>" in body else True
 
 
-def test_the_window_is_gated_until_someone_has_tried_it_live() -> None:
-    """`?assist=1` opts one tab in. Nobody else is shown anything."""
+def test_the_window_is_open_and_the_gate_still_works() -> None:
+    """The switch is "on" since v10.20.8: the gated window was used on
+    production under v10.20.7 and Lee approved opening it (2026-10-10).
+
+    The gate stays in the code. Turning the assistant off for visitors while
+    keeping it reachable for a check is one word, not a revert — and "gate"
+    opts in one tab with `?assist=1` and shows nobody else anything."""
 
     from studiosaas.services.public_site import ASSIST_WIDGET_MODE, render_assist_widget
 
-    assert ASSIST_WIDGET_MODE == "gate", (
-        "the switch moved. \"on\" shows the assistant to every visitor; that is a "
-        "release of its own, taken after the gated window has been used on production"
+    assert ASSIST_WIDGET_MODE == "on", (
+        "the switch moved. If the assistant was pulled back on purpose, say so "
+        "here and in the handoff; visitors lost the window the moment this changed"
     )
     gated = render_assist_widget("en", "gate")
     assert "assist=1" in gated and "sessionStorage.getItem('pwe-assist:try')!=='1')return" in gated
     assert "<script defer src=" not in gated, "the gate must not also load the script outright"
 
     opened = render_assist_widget("zh", "on")
-    assert opened == '<script defer src="/v1/assist/widget.js" data-site="pwe-studio" data-lang="zh"></script>'
+    assert "s.src='/v1/assist/widget.js'" in opened
+    assert "'data-site','pwe-studio'" in opened and "'data-lang','zh'" in opened
+    assert "pwe-assist:try" not in opened and "data-lang=" not in opened
     assert render_assist_widget("en", "off") == ""
     with pytest.raises(ValueError):
         render_assist_widget("en", "maybe")
@@ -133,8 +145,8 @@ def test_the_window_script_is_not_assist_knowledge(client, monkeypatch) -> None:
 
     monkeypatch.setattr(server, "public_plan_rows", lambda: [])
     home = client.get("/studio").get_data(as_text=True)
-    assert "pwe-assist:try" in home
-    assert not any("pwe-assist" in line for line in text_of(home, "main"))
+    assert WIDGET in home
+    assert not any("assist/widget" in line or "pwe-assist" in line for line in text_of(home, "main"))
 
 
 # ── C: the form sends ───────────────────────────────────────────────────────

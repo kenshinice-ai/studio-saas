@@ -1,14 +1,14 @@
 # PWE Studio
 
-## v10.20.7 release identity — where the service runs, corrected; a form that sends; PWE Assist behind a gate
+## v10.20.8 release identity — PWE Assist is open on the product site
 
-`VERSION` = **10.20.7** and `backend/server.py` reports `APP_VERSION=10.20.7`.
-**Zero migrations.** Four public pages said the service runs on AWS in Sydney;
-it has run on Oracle Cloud in Melbourne since 2026-09-17, and they now say so,
-with the backup arrangement and its three limits. The home page form posts to
-the enquiry service at this origin instead of opening the visitor's mail app.
-The PWE Assist window is stamped into the eight product-site pages behind a
-`?assist=1` gate. The privacy policy gains section 10. Round notes:
+`VERSION` = **10.20.8** and `backend/server.py` reports `APP_VERSION=10.20.8`.
+**Zero migrations.** One switch moves: `ASSIST_WIDGET_MODE` goes from `gate`
+to `on`, so the PWE Assist window is offered to every visitor of the eight
+product-site pages rather than only to a tab that arrived with `?assist=1`.
+v10.20.7, released earlier the same day, carried the corrected hosting
+statements, the enquiry form and the gated window; both were used on
+production before this switch moved. Round notes:
 `docs/handoff/claude/2026-10-10-assist-followups.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
@@ -24,9 +24,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.7, release candidate** — not deployed | Copy corrections, the enquiry form, the gated assistant window and their tests; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.7.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.7.tar.gz`. |
-| Production | **v10.20.6** (`pwestudio.online`, Oracle ARM, commit `d002008`) | v10.20.7 is not deployed. Measured 2026-10-10 for v10.20.6: `/v1/health` reports `appVersion=10.20.6`, `mode=saas`. |
+| Source | **v10.20.8, release candidate** — not deployed | One switch and its tests; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
+| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.20.8.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.20.8.tar.gz`. |
+| Production | **v10.20.7** (`pwestudio.online`, Oracle ARM, commit `dd6610e`) | v10.20.8 is not deployed. Measured 2026-10-10 for v10.20.7: deep health `db=ok`, 5 tenants; four pages name Melbourne; Assist knowledge commit `10.20.7-94d60592` equals the Worker's; the gated window answered on `/studio`; the form returned 201 with the trap field set. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
