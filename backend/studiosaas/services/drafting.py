@@ -83,6 +83,7 @@ Rules:
 - Write in the language the request asks for. Chinese: natural, polite written Chinese. English: plain Australian English.
 - Sound like the studio, using its voice notes if given. Warm and brief: a message is at most about 120 English words or 200 Chinese characters.
 - Address the family as the facts say. If no parent name is given, address the family of the student by the student's first name.
+- Never guess a student's gender from their name: repeat the first name, or use "they" in English and "孩子" in Chinese.
 - End with the studio's signature if given, otherwise the studio's name.
 - Plain text only: no markdown, no emoji, no mention of AI.
 
@@ -233,8 +234,42 @@ def unbacked_figures(body: str, facts: dict[str, Any]) -> list[str]:
 _FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}
 
 
+def request_params(request: dict[str, Any], *, model: str, effort: str = "low",
+                   max_tokens: int = 4000, cache: bool = True) -> dict[str, Any]:
+    """Messages API parameters for one draft, shared by the live call and the
+    evaluation's batches. ``cache=False`` drops the breakpoint: inside a batch
+    requests cannot read each other's cache, so a breakpoint only pays for writes."""
+
+    system: dict[str, Any] = {"type": "text", "text": request["system"]}
+    if cache:
+        system["cache_control"] = {"type": "ephemeral"}
+    return {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": [system],
+        "messages": [{"role": "user", "content": request["user"]}],
+        "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
+    }
+
+
+def draft_from_message(message, *, model: str) -> Draft:
+    """Turn a Messages API response (live or from a batch) into a Draft."""
+
+    if message.stop_reason == "refusal":
+        raise DraftingError("declined", "This one could not be drafted. Please write it yourself.")
+    if message.stop_reason == "max_tokens":
+        raise DraftingError("too_long", "The draft ran too long.")
+    text = next((block.text for block in message.content if block.type == "text"), "")
+    draft = parse_reply(text, model=getattr(message, "model", None) or model)
+    usage = message.usage
+    draft.input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+    draft.output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+    draft.cache_read_tokens = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+    return draft
+
+
 def call_model(client, request: dict[str, Any], *, model: str, effort: str = "low",
-               max_tokens: int = 2000) -> Draft:
+               max_tokens: int = 4000) -> Draft:
     """Ask Claude for one draft. ``client`` is an ``anthropic.Anthropic``.
 
     Errors become :class:`DraftingError` with a code the screen can explain;
@@ -243,13 +278,7 @@ def call_model(client, request: dict[str, Any], *, model: str, effort: str = "lo
 
     import anthropic
 
-    params: dict[str, Any] = {
-        "model": model,
-        "max_tokens": max_tokens,
-        "system": [{"type": "text", "text": request["system"], "cache_control": {"type": "ephemeral"}}],
-        "messages": [{"role": "user", "content": request["user"]}],
-        "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
-    }
+    params = request_params(request, model=model, effort=effort, max_tokens=max_tokens)
     try:
         if model in _FALLBACK_MODELS:
             response = client.beta.messages.create(
@@ -264,36 +293,31 @@ def call_model(client, request: dict[str, Any], *, model: str, effort: str = "lo
     except anthropic.APIConnectionError as exc:
         raise DraftingError("unreachable", "The drafting service could not be reached.") from exc
     except anthropic.APIStatusError as exc:
+        # A spent credit balance arrives here too; the screen says to write by hand.
         raise DraftingError("service_error", f"The drafting service answered {exc.status_code}.") from exc
-
-    if response.stop_reason == "refusal":
-        raise DraftingError("declined", "This one could not be drafted. Please write it yourself.")
-    if response.stop_reason == "max_tokens":
-        raise DraftingError("too_long", "The draft ran too long.")
-    text = next((block.text for block in response.content if block.type == "text"), "")
-    draft = parse_reply(text, model=response.model or model)
-    usage = response.usage
-    draft.input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
-    draft.output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
-    draft.cache_read_tokens = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
-    return draft
+    return draft_from_message(response, model=model)
 
 
-#: US dollars per million tokens (input, output), Claude API price list cached
-#: 2026-10-06. Only used to log an estimate; the invoice from Anthropic is the truth.
+#: US dollars per million tokens (input, output, cache-read multiplier). Prices
+#: from the Claude API price list cached 2026-10-06; cache-read multipliers as
+#: checked by the API planning session 2026-10-11. Only used to log an
+#: estimate; the invoice from Anthropic is the truth.
 PRICES = {
-    "claude-opus-5-5": (4.00, 20.00),
-    "claude-sonnet-5-5": (2.00, 10.00),
-    "claude-haiku-5-5": (0.10, 0.50),
+    "claude-opus-5-5": (4.00, 20.00, 0.05),
+    "claude-sonnet-5-5": (2.00, 10.00, 0.05),
+    "claude-haiku-5-5": (0.10, 0.50, 0.10),
 }
 
 
-def estimated_cost_micros(draft: Draft) -> int:
-    """Estimated cost in millionths of a US dollar. Cache reads at a tenth."""
+def estimated_cost_micros(draft: Draft, *, batch: bool = False) -> int:
+    """Estimated cost in millionths of a US dollar. Batches cost half."""
 
-    rate_in, rate_out = PRICES.get(draft.model, PRICES["claude-opus-5-5"])
-    uncached = max(0, draft.input_tokens)
-    dollars = (uncached * rate_in + draft.cache_read_tokens * rate_in * 0.1 + draft.output_tokens * rate_out) / 1_000_000
+    rate_in, rate_out, cache_read = PRICES.get(draft.model, PRICES["claude-opus-5-5"])
+    dollars = (max(0, draft.input_tokens) * rate_in
+               + draft.cache_read_tokens * rate_in * cache_read
+               + draft.output_tokens * rate_out) / 1_000_000
+    if batch:
+        dollars /= 2
     return round(dollars * 1_000_000)
 
 

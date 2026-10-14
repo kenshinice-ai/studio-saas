@@ -12,14 +12,19 @@ What is measured, per model:
   facts; the wrong language; too long; a forbidden promise (discount, refund,
   free lesson); a fact that was missing on purpose and was neither listed in
   ``missing`` nor left as a [placeholder].
-* **Tone** (a sample): Claude Opus 5.5 grades each sampled draft 1-5 against a
-  short rubric. The grader never sees which model wrote the draft.
+* **Tone** (a sample): a grader grades each sampled draft 1-5 against a short
+  rubric and never sees which model wrote it. Sonnet 5.5 grades, after a
+  20-draft calibration against Opus 5.5 (the API planning session's advice).
 
 Usage (from backend/):
 
-    ../.venv/bin/python scripts/eval_drafting.py --dry-run
-    ../.venv/bin/python scripts/eval_drafting.py --models claude-haiku-5-5 --per-kind 5 --max-usd 1
-    ../.venv/bin/python scripts/eval_drafting.py --max-usd 15
+    ../.venv/bin/python scripts/eval_drafting.py dry-run
+    ../.venv/bin/python scripts/eval_drafting.py drafts      # one batch, all models, half price
+    ../.venv/bin/python scripts/eval_drafting.py calibrate   # 20 drafts graded by Sonnet and Opus
+    ../.venv/bin/python scripts/eval_drafting.py grades      # sampled drafts graded in a batch
+    ../.venv/bin/python scripts/eval_drafting.py summary
+
+Each step is resumable: a submitted batch id is kept in state.json.
 
 The key comes from the environment the API session names; this script never
 prints it or writes it anywhere. Results go to outputs/drafting-eval-<stamp>/,
@@ -168,38 +173,114 @@ GRADE_SCHEMA = {
 }
 
 
-def grade(client, record: dict, draft: drafting.Draft) -> dict:
+def grade_params(record: dict, draft: dict, grader: str) -> dict:
     payload = json.dumps({"situation": drafting.KIND_BRIEFS[record["kind"]], "facts": record["facts"],
-                          "language": record["language"], "draft": {"subject": draft.subject, "body": draft.body}},
+                          "language": record["language"],
+                          "draft": {"subject": draft["subject"], "body": draft["body"]}},
                          ensure_ascii=False, sort_keys=True)
-    response = client.beta.messages.create(
-        model=GRADER, max_tokens=1000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-        system=[{"type": "text", "text": GRADER_PROMPT, "cache_control": {"type": "ephemeral"}}],
-        messages=[{"role": "user", "content": payload}],
-        output_config={"effort": "low", "format": {"type": "json_schema", "schema": GRADE_SCHEMA}},
-    )
-    text = next((b.text for b in response.content if b.type == "text"), "{}")
-    data = json.loads(text)
-    usage = response.usage
-    return {"score": int(data.get("score", 0)), "reason": data.get("reason", ""),
-            "input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens,
-            "cache_read_tokens": getattr(usage, "cache_read_input_tokens", 0) or 0}
+    return {
+        "model": grader, "max_tokens": 2000,
+        "system": [{"type": "text", "text": GRADER_PROMPT}],
+        "messages": [{"role": "user", "content": payload}],
+        "output_config": {"effort": "low", "format": {"type": "json_schema", "schema": GRADE_SCHEMA}},
+    }
+
+
+def parse_grade(message) -> int:
+    text = next((b.text for b in message.content if b.type == "text"), "{}")
+    return int(json.loads(text).get("score", 0))
+
+
+# ── bookkeeping ─────────────────────────────────────────────────────────
+
+SHORT = {"claude-opus-5-5": "opus", "claude-sonnet-5-5": "sonnet", "claude-haiku-5-5": "haiku"}
+LONG = {v: k for k, v in SHORT.items()}
+
+
+class Ledger:
+    """Usage per (phase, model), priced from usage as the API session asked."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.rows = json.loads(path.read_text()) if path.exists() else []
+
+    def add(self, phase: str, model: str, usage, *, batch: bool) -> None:
+        self.rows.append({
+            "phase": phase, "model": model, "batch": batch,
+            "input": int(getattr(usage, "input_tokens", 0) or 0),
+            "cache_write": int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
+            "cache_read": int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+            "output": int(getattr(usage, "output_tokens", 0) or 0),
+        })
+        self.path.write_text(json.dumps(self.rows))
+
+    def cost(self, row: dict) -> float:
+        rate_in, rate_out, read = drafting.PRICES[row["model"]]
+        dollars = (row["input"] * rate_in + row["cache_write"] * rate_in * 1.25
+                   + row["cache_read"] * rate_in * read + row["output"] * rate_out) / 1_000_000
+        return dollars / 2 if row["batch"] else dollars
+
+    def total(self) -> float:
+        return sum(self.cost(r) for r in self.rows)
+
+    def table(self) -> list[str]:
+        keys: dict[tuple, dict] = {}
+        for r in self.rows:
+            k = keys.setdefault((r["phase"], r["model"], r["batch"]),
+                                {"n": 0, "input": 0, "cache_write": 0, "cache_read": 0, "output": 0, "cost": 0.0})
+            k["n"] += 1
+            for f in ("input", "cache_write", "cache_read", "output"):
+                k[f] += r[f]
+            k["cost"] += self.cost(r)
+        lines = ["| phase | model | batch | requests | uncached in | cache write | cache read | output | US$ |",
+                 "|---|---|---|---|---|---|---|---|---|"]
+        for (phase, model, batch), k in sorted(keys.items()):
+            lines.append(f"| {phase} | {model} | {'yes' if batch else 'no'} | {k['n']} | {k['input']} | "
+                         f"{k['cache_write']} | {k['cache_read']} | {k['output']} | {k['cost']:.3f} |")
+        lines.append(f"| **total** | | | {len(self.rows)} | | | | | **{self.total():.3f}** |")
+        return lines
+
+
+def run_batch(client, requests: list, state: dict, key: str, state_path: Path, label: str):
+    """Submit once (resumable by batch id), wait for it to end, return results by custom_id."""
+
+    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+    from anthropic.types.messages.batch_create_params import Request
+
+    if key not in state:
+        batch = client.messages.batches.create(requests=[
+            Request(custom_id=cid, params=MessageCreateParamsNonStreaming(**params)) for cid, params in requests
+        ])
+        state[key] = batch.id
+        state_path.write_text(json.dumps(state, indent=2))
+        print(f"{label}: submitted {len(requests)} requests as {batch.id}", flush=True)
+    while True:
+        batch = client.messages.batches.retrieve(state[key])
+        counts = batch.request_counts
+        print(f"{label}: {batch.processing_status} · processing {counts.processing} · "
+              f"succeeded {counts.succeeded} · errored {counts.errored}", flush=True)
+        if batch.processing_status == "ended":
+            break
+        time.sleep(30)
+    return {r.custom_id: r.result for r in client.messages.batches.results(state[key])}
 
 
 # ── run ─────────────────────────────────────────────────────────────────
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("step", choices=["dry-run", "drafts", "calibrate", "grades", "summary"])
     parser.add_argument("--models", nargs="+", default=list(MODELS))
     parser.add_argument("--per-kind", type=int, default=40)
-    parser.add_argument("--grade-per-kind", type=int, default=14,
-                        help="drafts per kind per model sent to the tone grader")
-    parser.add_argument("--max-usd", type=float, default=15.0, help="stop before estimated spend passes this")
-    parser.add_argument("--dry-run", action="store_true", help="build every request, call nothing")
+    parser.add_argument("--grade-per-kind", type=int, default=14)
+    parser.add_argument("--grader", default="claude-sonnet-5-5")
+    parser.add_argument("--out", default=str(APP_ROOT.parent / "outputs" / "drafting-eval-2026-10-14"))
+    parser.add_argument("--max-usd", type=float, default=15.0)
     args = parser.parse_args()
 
     records = synthetic_records(args.per_kind)
-    if args.dry_run:
+    by_id = {r["id"]: r for r in records}
+    if args.step == "dry-run":
         sizes = [len(drafting.build_request(r["kind"], r["facts"], voice=r["voice"], language=r["language"])["user"])
                  for r in records]
         print(f"{len(records)} records × {len(args.models)} models; user message {min(sizes)}–{max(sizes)} characters")
@@ -208,78 +289,111 @@ def main() -> int:
 
     import anthropic
 
-    client = anthropic.Anthropic(timeout=60.0)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
-    out_dir = APP_ROOT.parent / "outputs" / f"drafting-eval-{stamp}"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    results = out_dir / "results.jsonl"
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    state_path = out / "state.json"
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    ledger = Ledger(out / "ledger.json")
+    if ledger.total() > args.max_usd:
+        print(f"stopping: spent US${ledger.total():.2f}, cap US${args.max_usd}")
+        return 1
+    client = anthropic.Anthropic(max_retries=5, timeout=120.0)
+    drafts_path = out / "drafts.jsonl"
 
-    spent_micros = 0
-    rng = random.Random(7)
-    to_grade = {(r["id"]) for kind in drafting.KINDS
-                for r in rng.sample([x for x in records if x["kind"] == kind],
-                                    min(args.grade_per_kind, args.per_kind))}
-    summary: dict[str, dict] = {m: {"n": 0, "errors": 0, "unbacked": 0, "wrong_language": 0, "too_long": 0,
-                                    "forbidden_promise": 0, "missing_not_admitted": 0, "withheld": 0,
-                                    "scores": [], "in": 0, "out": 0, "cache": 0, "seconds": 0.0}
-                                for m in args.models}
-    with results.open("w", encoding="utf-8") as fh:
+    if args.step == "drafts":
+        requests = []
         for record in records:
             request = drafting.build_request(record["kind"], record["facts"], voice=record["voice"],
                                              language=record["language"])
             for model in args.models:
-                if spent_micros / 1_000_000 > args.max_usd:
-                    print(f"stopping: estimated spend passed US${args.max_usd}")
-                    break
-                row = {"id": record["id"], "kind": record["kind"], "language": record["language"], "model": model}
-                s = summary[model]
-                started = time.monotonic()
-                try:
-                    draft = drafting.call_model(client, request, model=model)
-                except drafting.DraftingError as exc:
-                    s["errors"] += 1
-                    row["error"] = exc.code
-                    fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-                    continue
-                s["seconds"] += time.monotonic() - started
-                spent_micros += drafting.estimated_cost_micros(draft)
-                s["n"] += 1
-                s["in"] += draft.input_tokens
-                s["out"] += draft.output_tokens
-                s["cache"] += draft.cache_read_tokens
-                checks = scripted_checks(record, draft)
-                s["unbacked"] += bool(checks["unbacked"])
-                for key in ("wrong_language", "too_long", "forbidden_promise"):
-                    s[key] += bool(checks[key])
-                if record["withheld"]:
-                    s["withheld"] += 1
-                    s["missing_not_admitted"] += not checks["missing_admitted"]
-                row |= {"draft": draft.as_dict(), "checks": checks,
-                        "tokens": [draft.input_tokens, draft.output_tokens, draft.cache_read_tokens]}
-                if record["id"] in to_grade:
-                    graded = grade(client, record, draft)
-                    spent_micros += drafting.estimated_cost_micros(drafting.Draft(
-                        subject="", body="", missing=[], model=GRADER, input_tokens=graded["input_tokens"],
-                        output_tokens=graded["output_tokens"], cache_read_tokens=graded["cache_read_tokens"]))
-                    s["scores"].append(graded["score"])
-                    row["grade"] = graded
+                requests.append((f"{SHORT[model]}__{record['id']}",
+                                 drafting.request_params(request, model=model, cache=False)))
+        results = run_batch(client, requests, state, "drafts_batch", state_path, "drafts")
+        with drafts_path.open("w", encoding="utf-8") as fh:
+            for cid, result in sorted(results.items()):
+                short, rid = cid.split("__", 1)
+                model, record = LONG[short], by_id[rid]
+                row = {"id": rid, "kind": record["kind"], "language": record["language"], "model": model}
+                if result.type != "succeeded":
+                    row["error"] = result.type
+                else:
+                    message = result.message
+                    ledger.add("draft", model, message.usage, batch=True)
+                    try:
+                        draft = drafting.draft_from_message(message, model=model)
+                        row["draft"] = draft.as_dict()
+                        row["checks"] = scripted_checks(record, draft)
+                    except drafting.DraftingError as exc:
+                        row["error"] = exc.code
                 fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-            print(f"{record['id']}: estimated spend so far US${spent_micros / 1_000_000:.2f}", flush=True)
+        print(f"drafts written to {drafts_path}; spent so far US${ledger.total():.3f}")
+        return 0
 
+    drafts = [json.loads(line) for line in drafts_path.read_text(encoding="utf-8").splitlines()] \
+        if drafts_path.exists() else []
+    good = [d for d in drafts if "draft" in d]
+
+    if args.step == "calibrate":
+        rng = random.Random(11)
+        sample = rng.sample(good, min(20, len(good)))
+        rows = []
+        for d in sample:
+            scores = {}
+            for grader in ("claude-sonnet-5-5", "claude-opus-5-5"):
+                message = client.messages.create(**grade_params(by_id[d["id"]], d["draft"], grader))
+                ledger.add("calibrate", grader, message.usage, batch=False)
+                scores[grader] = parse_grade(message)
+            rows.append({"id": d["id"], "model": d["model"], **scores})
+        same = sum(1 for r in rows if r["claude-sonnet-5-5"] == r["claude-opus-5-5"])
+        near = sum(1 for r in rows if abs(r["claude-sonnet-5-5"] - r["claude-opus-5-5"]) <= 1)
+        (out / "calibration.json").write_text(json.dumps(rows, indent=2))
+        print(f"calibration: {len(rows)} drafts · identical {same} · within one point {near}")
+        print(f"spent so far US${ledger.total():.3f}")
+        return 0
+
+    if args.step == "grades":
+        rng = random.Random(7)
+        chosen = []
+        for model in args.models:
+            for kind in drafting.KINDS:
+                pool = [d for d in good if d["model"] == model and d["kind"] == kind]
+                chosen += rng.sample(pool, min(args.grade_per_kind, len(pool)))
+        requests = [(f"g__{SHORT[d['model']]}__{d['id']}", grade_params(by_id[d["id"]], d["draft"], args.grader))
+                    for d in chosen]
+        results = run_batch(client, requests, state, "grades_batch", state_path, "grades")
+        grades = {}
+        for cid, result in results.items():
+            _, short, rid = cid.split("__", 2)
+            if result.type == "succeeded":
+                ledger.add("grade", args.grader, result.message.usage, batch=True)
+                grades[f"{LONG[short]}|{rid}"] = parse_grade(result.message)
+        (out / "grades.json").write_text(json.dumps(grades, indent=2))
+        print(f"{len(grades)} grades; spent so far US${ledger.total():.3f}")
+        return 0
+
+    # summary
+    grades = json.loads((out / "grades.json").read_text()) if (out / "grades.json").exists() else {}
     lines = ["| model | drafts | errors | invented figure | wrong language | too long | forbidden promise | "
-             "withheld fact not admitted | tone mean (n) | avg seconds | tokens in / out / cached |",
+             "withheld fact not admitted | tone mean (n) | share scoring 4–5 | output tokens per draft |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
-    for model, s in summary.items():
-        mean = (sum(s["scores"]) / len(s["scores"])) if s["scores"] else 0
+    for model in args.models:
+        mine = [d for d in drafts if d["model"] == model]
+        ok = [d for d in mine if "draft" in d]
+        withheld = [d for d in ok if "missing_admitted" in d["checks"]]
+        scores = [v for k, v in grades.items() if k.startswith(model + "|")]
+        out_tokens = [r["output"] for r in ledger.rows if r["phase"] == "draft" and r["model"] == model]
         lines.append(
-            f"| {model} | {s['n']} | {s['errors']} | {s['unbacked']} | {s['wrong_language']} | {s['too_long']} | "
-            f"{s['forbidden_promise']} | {s['missing_not_admitted']}/{s['withheld']} | {mean:.2f} ({len(s['scores'])}) | "
-            f"{(s['seconds'] / s['n']) if s['n'] else 0:.1f} | {s['in']} / {s['out']} / {s['cache']} |")
-    lines.append("")
-    lines.append(f"Estimated spend: US${spent_micros / 1_000_000:.2f} (price list cached 2026-10-06).")
-    (out_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            f"| {model} | {len(ok)} | {len(mine) - len(ok)} | {sum(bool(d['checks']['unbacked']) for d in ok)} | "
+            f"{sum(d['checks']['wrong_language'] for d in ok)} | {sum(d['checks']['too_long'] for d in ok)} | "
+            f"{sum(d['checks']['forbidden_promise'] for d in ok)} | "
+            f"{sum(not d['checks']['missing_admitted'] for d in withheld)}/{len(withheld)} | "
+            f"{(sum(scores) / len(scores)) if scores else 0:.2f} ({len(scores)}) | "
+            f"{(sum(1 for s in scores if s >= 4) / len(scores) * 100) if scores else 0:.0f}% | "
+            f"{(sum(out_tokens) / len(out_tokens)) if out_tokens else 0:.0f} |")
+    lines += ["", "Spend by usage (batch at half price; cache reads per the API session's 2026-10-11 rates):", ""]
+    lines += ledger.table()
+    (out / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
-    print(f"\nresults: {results}")
     return 0
 
 
