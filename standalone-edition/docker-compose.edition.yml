@@ -58,6 +58,9 @@ services:
       STUDIOSAAS_SEED_SUPER_ADMIN: "0"
       # Email delivery (SMTP in production; console = log-only default)
       STUDIOSAAS_EMAIL_BACKEND: ${STUDIOSAAS_EMAIL_BACKEND:-console}
+      # Claude drafting: empty key = the feature stays unavailable.
+      STUDIOSAAS_DRAFTING_API_KEY: ${STUDIOSAAS_DRAFTING_API_KEY:-}
+      STUDIOSAAS_DRAFTING_MODEL: ${STUDIOSAAS_DRAFTING_MODEL:-}
       STUDIOSAAS_SMTP_HOST: ${STUDIOSAAS_SMTP_HOST:-}
       STUDIOSAAS_SMTP_PORT: ${STUDIOSAAS_SMTP_PORT:-587}
       STUDIOSAAS_SMTP_USER: ${STUDIOSAAS_SMTP_USER:-}

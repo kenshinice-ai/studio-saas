@@ -14,6 +14,7 @@
  */
 
 import { aud, fmtApiDate } from "./_shared.jsx";
+import { DraftButton } from './drafting.jsx';
 import { FilterBar, presetRange } from "./filter_bar.jsx";
 
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
@@ -824,6 +825,11 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                               className="no-print min-h-[44px] px-3 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 disabled:opacity-50">
                         记录提醒
                       </button>
+                    )}
+                    {/* 逾期才起草催款：只起草，员工改完自己发，发完照常「记录提醒」。 */}
+                    {detail.invoice.status !== 'draft' && detail.invoice.status !== 'void'
+                      && Number(detail.invoice.balance_cents) > 0 && isOverdue(detail.invoice) && (
+                      <span className="no-print"><DraftButton kind="overdue_invoice" recordId={detail.invoice.id} label="起草付款提醒"/></span>
                     )}
                     {/* 已开具的发票不可改 —— 这是数据库触发器保证的。给一个点了会报错的
                         按钮比不给更糟，所以这里明确说明它为什么不在。 */}

@@ -41,8 +41,8 @@
   <div class="notice">
     <p data-lang="en"><strong>This is a draft, not legal advice.</strong> It describes how PWE Studio actually behaves today, in plain English, so that it can be reviewed against reality. It has not been reviewed by an Australian lawyer. Where it and a signed service agreement differ, the signed agreement prevails. Two sections in particular — <em>consent for children</em> and <em>retention and deletion</em> — should be reviewed by an Australian legal practitioner before this page is relied on commercially.</p>
     <p data-lang="zh"><strong>本文为草案，不构成法律意见。</strong>它以平实语言描述 PWE Studio 目前的实际行为，便于与事实逐条核对。本文尚未经澳大利亚律师复核。若本文与已签署的服务协议不一致，以签署协议为准。其中两节——<em>儿童相关同意</em>与<em>数据留存与删除</em>——建议在正式商业依赖前由澳大利亚执业律师复核。</p>
-    <p data-lang="en">Last internally reviewed: 10 October 2026 · applies to PWE Studio v__APP_VERSION__ and later.</p>
-    <p data-lang="zh">我方最近一次内部复核：2026 年 10 月 10 日 · 适用于 PWE Studio v__APP_VERSION__ 及之后版本。</p>
+    <p data-lang="en">Last internally reviewed: 14 October 2026 · applies to PWE Studio v__APP_VERSION__ and later.</p>
+    <p data-lang="zh">我方最近一次内部复核：2026 年 10 月 14 日 · 适用于 PWE Studio v__APP_VERSION__ 及之后版本。</p>
   </div>
 
   <h2 data-lang="en">1 · Who we are</h2>
@@ -144,8 +144,8 @@
   <h2 data-lang="zh">五 · 信息保存位置</h2>
   <p data-lang="en">For subscription customers, data is held in Australia, on the host that runs the service: Oracle Cloud’s Melbourne region (<code>ap-melbourne-1</code>), with PostgreSQL beside the application and media files on the host’s own storage. It was held on Amazon Web Services in Sydney until 17 September 2026 and moved on that day. The database is backed up nightly and media monthly. Each backup is encrypted on the host before it leaves and is then stored by Cloudflare, which does not hold the key, in its Oceania region. Oceania is wider than Australia, so we do not describe that encrypted copy as held in Australia. Transport is encrypted with TLS, HTTP requests are redirected to HTTPS, and the application is not directly reachable from the internet.</p>
   <p data-lang="zh">订阅客户的数据保存在澳大利亚境内，位于运行本服务的主机上：Oracle Cloud 墨尔本区域（<code>ap-melbourne-1</code>），PostgreSQL 与应用同机，媒体文件存放在主机自己的存储上。2026 年 9 月 17 日之前，数据保存在 Amazon Web Services 悉尼区域，当天完成迁移。数据库每晚备份，媒体每月备份。每份备份先在主机上加密，再离开主机，由 Cloudflare 存放在它的大洋洲区域；Cloudflare 不持有密钥。大洋洲的范围比澳大利亚大，所以我方不把这份加密副本说成保存在澳大利亚境内。传输使用 TLS 加密，HTTP 请求跳转至 HTTPS，应用不可从互联网直接访问。</p>
-  <p data-lang="en">Apart from that encrypted backup copy, which may sit outside Australia within Oceania, we do not send a studio’s personal information overseas for our own purposes. Support correspondence you send us may pass through the email provider you chose to use. Messages and assistant conversations on our own website are handled differently; section 10 sets that out.</p>
-  <p data-lang="zh">除上述加密备份副本（可能位于大洋洲内、澳大利亚以外）外，我方不会为自身目的将工作室的个人信息传输至境外。你发送给我方的支持往来邮件，可能经由你自己选用的邮件服务商传输。我们自己网站上的留言与助手对话处理方式不同，见第十节。</p>
+  <p data-lang="en">Apart from that encrypted backup copy, which may sit outside Australia within Oceania, we do not send a studio’s personal information overseas for our own purposes. A studio that turns on AI drafting chooses to have a small part of a record sent overseas each time a draft is made; section 11 sets out exactly what. Support correspondence you send us may pass through the email provider you chose to use. Messages and assistant conversations on our own website are handled differently; section 10 sets that out.</p>
+  <p data-lang="zh">除上述加密备份副本（可能位于大洋洲内、澳大利亚以外）外，我方不会为自身目的将工作室的个人信息传输至境外。工作室若打开「AI 起草」，即选择在每次起草时把记录中的一小部分发往境外处理，具体内容见第十一节。你发送给我方的支持往来邮件，可能经由你自己选用的邮件服务商传输。我们自己网站上的留言与助手对话处理方式不同，见第十节。</p>
 
   <h2 data-lang="en">6 · How information is protected, and what is still missing</h2>
   <h2 data-lang="zh">六 · 如何保护，以及仍缺什么</h2>
@@ -250,8 +250,29 @@
   <p data-lang="zh">不留言、也不使用助手，就不会产生上面两类记录；你可以直接打电话或发邮件。想查看、更正或删除某条留言或某段对话，请写信到 <a href="mailto:info@pwestudio.site">info@pwestudio.site</a>，告诉我们大致时间和你留的邮箱。第八节说明了我们如何处理这类请求。</p>
   </section>
 
-  <h2 data-lang="en">11 · Changes to this policy</h2>
-  <h2 data-lang="zh">十一 · 本政策的变更</h2>
+  <section id="ai-drafting">
+  <h2 data-lang="en">11 · AI drafting in the console</h2>
+  <h2 data-lang="zh">十一 · 在后台用 AI 起草消息</h2>
+  <p data-lang="en">A studio can turn on AI drafting. It is off until the studio’s owner turns it on, and the owner can turn it off at any time. When it is on, staff can ask for a draft of a progress-report comment or of a message to a family: a reminder that lessons are running low, a check-in after missed lessons, a payment reminder, an invitation to book a make-up lesson, or a reply to a booking request.</p>
+  <p data-lang="zh">工作室可以打开「AI 起草」。在店主打开之前它是关闭的，店主可以随时关闭。打开后，员工可以请 AI 起草成长报告的评语，或起草给家长的消息：课时快用完的提醒、连续缺课后的问候、付款提醒、补课邀请，以及约课申请的回复。</p>
+  <ul>
+    <li data-lang="en"><strong>Nothing is sent to a family by the system.</strong> A draft is shown only to the staff member who asked for it. They edit it and send it themselves, from their own email or phone, if they decide to send it at all.</li>
+    <li data-lang="zh"><strong>系统不会替工作室给家长发送任何消息。</strong>草稿只显示给请求它的员工。是否发送、发送什么，由员工修改后从自己的邮箱或手机发出。</li>
+    <li data-lang="en"><strong>What is sent to make a draft:</strong> the student’s first name (not their surname), how the family is addressed, the numbers and dates the message is about (for example lessons left, an invoice number and amount, a due date, a class time), the studio’s name and its own notes on tone and how to pay, and, for a progress-report comment, that period’s attendance figures and lesson notes. Phone numbers, email addresses, home addresses, birthdays and photos are never sent, nor anything about other students.</li>
+    <li data-lang="zh"><strong>起草时发送的内容：</strong>学员的名（不含姓）、对家长的称呼、与这条消息有关的数字和日期（如剩余课时、发票号与金额、到期日、上课时间）、工作室名称及其写好的语气说明和付款方式；起草成长报告评语时，另含该周期的出勤数字和课堂笔记。电话、邮箱、住址、生日和照片从不发送，也不发送任何其他学员的信息。</li>
+    <li data-lang="en"><strong>Who processes it:</strong> the draft is written by Claude, an AI model made by Anthropic, which we call through its API. Processing may take place outside Australia, including in the United States. Anthropic does not use this content to train its models, and keeps it for no more than 30 days before deleting it from its systems (other than content it finds to breach its usage policy, or is required by law to keep).</li>
+    <li data-lang="zh"><strong>谁在处理：</strong>草稿由 Anthropic 公司的 AI 模型 Claude 生成，我们通过它的 API 调用。处理可能发生在澳大利亚以外，包括美国。Anthropic 不用这些内容训练模型，最多保留 30 天后从其系统中删除（被它判定为违反使用政策的内容，以及法律要求它保留的除外）。</li>
+    <li data-lang="en"><strong>What we keep:</strong> for each draft, a record that a draft was made, by whom, for which kind of record, with the number of words processed and an estimated cost. We do not keep the draft or the details that were sent.</li>
+    <li data-lang="zh"><strong>我们保存什么：</strong>每次起草保存一条记录：谁、在什么时候、为哪一类记录起草，以及处理的字数和估算费用。草稿本身和发送的内容都不保存。</li>
+    <li data-lang="en"><strong>The studio’s part:</strong> the studio decides whether to use this, and by turning it on confirms that it has told its families that a small part of their record may be processed overseas in this way. A family that does not want this can ask the studio not to draft messages about them.</li>
+    <li data-lang="zh"><strong>工作室的责任：</strong>是否使用由工作室决定。打开即表示工作室已告知家长，其记录中的一小部分可能以这种方式在境外处理。不希望这样的家长，可以请工作室不要为其起草消息。</li>
+    <li data-lang="en"><strong>Drafts can be wrong.</strong> The screen lists the facts each draft was based on and marks any number or date in it that does not match the studio’s records. Staff are expected to read every draft before sending it.</li>
+    <li data-lang="zh"><strong>草稿可能出错。</strong>界面会列出每份草稿所依据的事实，并标出与工作室记录对不上的数字或日期。员工应在发送前读完每份草稿。</li>
+  </ul>
+  </section>
+
+  <h2 data-lang="en">12 · Changes to this policy</h2>
+  <h2 data-lang="zh">十二 · 本政策的变更</h2>
   <p data-lang="en">Collection notices inside the product carry a version, and a family’s consent is recorded against the version they were shown. If we change this policy in a way that materially affects how information is handled, we will tell subscribed studios in writing before the change takes effect.</p>
   <p data-lang="zh">产品内的收集说明带有版本号，家庭的同意会与其所见版本一并记录。若本政策的变更会实质影响信息处理方式，我方将在变更生效前书面告知订阅中的工作室。</p>
 

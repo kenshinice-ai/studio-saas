@@ -6,6 +6,7 @@
 
 import { BalBadge, EmptyState, Icon, PhotoAvatar, PhotoUploader, REG_STATUS_ZH } from "../components.jsx";
 import { daysSince, fmtDT, fmtDate, mediaSrc, todayISO, v1Api } from "../components.jsx";
+import { DraftButton } from "./drafting.jsx";
 import { FilterBar } from "./filter_bar.jsx";
 
 const { useMemo } = React;
@@ -424,7 +425,9 @@ export function PendingSection(props) {
                         这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。
                     </p>
                 )}
-{canReviewBookings && <div className="flex gap-2 justify-end">
+{canReviewBookings && <div className="flex gap-2 justify-end flex-wrap">
+                    {/* 回复家长的话由 Claude 起草、员工自己发；批准和婉拒仍是下面两个按钮。 */}
+                    <DraftButton kind="booking_reply" recordId={bk.id} label="起草回复"/>
                     <button onClick={()=>reviewBooking(bk,'declined')} disabled={busy}
                         className="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold active:bg-gray-50 min-h-[44px]">婉拒</button>
                     <button onClick={()=>reviewBooking(bk,'approved')} disabled={busy}

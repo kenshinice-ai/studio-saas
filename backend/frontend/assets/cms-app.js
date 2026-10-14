@@ -25,8 +25,1543 @@
     return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
   };
 
+  // legacy-root/src/components.jsx
+  var { useState, useEffect, useMemo, useRef, useCallback } = React;
+  var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
+  var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
+    timeZone: "Australia/Melbourne",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+  var todayISO = () => (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
+  var shiftDate = (iso3, delta) => {
+    const d = /* @__PURE__ */ new Date(`${iso3}T12:00:00`);
+    d.setDate(d.getDate() + delta);
+    return d.toLocaleDateString("en-CA");
+  };
+  var fmtDate = (s) => {
+    if (!s) return "—";
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s).split(" ")[0];
+  };
+  var daysSince = (iso3) => {
+    if (!iso3) return 9999;
+    const d = new Date(iso3);
+    return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
+  };
+  var fmtDT = (s) => {
+    const m = String(s || "").match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? `${m[1]} ${m[2]}` : s ? String(s) : "—";
+  };
+  var REG_STATUS_ZH = {
+    pending: "待审核",
+    contacted: "已联系",
+    trial_booked: "已约试听",
+    waiting: "跟进中",
+    approved: "已批准",
+    converted: "已建档",
+    rejected: "已拒绝",
+    duplicate: "重复申请",
+    lost: "已流失",
+    archived: "已归档"
+  };
+  var TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || "";
+  var CMS_ROUTE_TABS = /* @__PURE__ */ new Set([
+    "dashboard",
+    "roster",
+    "courses",
+    "students",
+    "works",
+    "new_student",
+    "pending",
+    "billing",
+    "topup",
+    "finance",
+    "logs",
+    "stats",
+    "settings"
+  ]);
+  var CMS_ROUTE_SECTIONS = Object.assign(/* @__PURE__ */ Object.create(null), {
+    settings: {
+      allowed: [
+        "account",
+        "team",
+        "operational",
+        "billing-identity",
+        "integrations",
+        "drafting",
+        "maintenance",
+        "workspace"
+      ],
+      fallback: "account"
+    },
+    /* 排课页的两个职能。`checkin` 是 fallback，也就是没有 `?section=` 时
+       落到的分区 —— 不按角色推导、不记忆上次选择：这一页每天被不同的人在
+       不同设备上打开，记忆会让两个人看到不同的首屏，而他们要对的是同一份
+       名单。 */
+    roster: {
+      allowed: ["checkin", "plan"],
+      fallback: "checkin"
+    }
+  });
+  var readCmsSection = (tab, params) => {
+    const scope = CMS_ROUTE_SECTIONS[tab];
+    if (!scope || !Array.isArray(scope.allowed)) return "";
+    const requested = params.get("section") || "";
+    return scope.allowed.includes(requested) ? requested : scope.fallback;
+  };
+  var readCmsRoute = () => {
+    const params = new URLSearchParams(window.location.search || "");
+    const requested = params.get("view") || params.get("tab") || "dashboard";
+    const tab = CMS_ROUTE_TABS.has(requested) ? requested : "dashboard";
+    return {
+      tab,
+      pendingTab: params.get("type") === "booking" || params.get("type") === "bookings" ? "bookings" : params.get("type") === "reports" ? "reports" : "registrations",
+      /* Scoped, not raw: a `section` that arrived with another tab must not
+         become the settings page's state. */
+      settingsSection: tab === "settings" ? readCmsSection(tab, params) : "account",
+      rosterSection: tab === "roster" ? readCmsSection(tab, params) : "checkin",
+      recordId: params.get("id") || "",
+      /* `id` 和 `invoice` 是两个槽，不是一个。
+         v10.15.0 之前只有 `id`，而它同时被当成「筛这个账单账户」和「打开这张
+         发票」用：结算后点「查看发票」传的是发票 ID，面板拿它当 accountId 去
+         查询，返回 0 张——整页四个 KPI 全是 $0.00，底下写着「还没有发票」。
+         一个刚开完发票的工作室，看起来像从没开过。 */
+      invoiceId: tab === "billing" ? params.get("invoice") || "" : ""
+    };
+  };
+  var v1Api = async (path, options = {}) => {
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Requested-With": "StudioSaaS",
+      ...options.headers || {}
+    };
+    const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
+      credentials: "include",
+      ...options,
+      headers
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = new Error(d.message || d.error || `HTTP ${r.status}`);
+      err.status = r.status;
+      err.details = d.details || null;
+      err.code = d.error || null;
+      err.payload = d;
+      throw err;
+    }
+    return d;
+  };
+  var AUDIT_ACTION_ZH = {
+    "student.created": "新生建档",
+    "student.updated": "更新档案",
+    "student.archived": "归档学员",
+    "daily_roster.added": "加入排课",
+    "daily_roster.cancelled": "取消排课",
+    "daily_roster.restored": "恢复排课",
+    "daily_roster.updated": "调整排课",
+    "schedule.created": "新增班次",
+    "schedule.updated": "修改班次",
+    "schedule.deleted": "删除班次",
+    "portfolio.uploaded": "上传作品",
+    "portfolio.updated": "修改作品",
+    "portfolio.deleted": "删除作品",
+    "portfolio.share_link_created": "生成分享链接",
+    "portfolio.share_link_revoked": "撤销分享链接",
+    "registration.created": "收到注册申请",
+    "student_access.generated": "生成家长访问码",
+    "student_access.revoked": "撤销家长访问码",
+    "student_access.unlocked": "解锁家长访问",
+    "package.created": "新增课包",
+    "package.updated": "修改课包",
+    "package.archived": "下架课包",
+    "course.created": "新增课程",
+    "course.updated": "修改课程",
+    "course.archived": "归档课程",
+    "data.exported": "导出数据",
+    "brand.published": "发布网站",
+    "team.member_upserted": "新增/更新成员",
+    "team.member_updated": "调整成员权限",
+    "operations.default_class_time_updated": "修改默认上课时间",
+    "operations.booking_hold_hours_updated": "修改约课保留时长",
+    "draft.created": "AI 起草",
+    "drafting.enabled": "打开 AI 起草",
+    "drafting.disabled": "关闭 AI 起草"
+  };
+  var auditNote = (action, meta) => {
+    const m = meta || {};
+    if (action === "daily_roster.added") {
+      const n = Array.isArray(m.students) ? m.students.length : 1;
+      const when = m.classTime ? ` ${m.classTime}` : "";
+      return `${m.date || ""}${when}${n > 1 ? ` · ${n} 人` : ""}${m.oneToOne ? " · 1 对 1" : ""}`.trim();
+    }
+    if (action.startsWith("daily_roster.")) return String(m.date || "");
+    if (action === "data.exported") return `${m.type || ""}${m.rows ? ` · ${m.rows} 行` : ""}`.trim();
+    if (action === "operations.default_class_time_updated") return String(m.defaultClassTime || m.value || "");
+    if (action === "operations.booking_hold_hours_updated") return `${m.bookingHoldHours ?? ""} 小时`;
+    if (action.startsWith("schedule.")) return String(m.label || m.name || "");
+    if (action.startsWith("team.")) return String(m.email || m.role || "");
+    if (action === "registration.created") return String(m.name || m.mobile || "");
+    return String(m.title || m.name || m.note || "");
+  };
+  var parseMonthKey = (ds) => {
+    if (!ds) return null;
+    const s = String(ds);
+    const a = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (a) return `${a[3]}-${a[2].padStart(2, "0")}`;
+    const b = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (b) return `${b[1]}-${b[2].padStart(2, "0")}`;
+    const c = s.match(/^(\d{4})-(\d{2})/);
+    if (c) return `${c[1]}-${c[2]}`;
+    return null;
+  };
+  var fmtMK = (k) => {
+    if (!k) return "";
+    const [y, m] = k.split("-");
+    return `${m}/${y}`;
+  };
+  var tenantOwnedLogoUrl = (brand) => {
+    const source = brand?.logo_url || brand?.logoUrl || "";
+    return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
+  };
+  function TenantBrandLogo({ className = "" }) {
+    const [brand, setBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
+    useEffect(() => {
+      const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
+      window.addEventListener("studiosaas:brand", syncBrand);
+      syncBrand();
+      return () => window.removeEventListener("studiosaas:brand", syncBrand);
+    }, []);
+    const source = tenantOwnedLogoUrl(brand);
+    if (!source) return null;
+    return /* @__PURE__ */ React.createElement(
+      "img",
+      {
+        src: source,
+        alt: `${brand.name || brand.studioName || "Studio"} logo`,
+        className,
+        onError: (event) => {
+          event.currentTarget.hidden = true;
+        }
+      }
+    );
+  }
+  function BarChart({ items, color = "var(--info)", h = 140, prefix = "" }) {
+    if (!items?.length) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-6" }, "暂无数据");
+    const max = Math.max(...items.map((d) => d.v), 0.01);
+    const W = 54, PAD = 6;
+    return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${items.length * W} ${h + 24}`, className: "w-full overflow-visible" }, items.map((d, i) => {
+      const bh = Math.max(2, d.v / max * (h - 12));
+      return /* @__PURE__ */ React.createElement("g", { key: i, transform: `translate(${i * W + PAD},0)` }, /* @__PURE__ */ React.createElement("rect", { x: 4, y: h - bh, width: W - PAD * 2, height: bh, fill: color, rx: 3, opacity: 0.82 }), d.v > 0 && /* @__PURE__ */ React.createElement("text", { x: (W - PAD * 2) / 2 + 4, y: h - bh - 4, textAnchor: "middle", fontSize: 8, fill: "var(--ink2)", fontWeight: "bold" }, prefix, d.v), /* @__PURE__ */ React.createElement("text", { x: (W - PAD * 2) / 2 + 4, y: h + 16, textAnchor: "middle", fontSize: 7.5, fill: "var(--muted)" }, d.l));
+    }));
+  }
+  function Tabs({ idBase, label, items, value, onChange, className = "" }) {
+    const refs = useRef({});
+    const stripRef = useRef(null);
+    const order = items.map((i) => i.value);
+    const alignSelected = useCallback(() => {
+      const strip = stripRef.current, node = refs.current[value];
+      if (!strip || !node || typeof node.getBoundingClientRect !== "function") return;
+      const view = strip.getBoundingClientRect(), tab = node.getBoundingClientRect();
+      const overLeft = view.left - tab.left;
+      const overRight = tab.right - view.right;
+      if (overLeft <= 0 && overRight <= 0) return;
+      strip.scrollLeft += overLeft > 0 ? -(overLeft + 8) : overRight + 8;
+    }, [value]);
+    useEffect(() => {
+      alignSelected();
+      const strip = stripRef.current;
+      if (!strip || typeof ResizeObserver !== "function") return;
+      const observer = new ResizeObserver(() => alignSelected());
+      observer.observe(strip);
+      return () => observer.disconnect();
+    }, [alignSelected, items.length]);
+    const onKeyDown = (event) => {
+      const keys = { ArrowRight: 1, ArrowLeft: -1 };
+      let next = null;
+      if (event.key in keys) next = order[(order.indexOf(value) + keys[event.key] + order.length) % order.length];
+      else if (event.key === "Home") next = order[0];
+      else if (event.key === "End") next = order[order.length - 1];
+      if (!next) return;
+      event.preventDefault();
+      onChange(next);
+      const node = refs.current[next];
+      if (node) node.focus();
+    };
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "tablist",
+        "aria-label": label,
+        onKeyDown,
+        ref: stripRef,
+        className: `flex gap-1 overflow-x-auto border-b border-gray-200 ${className}`
+      },
+      items.map((item) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: item.value,
+          type: "button",
+          role: "tab",
+          id: `${idBase}-tab-${item.value}`,
+          "aria-selected": value === item.value,
+          "aria-controls": `${idBase}-panel-${item.value}`,
+          tabIndex: value === item.value ? 0 : -1,
+          ref: (node) => {
+            refs.current[item.value] = node;
+          },
+          onClick: () => onChange(item.value),
+          className: `relative min-h-[44px] px-4 text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${value === item.value ? "text-indigo-700" : "text-gray-500"}`
+        },
+        item.icon && /* @__PURE__ */ React.createElement(Icon, { name: item.icon, className: "w-4 h-4" }),
+        item.label,
+        value === item.value && /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true", className: "absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-indigo-600" })
+      ))
+    );
+  }
+  function TabPanel({ idBase, name, active, children }) {
+    if (!active) return null;
+    return (
+      // tabIndex={0} makes this a stop on the Tab route (the panel must be
+      // reachable when its content is scrollable), and `focus:outline-none`
+      // then removed the only thing that said where you were. A keyboard
+      // user tabbing out of the tab strip landed nowhere visible.
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          role: "tabpanel",
+          id: `${idBase}-panel-${name}`,
+          "aria-labelledby": `${idBase}-tab-${name}`,
+          tabIndex: 0,
+          className: "space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-lg"
+        },
+        children
+      )
+    );
+  }
+  function EmptyState({ icon = null, main = "暂无数据", sub = "", action = null, onAction = null }) {
+    const glyph = icon || /* @__PURE__ */ React.createElement(Icon, { name: "inbox", className: "w-8 h-8" });
+    return /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state" }, /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state__icon" }, glyph), /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__title" }, main), sub && /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__description" }, sub), action && onAction && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onAction,
+        className: "cms-empty-state__action"
+      },
+      action
+    ));
+  }
+  function BalBadge({ n }) {
+    const v = parseInt(n, 10) || 0;
+    const named = { title: `剩余 ${v} 课时`, "aria-label": `剩余 ${v} 课时` };
+    if (v === 0) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "0");
+    if (v <= 2) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-3.5 h-3.5" }), v);
+    if (v <= 4) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-3.5 h-3.5" }), v);
+    return /* @__PURE__ */ React.createElement("span", { ...named, className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
+  }
+  function Toast({ msg, type, action, onDone }) {
+    useEffect(() => {
+      const t = setTimeout(onDone, action ? 6e3 : 2700);
+      return () => clearTimeout(t);
+    }, []);
+    const bg = type === "error" ? "bg-red-600" : type === "warn" ? "bg-amber-500" : "bg-gray-900";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "status",
+        "aria-live": "polite",
+        className: `toast toast-bottom fixed left-1/2 -translate-x-1/2 z-[999] ${bg} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold max-w-xs text-center`
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "inline-flex items-center gap-2 justify-center" }, /* @__PURE__ */ React.createElement(Icon, { name: type === "error" ? "warning" : type === "warn" ? "bolt" : "check", className: "w-4 h-4" }), /* @__PURE__ */ React.createElement("span", null, msg)),
+      action && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            action.onClick();
+            onDone();
+          },
+          className: "mt-2 w-full bg-white/20 active:bg-white/30 rounded-lg py-1.5 text-xs font-bold"
+        },
+        action.label
+      )
+    );
+  }
+  function CmsNotificationCenter({
+    notifications = [],
+    unreadCount = 0,
+    open,
+    onToggle,
+    onSelect,
+    onMarkAllRead,
+    loadError = ""
+  }) {
+    const formatCreatedAt = (value) => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: "relative flex-shrink-0" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onToggle,
+        "aria-label": "打开通知",
+        "aria-expanded": open,
+        className: "relative w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item"
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "bell", className: "w-5 h-5" }),
+      unreadCount > 0 && /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          "aria-label": `${unreadCount} 条未读通知`,
+          className: "absolute -top-1 -right-1 bg-red-500 text-white text-[11px] font-bold px-1 rounded-full min-w-[16px] leading-4 text-center"
+        },
+        unreadCount > 99 ? "99+" : unreadCount
+      )
+    ), open && /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 top-11 z-[70] w-[min(92vw,24rem)] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden text-gray-900" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-100 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "font-bold text-sm flex-1" }, "通知"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onMarkAllRead,
+        disabled: unreadCount === 0,
+        className: "text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[44px]"
+      },
+      "全部已读"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onToggle,
+        "aria-label": "关闭通知",
+        className: "text-gray-400 text-xl leading-none px-1 min-h-[44px]"
+      },
+      "×"
+    )), loadError && /* @__PURE__ */ React.createElement("div", { role: "status", className: "px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 border-b border-amber-100" }, loadError), /* @__PURE__ */ React.createElement("div", { className: "max-h-[min(60vh,24rem)] overflow-y-auto" }, notifications.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "px-4 py-10 text-center text-sm text-gray-400" }, "暂无通知") : notifications.map((notification) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        key: notification.id,
+        onClick: () => onSelect(notification),
+        "aria-label": `${notification.title}${notification.read ? "，已读" : "，未读"}`,
+        className: `w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 ${notification.read ? "bg-white" : "bg-indigo-50/60"}`
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2.5" }, /* @__PURE__ */ React.createElement("span", { className: `mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notification.read ? "bg-gray-200" : "bg-indigo-500"}`, "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-sm truncate" }, notification.title), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-400 flex-shrink-0" }, formatCreatedAt(notification.createdAt))), /* @__PURE__ */ React.createElement("span", { className: "block mt-1 text-xs text-gray-600 leading-relaxed break-words" }, notification.summary)))
+    )))));
+  }
+  function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
+    const closeRef = useRef(onClose);
+    closeRef.current = onClose;
+    useEffect(() => {
+      if (!isOpen) return;
+      const previousFocus = document.activeElement;
+      const selector = [
+        "button:not([disabled])",
+        "[href]",
+        "input:not([disabled])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(",");
+      const onKey = (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeRef.current();
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const focusable = [...dialogRef.current?.querySelectorAll(selector) || []];
+        if (!focusable.length) {
+          event.preventDefault();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener("keydown", onKey);
+      const timer = setTimeout(() => {
+        const target = initialFocusRef?.current || dialogRef.current?.querySelector(selector);
+        target?.focus();
+      }, 0);
+      return () => {
+        document.removeEventListener("keydown", onKey);
+        clearTimeout(timer);
+        if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
+      };
+    }, [isOpen, dialogRef, initialFocusRef]);
+  }
+  function ConfirmDialog({ dialog, onClose }) {
+    const [typed, setTyped] = useState("");
+    const boxRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+    useEffect(() => {
+      setTyped(dialog?.promptDefault || "");
+    }, [dialog]);
+    const dismiss = () => {
+      if (dialog && dialog.acknowledge && dialog.onConfirm) dialog.onConfirm();
+      onCloseRef.current();
+    };
+    const dismissRef = useRef(dismiss);
+    dismissRef.current = dismiss;
+    useEffect(() => {
+      if (!dialog) return;
+      const prevFocus = document.activeElement;
+      const onKey = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          dismissRef.current();
+          return;
+        }
+        if (e.key !== "Tab") return;
+        const focusable = [...boxRef.current?.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        ) || []];
+        if (!focusable.length) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener("keydown", onKey);
+      const t = setTimeout(() => {
+        const box = boxRef.current;
+        if (box && !box.contains(document.activeElement)) {
+          const target = box.querySelector("input, button");
+          if (target) target.focus();
+        }
+      }, 0);
+      return () => {
+        document.removeEventListener("keydown", onKey);
+        clearTimeout(t);
+        if (prevFocus && typeof prevFocus.focus === "function") prevFocus.focus();
+      };
+    }, [dialog]);
+    if (!dialog) return null;
+    const needsText = Boolean(dialog.requireText);
+    const isPrompt = Boolean(dialog.prompt);
+    const ready = needsText ? typed.trim() === String(dialog.requireText).trim() : !isPrompt || !dialog.promptRequired || Boolean(typed.trim());
+    const confirmLabel = dialog.confirmText || (dialog.acknowledge ? "知道了 / OK" : "确认");
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4",
+        onClick: dismiss,
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-describedby": "confirm-dialog-message",
+        "aria-labelledby": dialog.title ? "confirm-dialog-title" : void 0,
+        "aria-label": dialog.title ? void 0 : "确认操作"
+      },
+      /* @__PURE__ */ React.createElement("div", { ref: boxRef, className: "bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim", onClick: (e) => e.stopPropagation() }, dialog.title && /* @__PURE__ */ React.createElement("p", { id: "confirm-dialog-title", className: "font-bold text-gray-800 mb-2" }, dialog.title), /* @__PURE__ */ React.createElement("p", { id: "confirm-dialog-message", className: "text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line" }, dialog.message), needsText && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-600 mb-1.5" }, "请输入 ", /* @__PURE__ */ React.createElement("span", { className: "font-mono text-red-600" }, dialog.requireText), " 以确认"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: typed,
+          onChange: (e) => setTyped(e.target.value),
+          autoFocus: true,
+          className: "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-red-400"
+        }
+      )), isPrompt && !needsText && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, dialog.promptLabel && /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-600 mb-1.5" }, dialog.promptLabel), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: typed,
+          onChange: (e) => setTyped(e.target.value),
+          autoFocus: true,
+          type: dialog.promptType || "text",
+          min: dialog.promptMin || void 0,
+          max: dialog.promptMax || void 0,
+          placeholder: dialog.promptPlaceholder || "",
+          onKeyDown: (e) => {
+            if (e.key === "Enter" && ready) {
+              dialog.onConfirm(typed);
+              onClose();
+            }
+          },
+          className: "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"
+        }
+      )), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, !dialog.acknowledge && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: onClose,
+          className: "flex-1 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm"
+        },
+        "取消"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            if (!ready) return;
+            if (dialog.onConfirm) dialog.onConfirm(isPrompt ? typed : void 0);
+            onClose();
+          },
+          disabled: !ready,
+          className: `flex-1 py-3 font-bold rounded-xl text-sm text-white ${dialog.danger ? "bg-red-600 active:bg-red-700" : "bg-indigo-600 active:bg-indigo-700"} ${ready ? "" : "opacity-40 cursor-not-allowed"}`
+        },
+        confirmLabel
+      )))
+    );
+  }
+  function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
+    const [q, setQ] = useState("");
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    const sel = students.find((s) => s.id === value);
+    useEffect(() => {
+      if (!value) setQ("");
+    }, [value]);
+    const filtered = useMemo(
+      () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
+      [students, q]
+    );
+    useEffect(() => {
+      const h = (e) => {
+        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      };
+      document.addEventListener("mousedown", h);
+      document.addEventListener("touchstart", h, { passive: true });
+      return () => {
+        document.removeEventListener("mousedown", h);
+        document.removeEventListener("touchstart", h);
+      };
+    }, []);
+    return /* @__PURE__ */ React.createElement("div", { ref, className: "relative" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center border border-gray-300 rounded-xl bg-white focus-within:ring-2 focus-within:ring-indigo-500 overflow-hidden" }, /* @__PURE__ */ React.createElement("span", { className: "pl-3 text-gray-400 flex-shrink-0" }, /* @__PURE__ */ React.createElement(Icon, { name: "search" })), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "text",
+        placeholder: sel ? sel.name : placeholder,
+        value: open ? q : sel ? sel.name : "",
+        onFocus: () => {
+          setQ("");
+          setOpen(true);
+        },
+        onChange: (e) => {
+          setQ(e.target.value);
+          setOpen(true);
+        },
+        className: "flex-1 px-2 py-3 outline-none bg-transparent"
+      }
+    ), sel && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => {
+          onChange(null);
+          setQ("");
+        },
+        "aria-label": "清除选择",
+        className: "pr-3 text-gray-400 active:text-gray-700 text-xl leading-none py-3 px-2"
+      },
+      "×"
+    )), open && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-52 overflow-y-auto sl" }, !filtered.length ? /* @__PURE__ */ React.createElement("div", { className: "p-4 text-center text-gray-400 text-sm" }, "无匹配") : filtered.map((s) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: s.id,
+        type: "button",
+        onClick: () => {
+          onChange(s.id);
+          setQ(s.name);
+          setOpen(false);
+        },
+        className: `w-full text-left px-4 py-3 active:bg-indigo-50 text-sm flex justify-between items-center min-h-[44px] ${s.id === value ? "bg-indigo-50" : "hover:bg-indigo-50"}`
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "font-medium truncate pr-2" }, s.name),
+      showBal && /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance })
+    ))));
+  }
+  function mediaSrc(value, fallbackBase = "photos") {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("media:")) {
+      const id = raw.slice(6);
+      const slug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || "";
+      return `/s/${encodeURIComponent(slug)}/v1/media/${encodeURIComponent(id)}`;
+    }
+    return `/${fallbackBase}/${encodeURIComponent(raw)}`;
+  }
+  function portfolioImgSrc(studentId, item) {
+    if (item?.mediaUrl) return item.mediaUrl;
+    const filename = item?.filename || "";
+    if (String(filename).startsWith("media:")) return mediaSrc(filename, "portfolio");
+    return `/portfolio/img/${encodeURIComponent(studentId)}/${encodeURIComponent(filename)}`;
+  }
+  function portfolioThumbSrc(studentId, item) {
+    const src = portfolioImgSrc(studentId, item);
+    if (src.includes("/v1/media/")) return mediaVariantSrc(src, "thumb");
+    return src;
+  }
+  function mediaVariantSrc(src, variant) {
+    const url = new URL(src, window.location.origin);
+    url.searchParams.delete("thumb");
+    url.searchParams.set("variant", variant);
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  function portfolioSrcSet(studentId, item) {
+    const src = portfolioImgSrc(studentId, item);
+    if (!src.includes("/v1/media/")) return void 0;
+    return `${mediaVariantSrc(src, "thumb")} 360w, ${mediaVariantSrc(src, "medium")} 960w, ${mediaVariantSrc(src, "display")} 2000w`;
+  }
+  function PhotoAvatar({ photo, name, size = "sm" }) {
+    const cls = size === "sm" ? "w-9 h-9 text-xs" : size === "md" ? "w-14 h-14 text-base" : "w-20 h-20 text-2xl";
+    const initials = (name || "?").trim().split(/\s+/).map((w) => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
+    if (photo) return /* @__PURE__ */ React.createElement("img", { src: mediaSrc(photo), className: `${cls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`, alt: name });
+    return /* @__PURE__ */ React.createElement("div", { className: `${cls} rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0 border-2 border-white shadow-sm` }, initials);
+  }
+  var ICON_PATHS = {
+    dashboard: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+    calendar: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5",
+    users: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
+    clipboard: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z",
+    money: "M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    scroll: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z",
+    trend: "M2.25 18L9 11.25l4.306 4.306A11.95 11.95 0 0119.8 10.6M21.75 6.75h-4.5m4.5 0v4.5",
+    search: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
+    phone: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z",
+    mail: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75",
+    image: "M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z",
+    upload: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5 7.5 12M12 7.5v12",
+    palette: "M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z",
+    refresh: "M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992",
+    chevronLeft: "M15.75 19.5L8.25 12l7.5-7.5",
+    chevronRight: "M8.25 4.5l7.5 7.5-7.5 7.5",
+    download: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5 12 4.5",
+    warning: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.98-1.5-3.846 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z",
+    check: "M4.5 12.75l6 6 9-13.5",
+    bolt: "M3.75 13.5l10.5-11.25L12 10.5h7.5L9 21.75 12 13.5H3.75z",
+    clock: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
+    cake: "M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.379a48.474 48.474 0 00-6-.371c-2.032 0-4.034.126-6 .371m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.169c0 .621-.504 1.125-1.125 1.125H4.125A1.125 1.125 0 013 20.625v-5.169c0-1.081.768-2.015 1.837-2.175A48.111 48.111 0 016 13.121",
+    chat: "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155",
+    pencil: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
+    printer: "M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5z",
+    heart: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
+    lock: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z",
+    logout: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75",
+    cog: "M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
+    stethoscope: "M4.5 3.75v5.25a5.25 5.25 0 0010.5 0V3.75M6.75 3.75h-2.25m8.25 0h2.25M9.75 14.25v1.5a4.5 4.5 0 009 0v-2.25m0 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z",
+    device: "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3",
+    recycle: "M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992",
+    shield: "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z",
+    trash: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
+    save: "M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z",
+    camera: "M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z",
+    folder: "M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z",
+    bell: "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0",
+    broom: "M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42",
+    star: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z",
+    card: "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z",
+    target: "M12 21a9 9 0 100-18 9 9 0 000 18zm0-3a6 6 0 100-12 6 6 0 000 12zm0-3a3 3 0 100-6 3 3 0 000 6z",
+    note: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125",
+    archiveBox: "M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z",
+    restore: "M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3",
+    plus: "M12 4.5v15m7.5-7.5h-15",
+    close: "M6 18L18 6M6 6l12 12",
+    ellipsis: "M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z",
+    inbox: "M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z"
+  };
+  function Icon({ name, className = "w-5 h-5" }) {
+    const path = ICON_PATHS[name];
+    if (!path) return null;
+    return /* @__PURE__ */ React.createElement(
+      "svg",
+      {
+        className: `${className} flex-shrink-0`,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "1.6",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true",
+        focusable: "false"
+      },
+      /* @__PURE__ */ React.createElement("path", { d: path })
+    );
+  }
+  function iconMarkup(name, size = 16) {
+    const path = ICON_PATHS[name];
+    if (!path) return "";
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+  }
+  function PhotoUploader({ value, onChange, notify }) {
+    const [uploading, setUploading] = useState(false);
+    const handleFile = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        notify("照片不能超过 5MB", { danger: true });
+        return;
+      }
+      setUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/media/upload`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "X-Requested-With": "StudioSaaS" },
+          body: fd
+        });
+        const d = await r.json();
+        if (d.filename) onChange(d.filename);
+      } catch {
+        notify("上传失败，请重试", { danger: true });
+      } finally {
+        setUploading(false);
+        e.target.value = "";
+      }
+    };
+    const btnBase = uploading ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "";
+    return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
+  }
+  function StudentTimeline({ api, studentId, openInvoice }) {
+    const [state, setState] = useState({ loading: false, data: null, error: null });
+    const KIND = {
+      registration: ["clipboard", "报名"],
+      approval: ["check", "批准建档"],
+      topup: ["card", "充值"],
+      refund: ["card", "退款"],
+      deduction: ["calendar", "扣课"],
+      invoice: ["money", "发票"],
+      payment: ["money", "收款"],
+      credit_note: ["money", "贷记"],
+      report: ["star", "成长报告"]
+    };
+    const load = async () => {
+      setState((s) => ({ ...s, loading: true, error: null }));
+      try {
+        const d = await api(`/students/${encodeURIComponent(studentId)}/timeline?limit=50`);
+        setState({ loading: false, data: d, error: null });
+      } catch (e) {
+        setState({ loading: false, data: null, error: e.message });
+      }
+    };
+    return /* @__PURE__ */ React.createElement(
+      "details",
+      {
+        className: "border border-gray-200 rounded-2xl overflow-hidden",
+        onToggle: (e) => {
+          if (e.currentTarget.open && !state.data && !state.loading) load();
+        }
+      },
+      /* @__PURE__ */ React.createElement("summary", { className: "px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100 flex items-center gap-2" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "学员时间线", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400 text-xs" }, "报名 · 课时 · 账务 · 报告，一条流水")),
+      /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, state.loading && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-3 text-xs text-gray-400" }, "加载中…"), state.error && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 text-xs text-red-500 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", null, "时间线加载失败：", state.error), /* @__PURE__ */ React.createElement("button", { onClick: load, className: "min-h-[44px] px-2.5 rounded-lg border border-red-200 font-bold" }, "重试")), state.data && (state.data.entries || []).length === 0 && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-3 text-xs text-gray-400" }, "还没有可显示的记录。"), state.data && (state.data.entries || []).map((entry, i) => {
+        const [icon, label] = KIND[entry.kind] || ["info", entry.kind];
+        return /* @__PURE__ */ React.createElement("div", { key: i, className: "px-4 py-2.5 flex items-baseline gap-2 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 font-bold text-gray-700 flex-shrink-0" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-3.5 h-3.5 text-gray-400" }), label), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-600 truncate" }, entry.title), Number.isFinite(entry.credits) && entry.credits !== null && entry.credits !== 0 && /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold ${entry.credits > 0 ? "text-indigo-700" : "text-gray-500"}` }, entry.credits > 0 ? `+${entry.credits}` : entry.credits, " 课时"), Number.isFinite(entry.amountCents) && entry.amountCents !== null && entry.amountCents !== 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-emerald-700" }, "$", (entry.amountCents / 100).toFixed(2)), entry.invoiceId && openInvoice && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => openInvoice(entry.invoiceId),
+            className: "text-xs font-bold text-indigo-600 underline decoration-dotted"
+          },
+          "查看单据"
+        ), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-xs text-gray-400 tabular-nums flex-shrink-0" }, String(entry.ts).slice(0, 10)));
+      }), state.data?.hasMore && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-2 text-[11px] text-gray-400" }, "只显示最近 50 条；更早的记录见充值/上课记录与账单中心。"))
+    );
+  }
+  function MaintSection({ onRestored, renewTh, saveRenewTh, confirm: confirm2, notify }) {
+    const [hc, setHc] = useState(null);
+    const [hcBusy, setHcBusy] = useState(false);
+    const [cfg, setCfg] = useState(null);
+    const [pw, setPw] = useState("");
+    const [cfgMsg, setCfgMsg] = useState(null);
+    const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
+    const [bks, setBks] = useState(null);
+    const [bkSel, setBkSel] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const post = (url, body) => fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const [stale, setStale] = useState(false);
+    useEffect(() => {
+      fetch("/api/config", { credentials: "include" }).then((r) => {
+        if (r.status === 404) {
+          setStale(true);
+          return null;
+        }
+        return r.json();
+      }).then((d) => {
+        if (d) setCfg(d);
+      }).catch(() => {
+      });
+    }, []);
+    const runHC = async () => {
+      setHcBusy(true);
+      try {
+        const r = await fetch("/api/healthcheck", { credentials: "include" });
+        if (r.status === 404) {
+          setStale(true);
+          setHc(null);
+          return;
+        }
+        setHc(await r.json());
+      } catch {
+        setHc({ error: "连接失败" });
+      } finally {
+        setHcBusy(false);
+      }
+    };
+    const saveCfg = async () => {
+      if (!cfg) return;
+      setBusy(true);
+      say("");
+      try {
+        const body = {
+          email_to: cfg.email_to,
+          smtp_user: cfg.smtp_user,
+          smtp_host: cfg.smtp_host,
+          smtp_port: cfg.smtp_port,
+          weekly_enabled: cfg.weekly_enabled,
+          renew_threshold: renewTh
+        };
+        if (pw) body.smtp_password = pw;
+        const r = await post("/api/config", body);
+        if (r.status === 404) {
+          setStale(true);
+          say("");
+          return;
+        }
+        say(r.ok ? "已保存" : `保存失败 (HTTP ${r.status})`, r.ok ? "ok" : "error");
+        if (r.ok && pw) {
+          setPw("");
+          setCfg((c) => ({ ...c, hasPassword: true }));
+        }
+      } catch {
+        say("连接失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    };
+    const testEmail = async () => {
+      setBusy(true);
+      say("发送中…（请先点过「保存配置」）");
+      try {
+        const r = await post("/api/email-test", {});
+        const d = await r.json();
+        say(d.ok ? "测试邮件已发出，请查收（含每周汇总预览）" : d.error || "发送失败", d.ok ? "ok" : "error");
+      } catch {
+        say("连接失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    };
+    const loadBks = async () => {
+      try {
+        const r = await fetch("/api/backups", { credentials: "include" });
+        const d = await r.json();
+        if (Array.isArray(d) && d.length && typeof d[0] === "string") {
+          setStale(true);
+          setBks([]);
+          return;
+        }
+        setBks(Array.isArray(d) ? d : []);
+      } catch {
+        setBks([]);
+      }
+    };
+    const clearPwaCache = async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          regs.forEach((r) => r.active && r.active.postMessage({ type: "CLEAR_LPCMS_CACHE" }));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.filter((k) => k.startsWith("lpcms-")).map((k) => caches.delete(k)));
+        }
+        notify("PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。", { onConfirm: () => window.location.reload() });
+      } catch (e) {
+        notify("缓存清理失败，请关闭 App 后重新打开。", { danger: true });
+      }
+    };
+    const pickBk = async (name) => {
+      try {
+        const r = await fetch(`/api/backups/${name}/summary`, { credentials: "include" });
+        setBkSel({ name, ...await r.json() });
+      } catch {
+      }
+    };
+    const runRestore = async () => {
+      setBusy(true);
+      try {
+        const r = await post("/api/restore", { filename: bkSel.name });
+        const d = await r.json();
+        if (d.ok) {
+          notify(`恢复完成：${d.students} 名学员 / ${d.logs} 条日志。页面即将刷新数据。`, { onConfirm: onRestored });
+        } else notify(d.error || "恢复失败", { danger: true });
+      } catch {
+        notify("连接失败", { danger: true });
+      } finally {
+        setBusy(false);
+      }
+    };
+    const doRestore = () => {
+      if (!bkSel || !bkSel.valid) return;
+      confirm2(
+        `该备份：${bkSel.students} 名学员 / ${bkSel.logs} 条日志
+与当前相比：学员 ${bkSel.diffStudents >= 0 ? "+" : ""}${bkSel.diffStudents} / 日志 ${bkSel.diffLogs >= 0 ? "+" : ""}${bkSel.diffLogs}
+
+当前数据会先自动另存为 pre_restore 备份（可再恢复回来），然后被该备份覆盖。`,
+        runRestore,
+        { title: `恢复备份 ${bkSel.name}`, danger: true, requireText: bkSel.name, confirmText: "覆盖当前数据" }
+      );
+    };
+    const inp = "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400";
+    if (stale) return /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "bg-red-50 border border-red-300 rounded-xl p-3 space-y-1.5" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-red-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "服务器还在运行旧版本"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600" }, "界面已是新版，但数据体检 / 邮件 / 备份恢复需要新版 server.py 支持。请："), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 font-mono bg-red-100 rounded-lg px-2 py-1.5" }, "1. 用新版 server.py 覆盖 CMS 目录里的旧文件", /* @__PURE__ */ React.createElement("br", null), "2. 终端运行 ./cms.sh restart", /* @__PURE__ */ React.createElement("br", null), "3. 刷新本页面"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "验证方法：浏览器打开 /api/ping，version 应为 7.3.1")));
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "stethoscope", className: "w-4 h-4" }), "数据体检"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: runHC,
+        disabled: hcBusy,
+        className: "w-full bg-teal-50 active:bg-teal-100 disabled:opacity-50 text-teal-700 border border-teal-200 py-2.5 rounded-xl font-bold text-sm"
+      },
+      hcBusy ? "体检中…" : "运行数据体检"
+    ), hc && !hc.error && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1 text-xs text-gray-600" }, /* @__PURE__ */ React.createElement("p", null, "学员 ", hc.students, "（活跃 ", hc.activeStudents, "）· 日志 ", hc.logs, " 条 · 库 ", hc.dbSizeKB, " KB"), /* @__PURE__ */ React.createElement("p", { className: hc.mismatchCount ? "text-amber-600 font-bold" : "text-green-600" }, "账目核对: ", hc.mismatchCount ? `${hc.mismatchCount} 人不一致` : "全部一致 ✓"), (hc.mismatches || []).slice(0, 8).map((m, i) => /* @__PURE__ */ React.createElement("p", { key: i, className: "pl-2 text-amber-700" }, "· ", m.name, ": 余额 ", m.balance, "，日志合计 ", m.logsSum, "（差 ", m.diff > 0 ? "+" : "", m.diff, "）")), hc.duplicateNames.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-amber-600" }, "重名学员: ", hc.duplicateNames.join("、")), hc.missingPhotos.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-amber-600" }, "照片文件丢失: ", hc.missingPhotos.length, " 人"), hc.conflictCopies.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-red-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "iCloud 冲突副本: ", hc.conflictCopies.join("、")), /* @__PURE__ */ React.createElement("p", null, "待审申请 ", hc.pendingCount, " 条 · 最近备份 ", hc.lastBackup || "无", "（", hc.backupCount, " 份）")), hc && hc.error && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "体检失败，请重试")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "待续课提醒阈值（剩余 ≤N 课时）"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [1, 2, 3, 5].map((d) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: d,
+        onClick: () => {
+          saveRenewTh(d);
+          post("/api/config", { renew_threshold: d }).catch(() => {
+          });
+        },
+        className: `flex-1 py-2 rounded-xl text-xs font-bold border ${renewTh === d ? "bg-indigo-600 text-white border-indigo-600" : "bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100"}`
+      },
+      `${d} 课时`
+    ))), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "影响学员页「低余额」筛选和每周邮件中的待续课名单")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "device", className: "w-4 h-4" }), "主屏幕 App / PWA 缓存"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: clearPwaCache,
+        className: "w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm"
+      },
+      "清理 PWA 缓存并刷新"
+    ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "用于更新主屏幕图标、Service Worker 或修复旧页面缓存。")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "mail", className: "w-4 h-4" }), "每周汇总邮件（周一 10:00）"), !cfg ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "加载中…") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-email-to", className: "block text-xs font-bold text-gray-500 mb-1" }, "收件邮箱"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "cfg-email-to",
+        className: inp,
+        placeholder: "you@example.com",
+        value: cfg.email_to || "",
+        onChange: (e) => setCfg({ ...cfg, email_to: e.target.value })
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-smtp-user", className: "block text-xs font-bold text-gray-500 mb-1" }, "发件 Gmail 地址"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "cfg-smtp-user",
+        className: inp,
+        placeholder: "studio@gmail.com",
+        value: cfg.smtp_user || "",
+        onChange: (e) => setCfg({ ...cfg, smtp_user: e.target.value })
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-smtp-pass", className: "block text-xs font-bold text-gray-500 mb-1" }, "Gmail 应用专用密码"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "cfg-smtp-pass",
+        className: inp,
+        type: "password",
+        value: pw,
+        onChange: (e) => setPw(e.target.value),
+        placeholder: cfg.hasPassword ? "已保存，留空不变" : "16 位应用专用密码"
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-600" }, "每周一自动发送"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setCfg({ ...cfg, weekly_enabled: !cfg.weekly_enabled }),
+        className: `relative inline-flex h-6 w-11 items-center rounded-full transition ${cfg.weekly_enabled ? "bg-indigo-600" : "bg-gray-300"}`
+      },
+      /* @__PURE__ */ React.createElement("span", { className: `inline-block h-4 w-4 transform rounded-full bg-white transition ${cfg.weekly_enabled ? "translate-x-6" : "translate-x-1"}` })
+    )), cfgMsg && /* @__PURE__ */ React.createElement("p", { className: `text-xs font-medium ${cfgMsg.tone === "ok" ? "text-green-600" : cfgMsg.tone === "error" ? "text-red-500" : "text-gray-500"}` }, cfgMsg.text), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: saveCfg,
+        disabled: busy,
+        className: "flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
+      },
+      "保存配置"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: testEmail,
+        disabled: busy,
+        className: "flex-1 bg-white border border-indigo-300 active:bg-indigo-50 disabled:opacity-50 text-indigo-700 py-2.5 rounded-xl font-bold text-sm"
+      },
+      "发送测试邮件"
+    )), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "需要 Gmail「应用专用密码」，获取方法见《邮件设置教程》文档"))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "recycle", className: "w-4 h-4" }), "备份与恢复"), !bks ? /* @__PURE__ */ React.createElement("button", { onClick: loadBks, className: "w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm" }, "查看备份列表") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "max-h-44 overflow-y-auto space-y-1 modal-scroll" }, bks.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 text-center py-2" }, "暂无备份"), bks.map((b) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: b.name,
+        onClick: () => pickBk(b.name),
+        className: `w-full text-left px-3 py-2 rounded-xl border text-xs ${bkSel?.name === b.name ? "border-indigo-400 bg-indigo-50" : "border-gray-200 bg-gray-50 active:bg-gray-100"}`
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-700" }, b.mtime),
+      /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 ml-2" }, (b.size / 1024).toFixed(0), " KB"),
+      b.name.startsWith("pre_restore") && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-amber-600 font-bold" }, "恢复前存档")
+    ))), bkSel && (bkSel.valid ? /* @__PURE__ */ React.createElement("div", { className: "bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-1 text-xs text-indigo-800" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, bkSel.students, " 名学员 · ", bkSel.logs, " 条日志"), /* @__PURE__ */ React.createElement("p", null, "与当前相比: 学员 ", bkSel.diffStudents >= 0 ? "+" : "", bkSel.diffStudents, " · 日志 ", bkSel.diffLogs >= 0 ? "+" : "", bkSel.diffLogs), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: doRestore,
+        disabled: busy,
+        className: "w-full mt-1 bg-red-600 active:bg-red-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
+      },
+      "恢复此备份（双重确认）"
+    )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
+  }
+  function LoginScreen({ onLogin, embedded = false }) {
+    const [email, setEmail] = useState(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState("");
+    const submit = async (e) => {
+      e && e.preventDefault();
+      if (!email || !pw) {
+        setErr("请输入管理员邮箱和密码");
+        return;
+      }
+      setBusy(true);
+      setErr("");
+      try {
+        const r = await fetch("/s/" + encodeURIComponent(tenantSlug) + "/v1/auth/legacy-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pw }),
+          credentials: "include"
+        });
+        const d = await r.json();
+        if (d.ok) {
+          localStorage.setItem(`lp_admin_email_${tenantSlug}`, email);
+          onLogin();
+        } else {
+          setErr(d.message || d.error || "密码错误");
+          setPw("");
+        }
+      } catch {
+        setErr("连接失败，请重试");
+      } finally {
+        setBusy(false);
+      }
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: embedded ? "" : "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: embedded ? "text-center" : "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, !embedded && /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), !embedded && /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), !embedded && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "cms-login-email",
+        type: "email",
+        placeholder: "you@example.com",
+        value: email,
+        onChange: (e) => setEmail(e.target.value),
+        autoFocus: true,
+        className: "w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-sm focus:ring-2 focus:ring-indigo-500"
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-password", className: "block text-xs font-bold text-gray-500 mb-1" }, "密码"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "cms-login-password",
+        type: "password",
+        value: pw,
+        onChange: (e) => setPw(e.target.value),
+        className: "w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-lg tracking-widest focus:ring-2 focus:ring-indigo-500"
+      }
+    )), err && /* @__PURE__ */ React.createElement("p", { className: "text-red-500 text-xs font-medium" }, err), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "submit",
+        disabled: busy || !email || !pw,
+        className: "w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm"
+      },
+      busy ? "验证中..." : "进入系统 →"
+    )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[11px] tracking-wide text-gray-400" }, "Powered by PWE")));
+  }
+  var ErrorBoundary = class extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { error: null, code: "" };
+    }
+    static getDerivedStateFromError(error) {
+      const code = Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + String(Date.now()).slice(-4);
+      return { error, code };
+    }
+    componentDidCatch(error, info) {
+      try {
+        console.error("[StudioSaaS] panel crashed", this.state.code, error, info);
+      } catch (e) {
+      }
+    }
+    render() {
+      if (!this.state.error) return this.props.children;
+      const onLeave = this.props.onLeave;
+      return /* @__PURE__ */ React.createElement("div", { className: "m-4 rounded-2xl border border-red-200 bg-red-50 p-5 max-w-2xl" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-red-800 text-sm mb-1" }, "这个页面出问题了"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mb-1" }, "你刚才填的内容可能没有保存。已经保存过的数据不受影响。"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-4" }, "把这个编号告诉技术支持，可以在日志里找到这一次：", /* @__PURE__ */ React.createElement("span", { className: "ml-1 font-mono font-bold text-gray-700" }, this.state.code)), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, onLeave && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            this.setState({ error: null, code: "" });
+            onLeave();
+          },
+          className: "min-h-[44px] px-4 rounded-xl bg-indigo-600 text-white text-sm font-bold"
+        },
+        "返回工作台"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => window.location.reload(),
+          className: "min-h-[44px] px-4 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700"
+        },
+        "重新加载"
+      )));
+    }
+  };
+
+  // legacy-root/src/panels/drafting.jsx
+  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  var settingsPromise = null;
+  function loadDraftingSettings() {
+    if (!settingsPromise) {
+      settingsPromise = v1Api("/drafting/settings").catch(() => ({ enabled: false, available: false }));
+    }
+    return settingsPromise;
+  }
+  function refreshDraftingSettings() {
+    settingsPromise = null;
+    return loadDraftingSettings();
+  }
+  function useDraftingReady() {
+    const [ready, setReady] = useState2(false);
+    useEffect2(() => {
+      let live = true;
+      loadDraftingSettings().then((s) => {
+        if (live) setReady(Boolean(s.enabled && s.available));
+      });
+      return () => {
+        live = false;
+      };
+    }, []);
+    return ready;
+  }
+  var FACT_LABELS = {
+    studio: "工作室",
+    student_first_name: "学员",
+    parent_name: "家长",
+    lessons_left: "剩余课时",
+    last_attended: "上次来",
+    packages: "课包",
+    missed_in_a_row: "连续没来",
+    makeup_expires_on: "补课额度到期",
+    missed_lesson_on: "请假那天",
+    payer_name: "付款方",
+    invoice_number: "发票号",
+    amount_outstanding_aud: "未付金额 (AUD)",
+    invoice_total_aud: "发票总额 (AUD)",
+    due_date: "到期日",
+    days_overdue: "逾期天数",
+    how_to_pay: "付款方式",
+    contact_name: "联系人",
+    class_name: "班次",
+    class_date: "日期",
+    start_time: "时间",
+    decision: "决定",
+    period_start: "周期开始",
+    period_end: "周期结束",
+    attendance: "出勤",
+    lesson_notes: "课堂笔记",
+    works: "作品"
+  };
+  function factValue(key, value) {
+    if (value === null || value === void 0 || value === "") return "—";
+    if (key === "lesson_notes" && Array.isArray(value)) return `${value.length} 条`;
+    if (key === "attendance" && typeof value === "object") return `${value.attended ?? "—"} / ${value.scheduled ?? "—"}`;
+    if (key === "packages" && Array.isArray(value)) return value.length ? value.map((p) => `${p.name} · ${p.lessons} · $${p.price_aud}`).join("；") : "—";
+    if (key === "how_to_pay" && typeof value === "object") return Object.values(value).filter(Boolean).join(" · ") || "—";
+    if (Array.isArray(value)) return value.join("、") || "—";
+    if (typeof value === "object") return Object.values(value).join(" · ");
+    return String(value);
+  }
+  var ERROR_TEXT = {
+    disabled: "起草没有打开。店主可以在「系统设置 → AI 起草」里打开。",
+    unavailable: "这台服务器还没有配置起草服务。",
+    limit: "这个月的起草次数已经用完。",
+    busy: "同时起草的太多了，请过一分钟再试。",
+    timeout: "起草超时了，请再试一次，或者直接手写。",
+    unreachable: "连不上起草服务，请稍后再试，或者直接手写。",
+    declined: "这一条没能起草，请直接手写。",
+    needs_decision: "请先选择：批准、婉拒还是询问。"
+  };
+  var URL_BUDGET = 1500;
+  function DraftButton({
+    kind,
+    recordId,
+    label = "起草",
+    title = "用 Claude 起草",
+    compact = false,
+    onUse = null,
+    useLabel = "填入",
+    copyText,
+    className = ""
+  }) {
+    const ready = useDraftingReady();
+    const [open, setOpen] = useState2(false);
+    if (!ready) return null;
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setOpen(true),
+        title,
+        "aria-label": compact ? title : void 0,
+        className: className || `inline-flex items-center gap-1 min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700 active:bg-indigo-50`
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }),
+      !compact && /* @__PURE__ */ React.createElement("span", null, label)
+    ), open && /* @__PURE__ */ React.createElement(
+      DraftDialog,
+      {
+        kind,
+        recordId,
+        onClose: () => setOpen(false),
+        onUse,
+        useLabel,
+        copyText
+      }
+    ));
+  }
+  function DraftDialog({ kind, recordId, onClose, onUse, useLabel, copyText }) {
+    const dialogRef = useRef2(null);
+    useModalFocus(true, onClose, dialogRef);
+    const [language, setLanguage] = useState2(() => window.CmsI18n && window.CmsI18n.language === "en" ? "en" : "zh");
+    const [decision, setDecision] = useState2("approved");
+    const [busy, setBusy] = useState2(false);
+    const [error, setError] = useState2("");
+    const [result, setResult] = useState2(null);
+    const [subject, setSubject] = useState2("");
+    const [body, setBody] = useState2("");
+    const [note, setNote] = useState2("");
+    async function draft() {
+      setBusy(true);
+      setError("");
+      setNote("");
+      try {
+        const data = await v1Api("/drafts", {
+          method: "POST",
+          body: JSON.stringify({ kind, recordId, language, ...kind === "booking_reply" ? { decision } : {} })
+        });
+        setResult(data);
+        setSubject(data.draft.subject || "");
+        setBody(data.draft.body || "");
+      } catch (e) {
+        setError(ERROR_TEXT[e.code] || e.message || "起草失败，请直接手写。");
+      } finally {
+        setBusy(false);
+      }
+    }
+    function copy(text, msg) {
+      if (copyText) copyText(text, msg);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text);
+    }
+    function openLink(scheme) {
+      const recipient2 = result?.recipient || {};
+      const full = scheme === "mailto" ? body : subject ? `${subject}
+${body}` : body;
+      const head = scheme === "mailto" ? `mailto:${encodeURIComponent(recipient2.email || "")}?subject=${encodeURIComponent(subject)}&body=` : `sms:${(recipient2.mobile || "").replace(/\s/g, "")}?&body=`;
+      const encoded = encodeURIComponent(full);
+      if (head.length + encoded.length > URL_BUDGET) {
+        copy(full, "正文已复制");
+        setNote("正文太长，链接带不下，已复制到剪贴板。请在打开的应用里粘贴。");
+        window.location.href = head;
+      } else {
+        window.location.href = head + encoded;
+      }
+    }
+    const facts = result?.facts || {};
+    const unbacked = result?.draft?.unbacked || [];
+    const missing = result?.draft?.missing || [];
+    const recipient = result?.recipient || {};
+    const joiner = window.CmsI18n && window.CmsI18n.language === "en" ? ", " : "、";
+    return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[90] flex items-end sm:items-center justify-center sm:p-4", onClick: onClose }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        ref: dialogRef,
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": "draft-dialog-title",
+        className: "bg-white w-full sm:max-w-xl sm:rounded-2xl shadow-2xl max-h-[92vh] flex flex-col",
+        onClick: (e) => e.stopPropagation()
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 border-b" }, /* @__PURE__ */ React.createElement("h3", { id: "draft-dialog-title", className: "text-base font-bold text-gray-900" }, "用 Claude 起草"), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onClose,
+          "aria-label": "关闭",
+          className: "min-h-[44px] min-w-[44px] text-2xl text-gray-400 active:text-gray-700"
+        },
+        "×"
+      )),
+      /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3 overflow-y-auto" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "草稿只给你看。改好之后由你自己发出去，系统不会替你发送。"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-500" }, "语言"), [["zh", "中文"], ["en", "English"]].map(([value, text]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: value,
+          type: "button",
+          "aria-pressed": language === value,
+          onClick: () => setLanguage(value),
+          className: `min-h-[44px] px-3 rounded-lg border text-xs font-bold ${language === value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`
+        },
+        text
+      ))), kind === "booking_reply" && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-500" }, "回复内容"), [["approved", "批准"], ["declined", "婉拒"], ["question", "询问"]].map(([value, text]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: value,
+          type: "button",
+          "aria-pressed": decision === value,
+          onClick: () => setDecision(value),
+          className: `min-h-[44px] px-3 rounded-lg border text-xs font-bold ${decision === value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`
+        },
+        text
+      ))), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: draft,
+          disabled: busy,
+          className: "w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:bg-gray-300"
+        },
+        busy ? "正在起草…" : result ? "重新起草" : "起草"
+      ), error && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2" }, error), result && /* @__PURE__ */ React.createElement(React.Fragment, null, (missing.length > 0 || unbacked.length > 0) && /* @__PURE__ */ React.createElement("div", { role: "status", className: "text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 space-y-1" }, missing.length > 0 && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold mr-1" }, "Claude 缺少："), /* @__PURE__ */ React.createElement("span", null, missing.join(joiner))), unbacked.length > 0 && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold mr-1" }, "这些数字或日期不在系统数据里，请核对："), /* @__PURE__ */ React.createElement("span", null, unbacked.join(joiner)))), !onUse && /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-500" }, "标题", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: subject,
+          onChange: (e) => setSubject(e.target.value),
+          className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+        }
+      )), /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-500" }, "正文", /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          value: body,
+          onChange: (e) => setBody(e.target.value),
+          rows: 8,
+          className: "mt-1 w-full p-3 border border-gray-200 rounded-xl text-sm leading-relaxed"
+        }
+      )), /* @__PURE__ */ React.createElement("details", { className: "rounded-xl border border-gray-200 bg-gray-50 px-3 py-2" }, /* @__PURE__ */ React.createElement("summary", { className: "cursor-pointer text-xs font-bold text-gray-500 select-none min-h-[44px] flex items-center" }, "Claude 用到的事实"), /* @__PURE__ */ React.createElement("dl", { className: "pt-2 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs" }, Object.entries(facts).map(([key, value]) => /* @__PURE__ */ React.createElement(React.Fragment, { key }, /* @__PURE__ */ React.createElement("dt", { className: "text-gray-400" }, FACT_LABELS[key] || key), /* @__PURE__ */ React.createElement("dd", { className: "text-gray-700 break-words" }, factValue(key, value)))))), note && /* @__PURE__ */ React.createElement("p", { role: "status", className: "text-xs text-indigo-700" }, note), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, onUse ? /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            onUse(body);
+            onClose();
+          },
+          className: "flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold"
+        },
+        useLabel
+      ) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => copy(subject ? `${subject}
+
+${body}` : body, "草稿已复制"),
+          className: "flex-1 min-h-[44px] rounded-xl border border-gray-200 text-sm font-bold text-gray-700"
+        },
+        "复制"
+      ), recipient.email && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => openLink("mailto"),
+          className: "flex-1 min-h-[44px] rounded-xl border border-indigo-200 text-sm font-bold text-indigo-700"
+        },
+        "用邮件打开"
+      ), recipient.mobile && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => openLink("sms"),
+          className: "flex-1 min-h-[44px] rounded-xl border border-indigo-200 text-sm font-bold text-indigo-700"
+        },
+        "用短信打开"
+      )))))
+    ));
+  }
+  function DraftingSettings({ showToast }) {
+    const [state, setState] = useState2(null);
+    const [voice, setVoice] = useState2("");
+    const [busy, setBusy] = useState2(false);
+    useEffect2(() => {
+      let live = true;
+      refreshDraftingSettings().then((s) => {
+        if (live) {
+          setState(s);
+          setVoice(s.voice || "");
+        }
+      });
+      return () => {
+        live = false;
+      };
+    }, []);
+    if (!state) return null;
+    async function save(changes, message) {
+      setBusy(true);
+      try {
+        const next = await v1Api("/drafting/settings", { method: "PATCH", body: JSON.stringify(changes) });
+        setState((current) => ({ ...current, ...next }));
+        refreshDraftingSettings();
+        showToast(message, "success");
+      } catch (e) {
+        showToast(`保存失败：${e.message}`, "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "AI 起草"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700" }, "打开后，成长报告、工作台的例外、逾期发票和约课申请旁边会出现「起草」按钮。Claude 只写草稿，员工改完自己发出去，系统不会替你发送任何消息。"), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, "打开之前请知道"), /* @__PURE__ */ React.createElement("p", null, "起草时，学员的名（不含姓）、与这条消息有关的数字和日期、课堂笔记，会交给 Anthropic 公司的 AI 模型 Claude 处理，处理可能在澳大利亚以外。电话、邮箱和住址不会发送。Anthropic 不用这些内容训练模型，最多保留 30 天后删除。"), /* @__PURE__ */ React.createElement("p", null, "打开即表示你已告知学员和家长这一点。详见", " ", /* @__PURE__ */ React.createElement("a", { className: "underline", href: "/customer-resources/Privacy_Policy.html#ai-drafting", target: "_blank", rel: "noopener" }, "隐私政策「用 AI 起草消息」"), "。")), !state.available && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "这台服务器还没有配置起草服务；打开后按钮也不会出现。"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        role: "switch",
+        "aria-checked": state.enabled,
+        disabled: busy,
+        onClick: () => save({ enabled: !state.enabled }, state.enabled ? "AI 起草已关闭" : "AI 起草已打开"),
+        className: `min-h-[44px] px-4 rounded-xl text-sm font-bold border ${state.enabled ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-300"}`
+      },
+      state.enabled ? "已打开 · 点此关闭" : "打开 AI 起草"
+    ), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500" }, /* @__PURE__ */ React.createElement("span", { className: "mr-1" }, "本月已起草"), /* @__PURE__ */ React.createElement("span", null, state.usedThisMonth, " / ", state.monthlyLimit))), /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-500" }, "我们说话的方式（选填）", /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: voice,
+        onChange: (e) => setVoice(e.target.value),
+        maxLength: 500,
+        rows: 3,
+        placeholder: "例如：亲切、简洁，称呼家长「您」。落款：前台小王",
+        className: "mt-1 w-full p-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy || voice === (state.voice || ""),
+        onClick: () => save({ voice }, "已保存"),
+        className: "min-h-[44px] px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-40"
+      },
+      "保存说话方式"
+    ));
+  }
+
   // legacy-root/src/panels/filter_bar.jsx
-  var { useMemo } = React;
+  var { useMemo: useMemo2 } = React;
   var RANGE_PRESETS = [
     { key: "this_month", label: "本月" },
     { key: "last_month", label: "上月" },
@@ -59,7 +1594,7 @@
     extraDirty = false,
     onClearExtra = null
   }) {
-    const dirty = useMemo(() => Boolean(
+    const dirty = useMemo2(() => Boolean(
       query && query.trim() || buckets && bucket && bucket !== buckets[0]?.key || range && (range.start || range.end) || extraDirty
     ), [query, bucket, buckets, range, extraDirty]);
     function clearAll() {
@@ -123,7 +1658,7 @@
   }
 
   // legacy-root/src/panels/billing.jsx
-  var { useState, useEffect, useCallback, useMemo: useMemo2, useRef } = React;
+  var { useState: useState3, useEffect: useEffect3, useCallback: useCallback2, useMemo: useMemo3, useRef: useRef3 } = React;
   var STATUS_LABEL = {
     draft: "草稿",
     issued: "已开具",
@@ -197,22 +1732,22 @@
     students,
     studentPicker
   }) {
-    const [invoices, setInvoices] = useState([]);
-    const [selectedId, setSelectedId] = useState("");
-    const [detail, setDetail] = useState(null);
-    const [checked, setChecked] = useState(() => /* @__PURE__ */ new Set());
-    const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState("");
-    const [creating, setCreating] = useState(false);
-    const [accounts, setAccounts] = useState([]);
-    const [query, setQuery] = useState("");
-    const [bucket, setBucket] = useState("all");
-    const [range, setRange] = useState(() => ({ start: "", end: "" }));
-    const [payerEdit, setPayerEdit] = useState(null);
-    const [payerSaving, setPayerSaving] = useState(false);
-    const [creditNoteDetail, setCreditNoteDetail] = useState(null);
-    const load = useCallback(async () => {
+    const [invoices, setInvoices] = useState3([]);
+    const [selectedId, setSelectedId] = useState3("");
+    const [detail, setDetail] = useState3(null);
+    const [checked, setChecked] = useState3(() => /* @__PURE__ */ new Set());
+    const [loading, setLoading] = useState3(true);
+    const [busy, setBusy] = useState3(false);
+    const [error, setError] = useState3("");
+    const [creating, setCreating] = useState3(false);
+    const [accounts, setAccounts] = useState3([]);
+    const [query, setQuery] = useState3("");
+    const [bucket, setBucket] = useState3("all");
+    const [range, setRange] = useState3(() => ({ start: "", end: "" }));
+    const [payerEdit, setPayerEdit] = useState3(null);
+    const [payerSaving, setPayerSaving] = useState3(false);
+    const [creditNoteDetail, setCreditNoteDetail] = useState3(null);
+    const load = useCallback2(async () => {
       setLoading(true);
       try {
         const query2 = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
@@ -227,13 +1762,13 @@
         setLoading(false);
       }
     }, [api, accountId]);
-    useEffect(() => {
+    useEffect3(() => {
       load();
     }, [load]);
-    useEffect(() => {
+    useEffect3(() => {
       if (invoiceId) setSelectedId(String(invoiceId));
     }, [invoiceId]);
-    useEffect(() => {
+    useEffect3(() => {
       if (!selectedId) {
         setDetail(null);
         return;
@@ -248,7 +1783,7 @@
         cancelled = true;
       };
     }, [selectedId, api]);
-    const summary = useMemo2(() => {
+    const summary = useMemo3(() => {
       const issued = invoices.filter((i) => i.status !== "draft" && i.status !== "void");
       const drafts = invoices.filter((i) => i.status === "draft");
       const overdue = invoices.filter(isOverdue);
@@ -267,7 +1802,7 @@
         collectedPercent: billed > 0 ? Math.round(netReceivedCents / billed * 100) : null
       };
     }, [invoices]);
-    const draftIds = useMemo2(
+    const draftIds = useMemo3(
       () => invoices.filter((i) => i.status === "draft").map((i) => String(i.id)),
       [invoices]
     );
@@ -290,7 +1825,7 @@
         setBusy(false);
       }
     };
-    const visible = useMemo2(() => {
+    const visible = useMemo3(() => {
       const text = query.trim().toLowerCase();
       return invoices.filter((invoice) => {
         if (bucket === "overdue" && !isOverdue(invoice)) return false;
@@ -302,7 +1837,7 @@
         return `${invoice.account_name || ""} ${invoice.number || ""}`.toLowerCase().includes(text);
       });
     }, [invoices, query, bucket, range]);
-    const buckets = useMemo2(() => [
+    const buckets = useMemo3(() => [
       { key: "all", label: "全部", count: invoices.length },
       { key: "overdue", label: "逾期", count: invoices.filter(isOverdue).length },
       {
@@ -327,7 +1862,7 @@
       link.remove();
       showToast(view === "summary" ? "发票汇总 CSV 已开始下载" : "发票行项目 CSV 已开始下载", "success");
     };
-    const checkedDrafts = useMemo2(
+    const checkedDrafts = useMemo3(
       () => draftIds.filter((id) => checked.has(id)),
       [draftIds, checked]
     );
@@ -417,7 +1952,7 @@
       if (!detail) return;
       printCustomerDocument(detail.document, ".invoice-printable");
     };
-    const [reminderNote, setReminderNote] = useState(null);
+    const [reminderNote, setReminderNote] = useState3(null);
     const recordReminder = async () => {
       if (!detail || busy) return;
       setBusy(true);
@@ -438,13 +1973,13 @@
         setBusy(false);
       }
     };
-    const [statement, setStatement] = useState(null);
+    const [statement, setStatement] = useState3(null);
     const openStatement = (acctId, acctName) => {
       const now = /* @__PURE__ */ new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       setStatement({ month, data: null, accountId: acctId, accountName: acctName });
     };
-    useEffect(() => {
+    useEffect3(() => {
       if (!statement?.accountId || !statement.month) return;
       let cancelled = false;
       api(`/billing/payers/${statement.accountId}/statement?month=${encodeURIComponent(statement.month)}`).then((d) => {
@@ -681,7 +2216,7 @@
         className: "no-print min-h-[44px] px-3 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 disabled:opacity-50"
       },
       "记录提醒"
-    ), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")), reminderNote !== null && /* @__PURE__ */ React.createElement("div", { className: "no-print mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-amber-900 font-bold" }, "记录一次催款提醒（只入历史，不发送任何消息）"), /* @__PURE__ */ React.createElement(
+    ), detail.invoice.status !== "draft" && detail.invoice.status !== "void" && Number(detail.invoice.balance_cents) > 0 && isOverdue(detail.invoice) && /* @__PURE__ */ React.createElement("span", { className: "no-print" }, /* @__PURE__ */ React.createElement(DraftButton, { kind: "overdue_invoice", recordId: detail.invoice.id, label: "起草付款提醒" })), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")), reminderNote !== null && /* @__PURE__ */ React.createElement("div", { className: "no-print mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-amber-900 font-bold" }, "记录一次催款提醒（只入历史，不发送任何消息）"), /* @__PURE__ */ React.createElement(
       "input",
       {
         value: reminderNote,
@@ -765,18 +2300,18 @@
     hideStudentSelector = false
   }) {
     const StudentPicker2 = studentPicker;
-    const payerErrorRef = useRef(null);
-    const [mode, setMode] = useState("student");
-    const [studentId, setStudentId] = useState(initialStudentId || "");
-    const [studentPayers, setStudentPayers] = useState([]);
-    const [studentSuggestion, setStudentSuggestion] = useState(null);
-    const [studentLoading, setStudentLoading] = useState(false);
-    const [query, setQuery] = useState("");
-    const [searchResults, setSearchResults] = useState([]);
-    const [creating, setCreating] = useState(false);
-    const [createConfirmed, setCreateConfirmed] = useState(false);
-    const [kind, setKind] = useState("person");
-    const [fields, setFields] = useState({
+    const payerErrorRef = useRef3(null);
+    const [mode, setMode] = useState3("student");
+    const [studentId, setStudentId] = useState3(initialStudentId || "");
+    const [studentPayers, setStudentPayers] = useState3([]);
+    const [studentSuggestion, setStudentSuggestion] = useState3(null);
+    const [studentLoading, setStudentLoading] = useState3(false);
+    const [query, setQuery] = useState3("");
+    const [searchResults, setSearchResults] = useState3([]);
+    const [creating, setCreating] = useState3(false);
+    const [createConfirmed, setCreateConfirmed] = useState3(false);
+    const [kind, setKind] = useState3("person");
+    const [fields, setFields] = useState3({
       name: "",
       contactName: "",
       email: "",
@@ -789,7 +2324,7 @@
       language: "en",
       note: ""
     });
-    const [studentDraft, setStudentDraft] = useState({
+    const [studentDraft, setStudentDraft] = useState3({
       kind: "family",
       name: "",
       contactName: "",
@@ -799,7 +2334,7 @@
       paymentTermsDays: "14",
       language: "en"
     });
-    const [linkedStudentIds, setLinkedStudentIds] = useState([]);
+    const [linkedStudentIds, setLinkedStudentIds] = useState3([]);
     const setField = (key) => (e) => {
       setCreateConfirmed(false);
       setFields((prev) => ({ ...prev, [key]: e.target.value }));
@@ -809,7 +2344,7 @@
       setStudentDraft((prev) => ({ ...prev, [key]: e.target.value }));
     };
     const selectedStudent = students.find((student) => String(student.id) === String(studentId));
-    useEffect(() => {
+    useEffect3(() => {
       if (initialStudentId === void 0) return;
       setMode("student");
       setStudentId(initialStudentId || "");
@@ -818,10 +2353,10 @@
       setCreateConfirmed(false);
       setLinkedStudentIds(initialStudentId ? [initialStudentId] : []);
     }, [initialStudentId]);
-    useEffect(() => {
+    useEffect3(() => {
       if (payerError && payerErrorRef.current) payerErrorRef.current.focus();
     }, [payerError]);
-    useEffect(() => {
+    useEffect3(() => {
       if (mode !== "student" || !studentId) {
         setStudentPayers([]);
         setStudentSuggestion(null);
@@ -862,7 +2397,7 @@
         alive = false;
       };
     }, [api, mode, studentId, selectedStudent?.name]);
-    useEffect(() => {
+    useEffect3(() => {
       if (mode !== "custom" || !query.trim()) {
         setSearchResults([]);
         return void 0;
@@ -880,7 +2415,7 @@
         clearTimeout(timer);
       };
     }, [api, mode, query]);
-    const createPayload = useMemo2(() => {
+    const createPayload = useMemo3(() => {
       if (mode === "student") {
         if (!studentId || studentPayers.length > 0 || !createConfirmed) return null;
         if (!String(studentDraft.name || "").trim()) return null;
@@ -902,7 +2437,7 @@
         studentIds: linkedStudentIds
       };
     }, [mode, studentId, studentPayers, createConfirmed, studentDraft, creating, kind, fields, linkedStudentIds]);
-    useEffect(() => {
+    useEffect3(() => {
       onStateChange({
         mode,
         accountId: mode === "student" && studentPayers.length === 1 ? String(studentPayers[0].id) : String(value || ""),
@@ -1219,14 +2754,14 @@
   }
   function NewInvoiceDialog({ api, accounts, students = [], studentPicker, busy, onClose, onSubmit }) {
     const Picker = studentPicker;
-    const payerErrorRef = useRef(null);
-    const invoiceDraftRequestRef = useRef({ signature: "", id: "" });
-    const [payerState, setPayerState] = useState({ accountId: "", createPayload: null, linkedStudentIds: [], mode: "student" });
-    const [payerError, setPayerError] = useState("");
-    const [possibleDuplicates, setPossibleDuplicates] = useState([]);
-    const [allowPossibleDuplicate, setAllowPossibleDuplicate] = useState(false);
-    const [note, setNote] = useState("");
-    const [lines, setLines] = useState([
+    const payerErrorRef = useRef3(null);
+    const invoiceDraftRequestRef = useRef3({ signature: "", id: "" });
+    const [payerState, setPayerState] = useState3({ accountId: "", createPayload: null, linkedStudentIds: [], mode: "student" });
+    const [payerError, setPayerError] = useState3("");
+    const [possibleDuplicates, setPossibleDuplicates] = useState3([]);
+    const [allowPossibleDuplicate, setAllowPossibleDuplicate] = useState3(false);
+    const [note, setNote] = useState3("");
+    const [lines, setLines] = useState3([
       { description: "", quantity: "1", unitPrice: "", taxRateBp: "1000", sourceKind: "manual", studentId: "" }
     ]);
     const setLine = (i, key) => (e) => setLines((rows) => rows.map((row, idx) => idx === i ? { ...row, [key]: e.target.value } : row));
@@ -1243,10 +2778,10 @@
       }
       return invoiceDraftRequestRef.current.id;
     };
-    useEffect(() => {
+    useEffect3(() => {
       if (payerError && payerErrorRef.current) payerErrorRef.current.focus();
     }, [payerError]);
-    useEffect(() => {
+    useEffect3(() => {
       const closeOnEscape = (event) => {
         if (event.key === "Escape" && !busy) onClose();
       };
@@ -1408,7 +2943,7 @@
   }
 
   // legacy-root/src/panels/finance.jsx
-  var { useState: useState2, useEffect: useEffect2, useCallback: useCallback2, useMemo: useMemo3 } = React;
+  var { useState: useState4, useEffect: useEffect4, useCallback: useCallback3, useMemo: useMemo4 } = React;
   var RATE_BASIS_LABEL = {
     per_lesson: "按节",
     per_session: "按场",
@@ -1426,15 +2961,15 @@
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-gray-500" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold tabular-nums ${cls}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, sub));
   }
   function PayrollView({ api, showToast, range, onRange }) {
-    const [teachers, setTeachers] = useState2([]);
-    const [query, setQuery] = useState2("");
-    const [selected, setSelected] = useState2(null);
-    const [sheet, setSheet] = useState2(null);
-    const [sheetError, setSheetError] = useState2("");
-    const [sheetRetry, setSheetRetry] = useState2(0);
-    const [loading, setLoading] = useState2(true);
-    const [error, setError] = useState2("");
-    useEffect2(() => {
+    const [teachers, setTeachers] = useState4([]);
+    const [query, setQuery] = useState4("");
+    const [selected, setSelected] = useState4(null);
+    const [sheet, setSheet] = useState4(null);
+    const [sheetError, setSheetError] = useState4("");
+    const [sheetRetry, setSheetRetry] = useState4(0);
+    const [loading, setLoading] = useState4(true);
+    const [error, setError] = useState4("");
+    useEffect4(() => {
       let cancelled = false;
       setLoading(true);
       api(`/teaching/summary?from=${range.from}&to=${range.to}`).then((d) => {
@@ -1451,7 +2986,7 @@
         cancelled = true;
       };
     }, [api, range.from, range.to]);
-    useEffect2(() => {
+    useEffect4(() => {
       if (!selected) {
         setSheet(null);
         setSheetError("");
@@ -1523,9 +3058,9 @@
     )), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "本期应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(sheet.summary.amount_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, engagement.canPush ? "本版本先在这里算清应付金额；推送到 Xero 的通道还没接通，请把下面的清单交给会计，或在 Xero 里手工建应付账单。" : current?.engagement === "employee" ? "雇员工资不作为应付账单推送 —— 那会绕开薪资科目。导出清单交给财务走薪资流程。" : "未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。")))))));
   }
   function ReportsView({ api, range }) {
-    const [data, setData] = useState2({});
-    const [error, setError] = useState2("");
-    useEffect2(() => {
+    const [data, setData] = useState4({});
+    const [error, setError] = useState4("");
+    useEffect4(() => {
       let cancelled = false;
       Promise.all([
         api(`/reports/revenue?from=${range.from}&to=${range.to}`).catch((e) => ({ __err: e })),
@@ -1574,8 +3109,8 @@
     }))), (data.revenue.byKind || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "收入构成"), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[11px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "来源"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "张数"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "不含税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "合计"))), /* @__PURE__ */ React.createElement("tbody", null, data.revenue.byKind.map((k, i) => /* @__PURE__ */ React.createElement("tr", { key: i, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, k.source_kind), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, k.invoices), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.net_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.gross_cents)))))))));
   }
   function FinancePanel({ api, showToast }) {
-    const [view, setView] = useState2("payroll");
-    const [range, setRange] = useState2(monthRange);
+    const [view, setView] = useState4("payroll");
+    const [range, setRange] = useState4(monthRange);
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-center" }, [["payroll", "课酬"], ["reports", "报表"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1591,7 +3126,7 @@
   }
 
   // legacy-root/src/panels/integrations.jsx
-  var { useState: useState3, useEffect: useEffect3, useCallback: useCallback3 } = React;
+  var { useState: useState5, useEffect: useEffect5, useCallback: useCallback4 } = React;
   var BLOCKER_TEXT = {
     addon_not_active: "尚未开通 Xero 加购 —— 这一项由平台方授予",
     not_connected: "还没有连接到 Xero 组织",
@@ -1605,14 +3140,14 @@
     return /* @__PURE__ */ React.createElement("div", { className: `flex gap-3 items-start p-3 rounded-xl border ${active ? "border-indigo-200 bg-indigo-50" : "border-gray-200 bg-white"}` }, /* @__PURE__ */ React.createElement("span", { className: `w-7 h-7 rounded-full grid place-items-center text-xs font-bold border flex-none ${badge}` }, done ? "✓" : n), /* @__PURE__ */ React.createElement("div", { className: "text-xs min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold mb-0.5" }, title), /* @__PURE__ */ React.createElement("div", { className: "text-gray-600" }, children)));
   }
   function IntegrationsPanel({ api, showToast, confirm: confirm2, canManage }) {
-    const [state, setState] = useState3(null);
-    const [busy, setBusy] = useState3(false);
-    const [error, setError] = useState3("");
-    const [queue, setQueue] = useState3(null);
-    const [mapDraft, setMapDraft] = useState3(null);
-    const [demoReport, setDemoReport] = useState3(null);
-    const [reconcileReport, setReconcileReport] = useState3(null);
-    const load = useCallback3(async () => {
+    const [state, setState] = useState5(null);
+    const [busy, setBusy] = useState5(false);
+    const [error, setError] = useState5("");
+    const [queue, setQueue] = useState5(null);
+    const [mapDraft, setMapDraft] = useState5(null);
+    const [demoReport, setDemoReport] = useState5(null);
+    const [reconcileReport, setReconcileReport] = useState5(null);
+    const load = useCallback4(async () => {
       try {
         const st = await api("/integrations/xero");
         setState(st);
@@ -1638,10 +3173,10 @@
         }
       }
     }, [api]);
-    useEffect3(() => {
+    useEffect5(() => {
       load();
     }, [load]);
-    useEffect3(() => {
+    useEffect5(() => {
       const params = new URLSearchParams(window.location.search);
       const flag = params.get("xero");
       if (!flag) return;
@@ -1654,7 +3189,7 @@
       const rest = params.toString();
       window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
     }, []);
-    const [armDisconnect, setArmDisconnect] = useState3(false);
+    const [armDisconnect, setArmDisconnect] = useState5(false);
     const connectNow = async () => {
       if (busy) return;
       setBusy(true);
@@ -1998,7 +3533,7 @@
   }
 
   // legacy-root/src/panels/billing_identity.jsx
-  var { useState: useState4, useEffect: useEffect4, useCallback: useCallback4 } = React;
+  var { useState: useState6, useEffect: useEffect6, useCallback: useCallback5 } = React;
   var TEXT_FIELDS = [
     ["legal_name", "法定主体名称", "开票主体的注册名，例如 Paradise Production Pty Ltd"],
     ["trading_name", "经营名称", "对外使用的工作室名，可与法定名称不同"],
@@ -2021,10 +3556,10 @@
     ["bank_account_no", "银行账号", ""]
   ];
   function BillingIdentityPanel({ api, showToast, canManage }) {
-    const [form, setForm] = useState4(null);
-    const [busy, setBusy] = useState4(false);
-    const [error, setError] = useState4("");
-    const load = useCallback4(async () => {
+    const [form, setForm] = useState6(null);
+    const [busy, setBusy] = useState6(false);
+    const [error, setError] = useState6("");
+    const load = useCallback5(async () => {
       try {
         const res = await api("/billing/identity");
         setForm(res.identity);
@@ -2033,7 +3568,7 @@
         setError(e.status === 403 ? "这个工作室尚未开通开票功能。" : `加载失败：${e.message}`);
       }
     }, [api]);
-    useEffect4(() => {
+    useEffect6(() => {
       load();
     }, [load]);
     if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600" }, error);
@@ -2092,12 +3627,12 @@
   }
 
   // legacy-root/src/panels/progress_reports.jsx
-  var { useState: useState5, useEffect: useEffect5, useCallback: useCallback5 } = React;
+  var { useState: useState7, useEffect: useEffect7, useCallback: useCallback6 } = React;
   function OverdueReports({ api, showToast, onOpenStudent }) {
-    const [rows, setRows] = useState5([]);
-    const [loading, setLoading] = useState5(true);
-    const [error, setError] = useState5("");
-    const load = useCallback5(async () => {
+    const [rows, setRows] = useState7([]);
+    const [loading, setLoading] = useState7(true);
+    const [error, setError] = useState7("");
+    const load = useCallback6(async () => {
       setLoading(true);
       try {
         const d = await api("/progress-reports/overdue");
@@ -2109,7 +3644,7 @@
         setLoading(false);
       }
     }, [api]);
-    useEffect5(() => {
+    useEffect7(() => {
       load();
     }, [load]);
     if (loading) return /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 p-4" }, "正在加载…");
@@ -2133,7 +3668,7 @@
   }
 
   // legacy-root/src/panels/student_reports.jsx
-  var { useState: useState6, useEffect: useEffect6, useCallback: useCallback6 } = React;
+  var { useState: useState8, useEffect: useEffect8, useCallback: useCallback7 } = React;
   function lastMonth() {
     const now = /* @__PURE__ */ new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
@@ -2142,12 +3677,12 @@
     return { start: iso3(start), end: iso3(end) };
   }
   function StudentProgressReports({ api, studentId, studentName, canWrite, canPublish, showToast }) {
-    const [reports, setReports] = useState6(null);
-    const [openId, setOpenId] = useState6(null);
-    const [draft, setDraft] = useState6("");
-    const [busy, setBusy] = useState6(false);
-    const [period, setPeriod] = useState6(lastMonth);
-    const load = useCallback6(async () => {
+    const [reports, setReports] = useState8(null);
+    const [openId, setOpenId] = useState8(null);
+    const [draft, setDraft] = useState8("");
+    const [busy, setBusy] = useState8(false);
+    const [period, setPeriod] = useState8(lastMonth);
+    const load = useCallback7(async () => {
       try {
         const res = await api(`/students/${studentId}/progress-reports`);
         setReports(res.reports || []);
@@ -2155,7 +3690,7 @@
         setReports([]);
       }
     }, [api, studentId]);
-    useEffect6(() => {
+    useEffect8(() => {
       load();
     }, [load]);
     if (reports === null) return null;
@@ -2263,6 +3798,15 @@
           className: "min-h-[44px] px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50"
         },
         "保存草稿"
+      ), /* @__PURE__ */ React.createElement(
+        DraftButton,
+        {
+          kind: "report_comment",
+          recordId: r.id,
+          label: "让 Claude 起草评语",
+          onUse: (text) => setDraft(text),
+          useLabel: draft.trim() ? "填入评语（替换现有内容）" : "填入评语"
+        }
       ), canPublish && /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -2275,8 +3819,8 @@
     })));
   }
   function StudentBillingAccount({ api, studentId, onOpenBilling }) {
-    const [accounts, setAccounts] = useState6(null);
-    useEffect6(() => {
+    const [accounts, setAccounts] = useState8(null);
+    useEffect8(() => {
       let live = true;
       api(`/billing/accounts?studentId=${encodeURIComponent(studentId)}`).then((res) => {
         if (live) setAccounts(res.accounts || []);
@@ -2300,11 +3844,11 @@
     )));
   }
   function StudentCalendarFeed({ api, studentId, copyText, showToast }) {
-    const [subs, setSubs] = useState6(null);
-    const [issued, setIssued] = useState6(null);
-    const [busy, setBusy] = useState6(false);
-    const [confirmingId, setConfirmingId] = useState6(null);
-    const load = useCallback6(async () => {
+    const [subs, setSubs] = useState8(null);
+    const [issued, setIssued] = useState8(null);
+    const [busy, setBusy] = useState8(false);
+    const [confirmingId, setConfirmingId] = useState8(null);
+    const load = useCallback7(async () => {
       try {
         const res = await api(`/calendar/subscriptions?studentId=${encodeURIComponent(studentId)}`);
         setSubs(res.subscriptions || []);
@@ -2312,7 +3856,7 @@
         setSubs(false);
       }
     }, [api, studentId]);
-    useEffect6(() => {
+    useEffect8(() => {
       setIssued(null);
       setConfirmingId(null);
       load();
@@ -2396,7 +3940,7 @@
   }
 
   // legacy-root/src/panels/private_lessons.jsx
-  var { useState: useState7, useEffect: useEffect7, useCallback: useCallback7, useMemo: useMemo4 } = React;
+  var { useState: useState9, useEffect: useEffect9, useCallback: useCallback8, useMemo: useMemo5 } = React;
   var WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
   var STATUS_LABEL2 = { active: "进行中", paused: "暂停", ended: "已结束" };
   var WHO = [
@@ -2405,23 +3949,23 @@
   ];
   var iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   function PrivateLessonsPanel({ api, showToast, confirm: confirm2, canWrite, canWritePolicy, students }) {
-    const [view, setView] = useState7("upcoming");
-    const [series, setSeries] = useState7([]);
-    const [occurrences, setOccurrences] = useState7([]);
-    const [credits, setCredits] = useState7([]);
-    const [policy, setPolicy] = useState7(null);
-    const [loading, setLoading] = useState7(true);
-    const [error, setError] = useState7("");
-    const [busy, setBusy] = useState7(false);
-    const [cancelling, setCancelling] = useState7(null);
-    const [creating, setCreating] = useState7(false);
-    const range = useMemo4(() => {
+    const [view, setView] = useState9("upcoming");
+    const [series, setSeries] = useState9([]);
+    const [occurrences, setOccurrences] = useState9([]);
+    const [credits, setCredits] = useState9([]);
+    const [policy, setPolicy] = useState9(null);
+    const [loading, setLoading] = useState9(true);
+    const [error, setError] = useState9("");
+    const [busy, setBusy] = useState9(false);
+    const [cancelling, setCancelling] = useState9(null);
+    const [creating, setCreating] = useState9(false);
+    const range = useMemo5(() => {
       const start = /* @__PURE__ */ new Date();
       const end = /* @__PURE__ */ new Date();
       end.setDate(end.getDate() + 13);
       return { start: iso2(start), end: iso2(end) };
     }, []);
-    const load = useCallback7(async () => {
+    const load = useCallback8(async () => {
       setLoading(true);
       try {
         const [s, o, c, p] = await Promise.all([
@@ -2441,7 +3985,7 @@
         setLoading(false);
       }
     }, [api, range.start, range.end]);
-    useEffect7(() => {
+    useEffect9(() => {
       load();
     }, [load]);
     async function cancelOne(form) {
@@ -2708,8 +4252,8 @@
     ));
   }
   function CancelDialog({ target, policy, busy, onClose, onSubmit }) {
-    const [cancelledBy, setCancelledBy] = useState7("student");
-    const [reason, setReason] = useState7("");
+    const [cancelledBy, setCancelledBy] = useState9("student");
+    const [reason, setReason] = useState9("");
     return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-800" }, target.name, " · ", fmtApiDate(target.onDate)), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "这一下决定三件事：还收不收钱、老师算不算课酬、要不要补一次课。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, WHO.map((w) => /* @__PURE__ */ React.createElement(
       "label",
       {
@@ -2757,7 +4301,7 @@
     ))));
   }
   function CreateDialog({ students, busy, onClose, onSubmit }) {
-    const [form, setForm] = useState7({
+    const [form, setForm] = useState9({
       studentId: "",
       weekday: "1",
       startTime: "16:00",
@@ -2831,8 +4375,8 @@
     ))));
   }
   function PolicyEditor({ policy, api, showToast, canWrite, onSaved }) {
-    const [form, setForm] = useState7(policy);
-    const [busy, setBusy] = useState7(false);
+    const [form, setForm] = useState9(policy);
+    const [busy, setBusy] = useState9(false);
     async function save() {
       setBusy(true);
       try {
@@ -2894,1209 +4438,10 @@
     ));
   }
 
-  // legacy-root/src/components.jsx
-  var { useState: useState8, useEffect: useEffect8, useMemo: useMemo5, useRef: useRef2, useCallback: useCallback8 } = React;
-  var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
-  var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
-    timeZone: "Australia/Melbourne",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  });
-  var todayISO = () => (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
-  var shiftDate = (iso3, delta) => {
-    const d = /* @__PURE__ */ new Date(`${iso3}T12:00:00`);
-    d.setDate(d.getDate() + delta);
-    return d.toLocaleDateString("en-CA");
-  };
-  var fmtDate = (s) => {
-    if (!s) return "—";
-    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s).split(" ")[0];
-  };
-  var daysSince = (iso3) => {
-    if (!iso3) return 9999;
-    const d = new Date(iso3);
-    return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
-  };
-  var fmtDT = (s) => {
-    const m = String(s || "").match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
-    return m ? `${m[1]} ${m[2]}` : s ? String(s) : "—";
-  };
-  var REG_STATUS_ZH = {
-    pending: "待审核",
-    contacted: "已联系",
-    trial_booked: "已约试听",
-    waiting: "跟进中",
-    approved: "已批准",
-    converted: "已建档",
-    rejected: "已拒绝",
-    duplicate: "重复申请",
-    lost: "已流失",
-    archived: "已归档"
-  };
-  var TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || "";
-  var CMS_ROUTE_TABS = /* @__PURE__ */ new Set([
-    "dashboard",
-    "roster",
-    "courses",
-    "students",
-    "works",
-    "new_student",
-    "pending",
-    "billing",
-    "topup",
-    "finance",
-    "logs",
-    "stats",
-    "settings"
-  ]);
-  var CMS_ROUTE_SECTIONS = Object.assign(/* @__PURE__ */ Object.create(null), {
-    settings: {
-      allowed: [
-        "account",
-        "team",
-        "operational",
-        "billing-identity",
-        "integrations",
-        "maintenance",
-        "workspace"
-      ],
-      fallback: "account"
-    },
-    /* 排课页的两个职能。`checkin` 是 fallback，也就是没有 `?section=` 时
-       落到的分区 —— 不按角色推导、不记忆上次选择：这一页每天被不同的人在
-       不同设备上打开，记忆会让两个人看到不同的首屏，而他们要对的是同一份
-       名单。 */
-    roster: {
-      allowed: ["checkin", "plan"],
-      fallback: "checkin"
-    }
-  });
-  var readCmsSection = (tab, params) => {
-    const scope = CMS_ROUTE_SECTIONS[tab];
-    if (!scope || !Array.isArray(scope.allowed)) return "";
-    const requested = params.get("section") || "";
-    return scope.allowed.includes(requested) ? requested : scope.fallback;
-  };
-  var readCmsRoute = () => {
-    const params = new URLSearchParams(window.location.search || "");
-    const requested = params.get("view") || params.get("tab") || "dashboard";
-    const tab = CMS_ROUTE_TABS.has(requested) ? requested : "dashboard";
-    return {
-      tab,
-      pendingTab: params.get("type") === "booking" || params.get("type") === "bookings" ? "bookings" : params.get("type") === "reports" ? "reports" : "registrations",
-      /* Scoped, not raw: a `section` that arrived with another tab must not
-         become the settings page's state. */
-      settingsSection: tab === "settings" ? readCmsSection(tab, params) : "account",
-      rosterSection: tab === "roster" ? readCmsSection(tab, params) : "checkin",
-      recordId: params.get("id") || "",
-      /* `id` 和 `invoice` 是两个槽，不是一个。
-         v10.15.0 之前只有 `id`，而它同时被当成「筛这个账单账户」和「打开这张
-         发票」用：结算后点「查看发票」传的是发票 ID，面板拿它当 accountId 去
-         查询，返回 0 张——整页四个 KPI 全是 $0.00，底下写着「还没有发票」。
-         一个刚开完发票的工作室，看起来像从没开过。 */
-      invoiceId: tab === "billing" ? params.get("invoice") || "" : ""
-    };
-  };
-  var v1Api = async (path, options = {}) => {
-    const headers = {
-      "Content-Type": "application/json",
-      "X-Requested-With": "StudioSaaS",
-      ...options.headers || {}
-    };
-    const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
-      credentials: "include",
-      ...options,
-      headers
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const err = new Error(d.message || d.error || `HTTP ${r.status}`);
-      err.status = r.status;
-      err.details = d.details || null;
-      err.code = d.error || null;
-      err.payload = d;
-      throw err;
-    }
-    return d;
-  };
-  var AUDIT_ACTION_ZH = {
-    "student.created": "新生建档",
-    "student.updated": "更新档案",
-    "student.archived": "归档学员",
-    "daily_roster.added": "加入排课",
-    "daily_roster.cancelled": "取消排课",
-    "daily_roster.restored": "恢复排课",
-    "daily_roster.updated": "调整排课",
-    "schedule.created": "新增班次",
-    "schedule.updated": "修改班次",
-    "schedule.deleted": "删除班次",
-    "portfolio.uploaded": "上传作品",
-    "portfolio.updated": "修改作品",
-    "portfolio.deleted": "删除作品",
-    "portfolio.share_link_created": "生成分享链接",
-    "portfolio.share_link_revoked": "撤销分享链接",
-    "registration.created": "收到注册申请",
-    "student_access.generated": "生成家长访问码",
-    "student_access.revoked": "撤销家长访问码",
-    "student_access.unlocked": "解锁家长访问",
-    "package.created": "新增课包",
-    "package.updated": "修改课包",
-    "package.archived": "下架课包",
-    "course.created": "新增课程",
-    "course.updated": "修改课程",
-    "course.archived": "归档课程",
-    "data.exported": "导出数据",
-    "brand.published": "发布网站",
-    "team.member_upserted": "新增/更新成员",
-    "team.member_updated": "调整成员权限",
-    "operations.default_class_time_updated": "修改默认上课时间",
-    "operations.booking_hold_hours_updated": "修改约课保留时长"
-  };
-  var auditNote = (action, meta) => {
-    const m = meta || {};
-    if (action === "daily_roster.added") {
-      const n = Array.isArray(m.students) ? m.students.length : 1;
-      const when = m.classTime ? ` ${m.classTime}` : "";
-      return `${m.date || ""}${when}${n > 1 ? ` · ${n} 人` : ""}${m.oneToOne ? " · 1 对 1" : ""}`.trim();
-    }
-    if (action.startsWith("daily_roster.")) return String(m.date || "");
-    if (action === "data.exported") return `${m.type || ""}${m.rows ? ` · ${m.rows} 行` : ""}`.trim();
-    if (action === "operations.default_class_time_updated") return String(m.defaultClassTime || m.value || "");
-    if (action === "operations.booking_hold_hours_updated") return `${m.bookingHoldHours ?? ""} 小时`;
-    if (action.startsWith("schedule.")) return String(m.label || m.name || "");
-    if (action.startsWith("team.")) return String(m.email || m.role || "");
-    if (action === "registration.created") return String(m.name || m.mobile || "");
-    return String(m.title || m.name || m.note || "");
-  };
-  var parseMonthKey = (ds) => {
-    if (!ds) return null;
-    const s = String(ds);
-    const a = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (a) return `${a[3]}-${a[2].padStart(2, "0")}`;
-    const b = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
-    if (b) return `${b[1]}-${b[2].padStart(2, "0")}`;
-    const c = s.match(/^(\d{4})-(\d{2})/);
-    if (c) return `${c[1]}-${c[2]}`;
-    return null;
-  };
-  var fmtMK = (k) => {
-    if (!k) return "";
-    const [y, m] = k.split("-");
-    return `${m}/${y}`;
-  };
-  var tenantOwnedLogoUrl = (brand) => {
-    const source = brand?.logo_url || brand?.logoUrl || "";
-    return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
-  };
-  function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState8(() => window.STUDIOSAAS_BRAND || {});
-    useEffect8(() => {
-      const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
-      window.addEventListener("studiosaas:brand", syncBrand);
-      syncBrand();
-      return () => window.removeEventListener("studiosaas:brand", syncBrand);
-    }, []);
-    const source = tenantOwnedLogoUrl(brand);
-    if (!source) return null;
-    return /* @__PURE__ */ React.createElement(
-      "img",
-      {
-        src: source,
-        alt: `${brand.name || brand.studioName || "Studio"} logo`,
-        className,
-        onError: (event) => {
-          event.currentTarget.hidden = true;
-        }
-      }
-    );
-  }
-  function BarChart({ items, color = "var(--info)", h = 140, prefix = "" }) {
-    if (!items?.length) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-6" }, "暂无数据");
-    const max = Math.max(...items.map((d) => d.v), 0.01);
-    const W = 54, PAD = 6;
-    return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${items.length * W} ${h + 24}`, className: "w-full overflow-visible" }, items.map((d, i) => {
-      const bh = Math.max(2, d.v / max * (h - 12));
-      return /* @__PURE__ */ React.createElement("g", { key: i, transform: `translate(${i * W + PAD},0)` }, /* @__PURE__ */ React.createElement("rect", { x: 4, y: h - bh, width: W - PAD * 2, height: bh, fill: color, rx: 3, opacity: 0.82 }), d.v > 0 && /* @__PURE__ */ React.createElement("text", { x: (W - PAD * 2) / 2 + 4, y: h - bh - 4, textAnchor: "middle", fontSize: 8, fill: "var(--ink2)", fontWeight: "bold" }, prefix, d.v), /* @__PURE__ */ React.createElement("text", { x: (W - PAD * 2) / 2 + 4, y: h + 16, textAnchor: "middle", fontSize: 7.5, fill: "var(--muted)" }, d.l));
-    }));
-  }
-  function Tabs({ idBase, label, items, value, onChange, className = "" }) {
-    const refs = useRef2({});
-    const stripRef = useRef2(null);
-    const order = items.map((i) => i.value);
-    const alignSelected = useCallback8(() => {
-      const strip = stripRef.current, node = refs.current[value];
-      if (!strip || !node || typeof node.getBoundingClientRect !== "function") return;
-      const view = strip.getBoundingClientRect(), tab = node.getBoundingClientRect();
-      const overLeft = view.left - tab.left;
-      const overRight = tab.right - view.right;
-      if (overLeft <= 0 && overRight <= 0) return;
-      strip.scrollLeft += overLeft > 0 ? -(overLeft + 8) : overRight + 8;
-    }, [value]);
-    useEffect8(() => {
-      alignSelected();
-      const strip = stripRef.current;
-      if (!strip || typeof ResizeObserver !== "function") return;
-      const observer = new ResizeObserver(() => alignSelected());
-      observer.observe(strip);
-      return () => observer.disconnect();
-    }, [alignSelected, items.length]);
-    const onKeyDown = (event) => {
-      const keys = { ArrowRight: 1, ArrowLeft: -1 };
-      let next = null;
-      if (event.key in keys) next = order[(order.indexOf(value) + keys[event.key] + order.length) % order.length];
-      else if (event.key === "Home") next = order[0];
-      else if (event.key === "End") next = order[order.length - 1];
-      if (!next) return;
-      event.preventDefault();
-      onChange(next);
-      const node = refs.current[next];
-      if (node) node.focus();
-    };
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        role: "tablist",
-        "aria-label": label,
-        onKeyDown,
-        ref: stripRef,
-        className: `flex gap-1 overflow-x-auto border-b border-gray-200 ${className}`
-      },
-      items.map((item) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: item.value,
-          type: "button",
-          role: "tab",
-          id: `${idBase}-tab-${item.value}`,
-          "aria-selected": value === item.value,
-          "aria-controls": `${idBase}-panel-${item.value}`,
-          tabIndex: value === item.value ? 0 : -1,
-          ref: (node) => {
-            refs.current[item.value] = node;
-          },
-          onClick: () => onChange(item.value),
-          className: `relative min-h-[44px] px-4 text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${value === item.value ? "text-indigo-700" : "text-gray-500"}`
-        },
-        item.icon && /* @__PURE__ */ React.createElement(Icon, { name: item.icon, className: "w-4 h-4" }),
-        item.label,
-        value === item.value && /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true", className: "absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-indigo-600" })
-      ))
-    );
-  }
-  function TabPanel({ idBase, name, active, children }) {
-    if (!active) return null;
-    return (
-      // tabIndex={0} makes this a stop on the Tab route (the panel must be
-      // reachable when its content is scrollable), and `focus:outline-none`
-      // then removed the only thing that said where you were. A keyboard
-      // user tabbing out of the tab strip landed nowhere visible.
-      /* @__PURE__ */ React.createElement(
-        "div",
-        {
-          role: "tabpanel",
-          id: `${idBase}-panel-${name}`,
-          "aria-labelledby": `${idBase}-tab-${name}`,
-          tabIndex: 0,
-          className: "space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-lg"
-        },
-        children
-      )
-    );
-  }
-  function EmptyState({ icon = null, main = "暂无数据", sub = "", action = null, onAction = null }) {
-    const glyph = icon || /* @__PURE__ */ React.createElement(Icon, { name: "inbox", className: "w-8 h-8" });
-    return /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state" }, /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state__icon" }, glyph), /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__title" }, main), sub && /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__description" }, sub), action && onAction && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: onAction,
-        className: "cms-empty-state__action"
-      },
-      action
-    ));
-  }
-  function BalBadge({ n }) {
-    const v = parseInt(n, 10) || 0;
-    const named = { title: `剩余 ${v} 课时`, "aria-label": `剩余 ${v} 课时` };
-    if (v === 0) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "0");
-    if (v <= 2) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-3.5 h-3.5" }), v);
-    if (v <= 4) return /* @__PURE__ */ React.createElement("span", { ...named, className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-3.5 h-3.5" }), v);
-    return /* @__PURE__ */ React.createElement("span", { ...named, className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
-  }
-  function Toast({ msg, type, action, onDone }) {
-    useEffect8(() => {
-      const t = setTimeout(onDone, action ? 6e3 : 2700);
-      return () => clearTimeout(t);
-    }, []);
-    const bg = type === "error" ? "bg-red-600" : type === "warn" ? "bg-amber-500" : "bg-gray-900";
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        role: "status",
-        "aria-live": "polite",
-        className: `toast toast-bottom fixed left-1/2 -translate-x-1/2 z-[999] ${bg} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold max-w-xs text-center`
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "inline-flex items-center gap-2 justify-center" }, /* @__PURE__ */ React.createElement(Icon, { name: type === "error" ? "warning" : type === "warn" ? "bolt" : "check", className: "w-4 h-4" }), /* @__PURE__ */ React.createElement("span", null, msg)),
-      action && /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            action.onClick();
-            onDone();
-          },
-          className: "mt-2 w-full bg-white/20 active:bg-white/30 rounded-lg py-1.5 text-xs font-bold"
-        },
-        action.label
-      )
-    );
-  }
-  function CmsNotificationCenter({
-    notifications = [],
-    unreadCount = 0,
-    open,
-    onToggle,
-    onSelect,
-    onMarkAllRead,
-    loadError = ""
-  }) {
-    const formatCreatedAt = (value) => {
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return "";
-      return date.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    };
-    return /* @__PURE__ */ React.createElement("div", { className: "relative flex-shrink-0" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: onToggle,
-        "aria-label": "打开通知",
-        "aria-expanded": open,
-        className: "relative w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item"
-      },
-      /* @__PURE__ */ React.createElement(Icon, { name: "bell", className: "w-5 h-5" }),
-      unreadCount > 0 && /* @__PURE__ */ React.createElement(
-        "span",
-        {
-          "aria-label": `${unreadCount} 条未读通知`,
-          className: "absolute -top-1 -right-1 bg-red-500 text-white text-[11px] font-bold px-1 rounded-full min-w-[16px] leading-4 text-center"
-        },
-        unreadCount > 99 ? "99+" : unreadCount
-      )
-    ), open && /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 top-11 z-[70] w-[min(92vw,24rem)] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden text-gray-900" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-100 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "font-bold text-sm flex-1" }, "通知"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: onMarkAllRead,
-        disabled: unreadCount === 0,
-        className: "text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[44px]"
-      },
-      "全部已读"
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: onToggle,
-        "aria-label": "关闭通知",
-        className: "text-gray-400 text-xl leading-none px-1 min-h-[44px]"
-      },
-      "×"
-    )), loadError && /* @__PURE__ */ React.createElement("div", { role: "status", className: "px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 border-b border-amber-100" }, loadError), /* @__PURE__ */ React.createElement("div", { className: "max-h-[min(60vh,24rem)] overflow-y-auto" }, notifications.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "px-4 py-10 text-center text-sm text-gray-400" }, "暂无通知") : notifications.map((notification) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        key: notification.id,
-        onClick: () => onSelect(notification),
-        "aria-label": `${notification.title}${notification.read ? "，已读" : "，未读"}`,
-        className: `w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 ${notification.read ? "bg-white" : "bg-indigo-50/60"}`
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2.5" }, /* @__PURE__ */ React.createElement("span", { className: `mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notification.read ? "bg-gray-200" : "bg-indigo-500"}`, "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-sm truncate" }, notification.title), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-400 flex-shrink-0" }, formatCreatedAt(notification.createdAt))), /* @__PURE__ */ React.createElement("span", { className: "block mt-1 text-xs text-gray-600 leading-relaxed break-words" }, notification.summary)))
-    )))));
-  }
-  function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
-    const closeRef = useRef2(onClose);
-    closeRef.current = onClose;
-    useEffect8(() => {
-      if (!isOpen) return;
-      const previousFocus = document.activeElement;
-      const selector = [
-        "button:not([disabled])",
-        "[href]",
-        "input:not([disabled])",
-        "select:not([disabled])",
-        "textarea:not([disabled])",
-        '[tabindex]:not([tabindex="-1"])'
-      ].join(",");
-      const onKey = (event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          closeRef.current();
-          return;
-        }
-        if (event.key !== "Tab") return;
-        const focusable = [...dialogRef.current?.querySelectorAll(selector) || []];
-        if (!focusable.length) {
-          event.preventDefault();
-          return;
-        }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      };
-      document.addEventListener("keydown", onKey);
-      const timer = setTimeout(() => {
-        const target = initialFocusRef?.current || dialogRef.current?.querySelector(selector);
-        target?.focus();
-      }, 0);
-      return () => {
-        document.removeEventListener("keydown", onKey);
-        clearTimeout(timer);
-        if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
-      };
-    }, [isOpen, dialogRef, initialFocusRef]);
-  }
-  function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState8("");
-    const boxRef = useRef2(null);
-    const onCloseRef = useRef2(onClose);
-    onCloseRef.current = onClose;
-    useEffect8(() => {
-      setTyped(dialog?.promptDefault || "");
-    }, [dialog]);
-    const dismiss = () => {
-      if (dialog && dialog.acknowledge && dialog.onConfirm) dialog.onConfirm();
-      onCloseRef.current();
-    };
-    const dismissRef = useRef2(dismiss);
-    dismissRef.current = dismiss;
-    useEffect8(() => {
-      if (!dialog) return;
-      const prevFocus = document.activeElement;
-      const onKey = (e) => {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          dismissRef.current();
-          return;
-        }
-        if (e.key !== "Tab") return;
-        const focusable = [...boxRef.current?.querySelectorAll(
-          'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-        ) || []];
-        if (!focusable.length) {
-          e.preventDefault();
-          return;
-        }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      };
-      document.addEventListener("keydown", onKey);
-      const t = setTimeout(() => {
-        const box = boxRef.current;
-        if (box && !box.contains(document.activeElement)) {
-          const target = box.querySelector("input, button");
-          if (target) target.focus();
-        }
-      }, 0);
-      return () => {
-        document.removeEventListener("keydown", onKey);
-        clearTimeout(t);
-        if (prevFocus && typeof prevFocus.focus === "function") prevFocus.focus();
-      };
-    }, [dialog]);
-    if (!dialog) return null;
-    const needsText = Boolean(dialog.requireText);
-    const isPrompt = Boolean(dialog.prompt);
-    const ready = needsText ? typed.trim() === String(dialog.requireText).trim() : !isPrompt || !dialog.promptRequired || Boolean(typed.trim());
-    const confirmLabel = dialog.confirmText || (dialog.acknowledge ? "知道了 / OK" : "确认");
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        className: "fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4",
-        onClick: dismiss,
-        role: "dialog",
-        "aria-modal": "true",
-        "aria-describedby": "confirm-dialog-message",
-        "aria-labelledby": dialog.title ? "confirm-dialog-title" : void 0,
-        "aria-label": dialog.title ? void 0 : "确认操作"
-      },
-      /* @__PURE__ */ React.createElement("div", { ref: boxRef, className: "bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim", onClick: (e) => e.stopPropagation() }, dialog.title && /* @__PURE__ */ React.createElement("p", { id: "confirm-dialog-title", className: "font-bold text-gray-800 mb-2" }, dialog.title), /* @__PURE__ */ React.createElement("p", { id: "confirm-dialog-message", className: "text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line" }, dialog.message), needsText && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-600 mb-1.5" }, "请输入 ", /* @__PURE__ */ React.createElement("span", { className: "font-mono text-red-600" }, dialog.requireText), " 以确认"), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: typed,
-          onChange: (e) => setTyped(e.target.value),
-          autoFocus: true,
-          className: "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-red-400"
-        }
-      )), isPrompt && !needsText && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, dialog.promptLabel && /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-600 mb-1.5" }, dialog.promptLabel), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: typed,
-          onChange: (e) => setTyped(e.target.value),
-          autoFocus: true,
-          type: dialog.promptType || "text",
-          min: dialog.promptMin || void 0,
-          max: dialog.promptMax || void 0,
-          placeholder: dialog.promptPlaceholder || "",
-          onKeyDown: (e) => {
-            if (e.key === "Enter" && ready) {
-              dialog.onConfirm(typed);
-              onClose();
-            }
-          },
-          className: "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"
-        }
-      )), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, !dialog.acknowledge && /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: onClose,
-          className: "flex-1 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm"
-        },
-        "取消"
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            if (!ready) return;
-            if (dialog.onConfirm) dialog.onConfirm(isPrompt ? typed : void 0);
-            onClose();
-          },
-          disabled: !ready,
-          className: `flex-1 py-3 font-bold rounded-xl text-sm text-white ${dialog.danger ? "bg-red-600 active:bg-red-700" : "bg-indigo-600 active:bg-indigo-700"} ${ready ? "" : "opacity-40 cursor-not-allowed"}`
-        },
-        confirmLabel
-      )))
-    );
-  }
-  function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState8("");
-    const [open, setOpen] = useState8(false);
-    const ref = useRef2(null);
-    const sel = students.find((s) => s.id === value);
-    useEffect8(() => {
-      if (!value) setQ("");
-    }, [value]);
-    const filtered = useMemo5(
-      () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
-      [students, q]
-    );
-    useEffect8(() => {
-      const h = (e) => {
-        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-      };
-      document.addEventListener("mousedown", h);
-      document.addEventListener("touchstart", h, { passive: true });
-      return () => {
-        document.removeEventListener("mousedown", h);
-        document.removeEventListener("touchstart", h);
-      };
-    }, []);
-    return /* @__PURE__ */ React.createElement("div", { ref, className: "relative" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center border border-gray-300 rounded-xl bg-white focus-within:ring-2 focus-within:ring-indigo-500 overflow-hidden" }, /* @__PURE__ */ React.createElement("span", { className: "pl-3 text-gray-400 flex-shrink-0" }, /* @__PURE__ */ React.createElement(Icon, { name: "search" })), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "text",
-        placeholder: sel ? sel.name : placeholder,
-        value: open ? q : sel ? sel.name : "",
-        onFocus: () => {
-          setQ("");
-          setOpen(true);
-        },
-        onChange: (e) => {
-          setQ(e.target.value);
-          setOpen(true);
-        },
-        className: "flex-1 px-2 py-3 outline-none bg-transparent"
-      }
-    ), sel && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: () => {
-          onChange(null);
-          setQ("");
-        },
-        "aria-label": "清除选择",
-        className: "pr-3 text-gray-400 active:text-gray-700 text-xl leading-none py-3 px-2"
-      },
-      "×"
-    )), open && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-52 overflow-y-auto sl" }, !filtered.length ? /* @__PURE__ */ React.createElement("div", { className: "p-4 text-center text-gray-400 text-sm" }, "无匹配") : filtered.map((s) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: s.id,
-        type: "button",
-        onClick: () => {
-          onChange(s.id);
-          setQ(s.name);
-          setOpen(false);
-        },
-        className: `w-full text-left px-4 py-3 active:bg-indigo-50 text-sm flex justify-between items-center min-h-[44px] ${s.id === value ? "bg-indigo-50" : "hover:bg-indigo-50"}`
-      },
-      /* @__PURE__ */ React.createElement("span", { className: "font-medium truncate pr-2" }, s.name),
-      showBal && /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance })
-    ))));
-  }
-  function mediaSrc(value, fallbackBase = "photos") {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    if (raw.startsWith("media:")) {
-      const id = raw.slice(6);
-      const slug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || "";
-      return `/s/${encodeURIComponent(slug)}/v1/media/${encodeURIComponent(id)}`;
-    }
-    return `/${fallbackBase}/${encodeURIComponent(raw)}`;
-  }
-  function portfolioImgSrc(studentId, item) {
-    if (item?.mediaUrl) return item.mediaUrl;
-    const filename = item?.filename || "";
-    if (String(filename).startsWith("media:")) return mediaSrc(filename, "portfolio");
-    return `/portfolio/img/${encodeURIComponent(studentId)}/${encodeURIComponent(filename)}`;
-  }
-  function portfolioThumbSrc(studentId, item) {
-    const src = portfolioImgSrc(studentId, item);
-    if (src.includes("/v1/media/")) return mediaVariantSrc(src, "thumb");
-    return src;
-  }
-  function mediaVariantSrc(src, variant) {
-    const url = new URL(src, window.location.origin);
-    url.searchParams.delete("thumb");
-    url.searchParams.set("variant", variant);
-    return `${url.pathname}${url.search}${url.hash}`;
-  }
-  function portfolioSrcSet(studentId, item) {
-    const src = portfolioImgSrc(studentId, item);
-    if (!src.includes("/v1/media/")) return void 0;
-    return `${mediaVariantSrc(src, "thumb")} 360w, ${mediaVariantSrc(src, "medium")} 960w, ${mediaVariantSrc(src, "display")} 2000w`;
-  }
-  function PhotoAvatar({ photo, name, size = "sm" }) {
-    const cls = size === "sm" ? "w-9 h-9 text-xs" : size === "md" ? "w-14 h-14 text-base" : "w-20 h-20 text-2xl";
-    const initials = (name || "?").trim().split(/\s+/).map((w) => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
-    if (photo) return /* @__PURE__ */ React.createElement("img", { src: mediaSrc(photo), className: `${cls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`, alt: name });
-    return /* @__PURE__ */ React.createElement("div", { className: `${cls} rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0 border-2 border-white shadow-sm` }, initials);
-  }
-  var ICON_PATHS = {
-    dashboard: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
-    calendar: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5",
-    users: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
-    clipboard: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z",
-    money: "M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    scroll: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z",
-    trend: "M2.25 18L9 11.25l4.306 4.306A11.95 11.95 0 0119.8 10.6M21.75 6.75h-4.5m4.5 0v4.5",
-    search: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
-    phone: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z",
-    mail: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75",
-    image: "M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z",
-    upload: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5 7.5 12M12 7.5v12",
-    palette: "M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z",
-    refresh: "M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992",
-    chevronLeft: "M15.75 19.5L8.25 12l7.5-7.5",
-    chevronRight: "M8.25 4.5l7.5 7.5-7.5 7.5",
-    download: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5 12 4.5",
-    warning: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.98-1.5-3.846 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z",
-    check: "M4.5 12.75l6 6 9-13.5",
-    bolt: "M3.75 13.5l10.5-11.25L12 10.5h7.5L9 21.75 12 13.5H3.75z",
-    clock: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
-    cake: "M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.379a48.474 48.474 0 00-6-.371c-2.032 0-4.034.126-6 .371m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.169c0 .621-.504 1.125-1.125 1.125H4.125A1.125 1.125 0 013 20.625v-5.169c0-1.081.768-2.015 1.837-2.175A48.111 48.111 0 016 13.121",
-    chat: "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155",
-    pencil: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
-    printer: "M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5z",
-    heart: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
-    lock: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z",
-    logout: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75",
-    cog: "M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
-    stethoscope: "M4.5 3.75v5.25a5.25 5.25 0 0010.5 0V3.75M6.75 3.75h-2.25m8.25 0h2.25M9.75 14.25v1.5a4.5 4.5 0 009 0v-2.25m0 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z",
-    device: "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3",
-    recycle: "M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992",
-    shield: "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z",
-    trash: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
-    save: "M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z",
-    camera: "M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z",
-    folder: "M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z",
-    bell: "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0",
-    broom: "M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42",
-    star: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z",
-    card: "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z",
-    target: "M12 21a9 9 0 100-18 9 9 0 000 18zm0-3a6 6 0 100-12 6 6 0 000 12zm0-3a3 3 0 100-6 3 3 0 000 6z",
-    note: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125",
-    archiveBox: "M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z",
-    restore: "M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3",
-    plus: "M12 4.5v15m7.5-7.5h-15",
-    close: "M6 18L18 6M6 6l12 12",
-    ellipsis: "M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z",
-    inbox: "M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z"
-  };
-  function Icon({ name, className = "w-5 h-5" }) {
-    const path = ICON_PATHS[name];
-    if (!path) return null;
-    return /* @__PURE__ */ React.createElement(
-      "svg",
-      {
-        className: `${className} flex-shrink-0`,
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: "1.6",
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        "aria-hidden": "true",
-        focusable: "false"
-      },
-      /* @__PURE__ */ React.createElement("path", { d: path })
-    );
-  }
-  function iconMarkup(name, size = 16) {
-    const path = ICON_PATHS[name];
-    if (!path) return "";
-    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
-  }
-  function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState8(false);
-    const handleFile = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) {
-        notify("照片不能超过 5MB", { danger: true });
-        return;
-      }
-      setUploading(true);
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/media/upload`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "X-Requested-With": "StudioSaaS" },
-          body: fd
-        });
-        const d = await r.json();
-        if (d.filename) onChange(d.filename);
-      } catch {
-        notify("上传失败，请重试", { danger: true });
-      } finally {
-        setUploading(false);
-        e.target.value = "";
-      }
-    };
-    const btnBase = uploading ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "";
-    return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
-  }
-  function StudentTimeline({ api, studentId, openInvoice }) {
-    const [state, setState] = useState8({ loading: false, data: null, error: null });
-    const KIND = {
-      registration: ["clipboard", "报名"],
-      approval: ["check", "批准建档"],
-      topup: ["card", "充值"],
-      refund: ["card", "退款"],
-      deduction: ["calendar", "扣课"],
-      invoice: ["money", "发票"],
-      payment: ["money", "收款"],
-      credit_note: ["money", "贷记"],
-      report: ["star", "成长报告"]
-    };
-    const load = async () => {
-      setState((s) => ({ ...s, loading: true, error: null }));
-      try {
-        const d = await api(`/students/${encodeURIComponent(studentId)}/timeline?limit=50`);
-        setState({ loading: false, data: d, error: null });
-      } catch (e) {
-        setState({ loading: false, data: null, error: e.message });
-      }
-    };
-    return /* @__PURE__ */ React.createElement(
-      "details",
-      {
-        className: "border border-gray-200 rounded-2xl overflow-hidden",
-        onToggle: (e) => {
-          if (e.currentTarget.open && !state.data && !state.loading) load();
-        }
-      },
-      /* @__PURE__ */ React.createElement("summary", { className: "px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100 flex items-center gap-2" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "学员时间线", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400 text-xs" }, "报名 · 课时 · 账务 · 报告，一条流水")),
-      /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, state.loading && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-3 text-xs text-gray-400" }, "加载中…"), state.error && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 text-xs text-red-500 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", null, "时间线加载失败：", state.error), /* @__PURE__ */ React.createElement("button", { onClick: load, className: "min-h-[44px] px-2.5 rounded-lg border border-red-200 font-bold" }, "重试")), state.data && (state.data.entries || []).length === 0 && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-3 text-xs text-gray-400" }, "还没有可显示的记录。"), state.data && (state.data.entries || []).map((entry, i) => {
-        const [icon, label] = KIND[entry.kind] || ["info", entry.kind];
-        return /* @__PURE__ */ React.createElement("div", { key: i, className: "px-4 py-2.5 flex items-baseline gap-2 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 font-bold text-gray-700 flex-shrink-0" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, className: "w-3.5 h-3.5 text-gray-400" }), label), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-600 truncate" }, entry.title), Number.isFinite(entry.credits) && entry.credits !== null && entry.credits !== 0 && /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold ${entry.credits > 0 ? "text-indigo-700" : "text-gray-500"}` }, entry.credits > 0 ? `+${entry.credits}` : entry.credits, " 课时"), Number.isFinite(entry.amountCents) && entry.amountCents !== null && entry.amountCents !== 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-emerald-700" }, "$", (entry.amountCents / 100).toFixed(2)), entry.invoiceId && openInvoice && /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            onClick: () => openInvoice(entry.invoiceId),
-            className: "text-xs font-bold text-indigo-600 underline decoration-dotted"
-          },
-          "查看单据"
-        ), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-xs text-gray-400 tabular-nums flex-shrink-0" }, String(entry.ts).slice(0, 10)));
-      }), state.data?.hasMore && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-2 text-[11px] text-gray-400" }, "只显示最近 50 条；更早的记录见充值/上课记录与账单中心。"))
-    );
-  }
-  function MaintSection({ onRestored, renewTh, saveRenewTh, confirm: confirm2, notify }) {
-    const [hc, setHc] = useState8(null);
-    const [hcBusy, setHcBusy] = useState8(false);
-    const [cfg, setCfg] = useState8(null);
-    const [pw, setPw] = useState8("");
-    const [cfgMsg, setCfgMsg] = useState8(null);
-    const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState8(null);
-    const [bkSel, setBkSel] = useState8(null);
-    const [busy, setBusy] = useState8(false);
-    const post = (url, body) => fetch(url, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const [stale, setStale] = useState8(false);
-    useEffect8(() => {
-      fetch("/api/config", { credentials: "include" }).then((r) => {
-        if (r.status === 404) {
-          setStale(true);
-          return null;
-        }
-        return r.json();
-      }).then((d) => {
-        if (d) setCfg(d);
-      }).catch(() => {
-      });
-    }, []);
-    const runHC = async () => {
-      setHcBusy(true);
-      try {
-        const r = await fetch("/api/healthcheck", { credentials: "include" });
-        if (r.status === 404) {
-          setStale(true);
-          setHc(null);
-          return;
-        }
-        setHc(await r.json());
-      } catch {
-        setHc({ error: "连接失败" });
-      } finally {
-        setHcBusy(false);
-      }
-    };
-    const saveCfg = async () => {
-      if (!cfg) return;
-      setBusy(true);
-      say("");
-      try {
-        const body = {
-          email_to: cfg.email_to,
-          smtp_user: cfg.smtp_user,
-          smtp_host: cfg.smtp_host,
-          smtp_port: cfg.smtp_port,
-          weekly_enabled: cfg.weekly_enabled,
-          renew_threshold: renewTh
-        };
-        if (pw) body.smtp_password = pw;
-        const r = await post("/api/config", body);
-        if (r.status === 404) {
-          setStale(true);
-          say("");
-          return;
-        }
-        say(r.ok ? "已保存" : `保存失败 (HTTP ${r.status})`, r.ok ? "ok" : "error");
-        if (r.ok && pw) {
-          setPw("");
-          setCfg((c) => ({ ...c, hasPassword: true }));
-        }
-      } catch {
-        say("连接失败", "error");
-      } finally {
-        setBusy(false);
-      }
-    };
-    const testEmail = async () => {
-      setBusy(true);
-      say("发送中…（请先点过「保存配置」）");
-      try {
-        const r = await post("/api/email-test", {});
-        const d = await r.json();
-        say(d.ok ? "测试邮件已发出，请查收（含每周汇总预览）" : d.error || "发送失败", d.ok ? "ok" : "error");
-      } catch {
-        say("连接失败", "error");
-      } finally {
-        setBusy(false);
-      }
-    };
-    const loadBks = async () => {
-      try {
-        const r = await fetch("/api/backups", { credentials: "include" });
-        const d = await r.json();
-        if (Array.isArray(d) && d.length && typeof d[0] === "string") {
-          setStale(true);
-          setBks([]);
-          return;
-        }
-        setBks(Array.isArray(d) ? d : []);
-      } catch {
-        setBks([]);
-      }
-    };
-    const clearPwaCache = async () => {
-      try {
-        if ("serviceWorker" in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          regs.forEach((r) => r.active && r.active.postMessage({ type: "CLEAR_LPCMS_CACHE" }));
-        }
-        if ("caches" in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.filter((k) => k.startsWith("lpcms-")).map((k) => caches.delete(k)));
-        }
-        notify("PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。", { onConfirm: () => window.location.reload() });
-      } catch (e) {
-        notify("缓存清理失败，请关闭 App 后重新打开。", { danger: true });
-      }
-    };
-    const pickBk = async (name) => {
-      try {
-        const r = await fetch(`/api/backups/${name}/summary`, { credentials: "include" });
-        setBkSel({ name, ...await r.json() });
-      } catch {
-      }
-    };
-    const runRestore = async () => {
-      setBusy(true);
-      try {
-        const r = await post("/api/restore", { filename: bkSel.name });
-        const d = await r.json();
-        if (d.ok) {
-          notify(`恢复完成：${d.students} 名学员 / ${d.logs} 条日志。页面即将刷新数据。`, { onConfirm: onRestored });
-        } else notify(d.error || "恢复失败", { danger: true });
-      } catch {
-        notify("连接失败", { danger: true });
-      } finally {
-        setBusy(false);
-      }
-    };
-    const doRestore = () => {
-      if (!bkSel || !bkSel.valid) return;
-      confirm2(
-        `该备份：${bkSel.students} 名学员 / ${bkSel.logs} 条日志
-与当前相比：学员 ${bkSel.diffStudents >= 0 ? "+" : ""}${bkSel.diffStudents} / 日志 ${bkSel.diffLogs >= 0 ? "+" : ""}${bkSel.diffLogs}
-
-当前数据会先自动另存为 pre_restore 备份（可再恢复回来），然后被该备份覆盖。`,
-        runRestore,
-        { title: `恢复备份 ${bkSel.name}`, danger: true, requireText: bkSel.name, confirmText: "覆盖当前数据" }
-      );
-    };
-    const inp = "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400";
-    if (stale) return /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "bg-red-50 border border-red-300 rounded-xl p-3 space-y-1.5" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-red-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "服务器还在运行旧版本"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600" }, "界面已是新版，但数据体检 / 邮件 / 备份恢复需要新版 server.py 支持。请："), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 font-mono bg-red-100 rounded-lg px-2 py-1.5" }, "1. 用新版 server.py 覆盖 CMS 目录里的旧文件", /* @__PURE__ */ React.createElement("br", null), "2. 终端运行 ./cms.sh restart", /* @__PURE__ */ React.createElement("br", null), "3. 刷新本页面"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "验证方法：浏览器打开 /api/ping，version 应为 7.3.1")));
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "stethoscope", className: "w-4 h-4" }), "数据体检"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: runHC,
-        disabled: hcBusy,
-        className: "w-full bg-teal-50 active:bg-teal-100 disabled:opacity-50 text-teal-700 border border-teal-200 py-2.5 rounded-xl font-bold text-sm"
-      },
-      hcBusy ? "体检中…" : "运行数据体检"
-    ), hc && !hc.error && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1 text-xs text-gray-600" }, /* @__PURE__ */ React.createElement("p", null, "学员 ", hc.students, "（活跃 ", hc.activeStudents, "）· 日志 ", hc.logs, " 条 · 库 ", hc.dbSizeKB, " KB"), /* @__PURE__ */ React.createElement("p", { className: hc.mismatchCount ? "text-amber-600 font-bold" : "text-green-600" }, "账目核对: ", hc.mismatchCount ? `${hc.mismatchCount} 人不一致` : "全部一致 ✓"), (hc.mismatches || []).slice(0, 8).map((m, i) => /* @__PURE__ */ React.createElement("p", { key: i, className: "pl-2 text-amber-700" }, "· ", m.name, ": 余额 ", m.balance, "，日志合计 ", m.logsSum, "（差 ", m.diff > 0 ? "+" : "", m.diff, "）")), hc.duplicateNames.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-amber-600" }, "重名学员: ", hc.duplicateNames.join("、")), hc.missingPhotos.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-amber-600" }, "照片文件丢失: ", hc.missingPhotos.length, " 人"), hc.conflictCopies.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-red-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "iCloud 冲突副本: ", hc.conflictCopies.join("、")), /* @__PURE__ */ React.createElement("p", null, "待审申请 ", hc.pendingCount, " 条 · 最近备份 ", hc.lastBackup || "无", "（", hc.backupCount, " 份）")), hc && hc.error && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "体检失败，请重试")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "待续课提醒阈值（剩余 ≤N 课时）"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [1, 2, 3, 5].map((d) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: d,
-        onClick: () => {
-          saveRenewTh(d);
-          post("/api/config", { renew_threshold: d }).catch(() => {
-          });
-        },
-        className: `flex-1 py-2 rounded-xl text-xs font-bold border ${renewTh === d ? "bg-indigo-600 text-white border-indigo-600" : "bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100"}`
-      },
-      `${d} 课时`
-    ))), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "影响学员页「低余额」筛选和每周邮件中的待续课名单")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "device", className: "w-4 h-4" }), "主屏幕 App / PWA 缓存"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: clearPwaCache,
-        className: "w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm"
-      },
-      "清理 PWA 缓存并刷新"
-    ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "用于更新主屏幕图标、Service Worker 或修复旧页面缓存。")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "mail", className: "w-4 h-4" }), "每周汇总邮件（周一 10:00）"), !cfg ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "加载中…") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-email-to", className: "block text-xs font-bold text-gray-500 mb-1" }, "收件邮箱"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        id: "cfg-email-to",
-        className: inp,
-        placeholder: "you@example.com",
-        value: cfg.email_to || "",
-        onChange: (e) => setCfg({ ...cfg, email_to: e.target.value })
-      }
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-smtp-user", className: "block text-xs font-bold text-gray-500 mb-1" }, "发件 Gmail 地址"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        id: "cfg-smtp-user",
-        className: inp,
-        placeholder: "studio@gmail.com",
-        value: cfg.smtp_user || "",
-        onChange: (e) => setCfg({ ...cfg, smtp_user: e.target.value })
-      }
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "cfg-smtp-pass", className: "block text-xs font-bold text-gray-500 mb-1" }, "Gmail 应用专用密码"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        id: "cfg-smtp-pass",
-        className: inp,
-        type: "password",
-        value: pw,
-        onChange: (e) => setPw(e.target.value),
-        placeholder: cfg.hasPassword ? "已保存，留空不变" : "16 位应用专用密码"
-      }
-    )), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-600" }, "每周一自动发送"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => setCfg({ ...cfg, weekly_enabled: !cfg.weekly_enabled }),
-        className: `relative inline-flex h-6 w-11 items-center rounded-full transition ${cfg.weekly_enabled ? "bg-indigo-600" : "bg-gray-300"}`
-      },
-      /* @__PURE__ */ React.createElement("span", { className: `inline-block h-4 w-4 transform rounded-full bg-white transition ${cfg.weekly_enabled ? "translate-x-6" : "translate-x-1"}` })
-    )), cfgMsg && /* @__PURE__ */ React.createElement("p", { className: `text-xs font-medium ${cfgMsg.tone === "ok" ? "text-green-600" : cfgMsg.tone === "error" ? "text-red-500" : "text-gray-500"}` }, cfgMsg.text), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: saveCfg,
-        disabled: busy,
-        className: "flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
-      },
-      "保存配置"
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: testEmail,
-        disabled: busy,
-        className: "flex-1 bg-white border border-indigo-300 active:bg-indigo-50 disabled:opacity-50 text-indigo-700 py-2.5 rounded-xl font-bold text-sm"
-      },
-      "发送测试邮件"
-    )), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "需要 Gmail「应用专用密码」，获取方法见《邮件设置教程》文档"))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide" }, /* @__PURE__ */ React.createElement(Icon, { name: "recycle", className: "w-4 h-4" }), "备份与恢复"), !bks ? /* @__PURE__ */ React.createElement("button", { onClick: loadBks, className: "w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm" }, "查看备份列表") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "max-h-44 overflow-y-auto space-y-1 modal-scroll" }, bks.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 text-center py-2" }, "暂无备份"), bks.map((b) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: b.name,
-        onClick: () => pickBk(b.name),
-        className: `w-full text-left px-3 py-2 rounded-xl border text-xs ${bkSel?.name === b.name ? "border-indigo-400 bg-indigo-50" : "border-gray-200 bg-gray-50 active:bg-gray-100"}`
-      },
-      /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-700" }, b.mtime),
-      /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 ml-2" }, (b.size / 1024).toFixed(0), " KB"),
-      b.name.startsWith("pre_restore") && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-amber-600 font-bold" }, "恢复前存档")
-    ))), bkSel && (bkSel.valid ? /* @__PURE__ */ React.createElement("div", { className: "bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-1 text-xs text-indigo-800" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, bkSel.students, " 名学员 · ", bkSel.logs, " 条日志"), /* @__PURE__ */ React.createElement("p", null, "与当前相比: 学员 ", bkSel.diffStudents >= 0 ? "+" : "", bkSel.diffStudents, " · 日志 ", bkSel.diffLogs >= 0 ? "+" : "", bkSel.diffLogs), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: doRestore,
-        disabled: busy,
-        className: "w-full mt-1 bg-red-600 active:bg-red-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
-      },
-      "恢复此备份（双重确认）"
-    )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
-  }
-  function LoginScreen({ onLogin, embedded = false }) {
-    const [email, setEmail] = useState8(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState8("");
-    const [busy, setBusy] = useState8(false);
-    const [err, setErr] = useState8("");
-    const submit = async (e) => {
-      e && e.preventDefault();
-      if (!email || !pw) {
-        setErr("请输入管理员邮箱和密码");
-        return;
-      }
-      setBusy(true);
-      setErr("");
-      try {
-        const r = await fetch("/s/" + encodeURIComponent(tenantSlug) + "/v1/auth/legacy-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password: pw }),
-          credentials: "include"
-        });
-        const d = await r.json();
-        if (d.ok) {
-          localStorage.setItem(`lp_admin_email_${tenantSlug}`, email);
-          onLogin();
-        } else {
-          setErr(d.message || d.error || "密码错误");
-          setPw("");
-        }
-      } catch {
-        setErr("连接失败，请重试");
-      } finally {
-        setBusy(false);
-      }
-    };
-    return /* @__PURE__ */ React.createElement("div", { className: embedded ? "" : "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: embedded ? "text-center" : "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, !embedded && /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), !embedded && /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), !embedded && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        id: "cms-login-email",
-        type: "email",
-        placeholder: "you@example.com",
-        value: email,
-        onChange: (e) => setEmail(e.target.value),
-        autoFocus: true,
-        className: "w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-sm focus:ring-2 focus:ring-indigo-500"
-      }
-    )), /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-password", className: "block text-xs font-bold text-gray-500 mb-1" }, "密码"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        id: "cms-login-password",
-        type: "password",
-        value: pw,
-        onChange: (e) => setPw(e.target.value),
-        className: "w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-lg tracking-widest focus:ring-2 focus:ring-indigo-500"
-      }
-    )), err && /* @__PURE__ */ React.createElement("p", { className: "text-red-500 text-xs font-medium" }, err), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "submit",
-        disabled: busy || !email || !pw,
-        className: "w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm"
-      },
-      busy ? "验证中..." : "进入系统 →"
-    )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[11px] tracking-wide text-gray-400" }, "Powered by PWE")));
-  }
-  var ErrorBoundary = class extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { error: null, code: "" };
-    }
-    static getDerivedStateFromError(error) {
-      const code = Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + String(Date.now()).slice(-4);
-      return { error, code };
-    }
-    componentDidCatch(error, info) {
-      try {
-        console.error("[StudioSaaS] panel crashed", this.state.code, error, info);
-      } catch (e) {
-      }
-    }
-    render() {
-      if (!this.state.error) return this.props.children;
-      const onLeave = this.props.onLeave;
-      return /* @__PURE__ */ React.createElement("div", { className: "m-4 rounded-2xl border border-red-200 bg-red-50 p-5 max-w-2xl" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-red-800 text-sm mb-1" }, "这个页面出问题了"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mb-1" }, "你刚才填的内容可能没有保存。已经保存过的数据不受影响。"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-4" }, "把这个编号告诉技术支持，可以在日志里找到这一次：", /* @__PURE__ */ React.createElement("span", { className: "ml-1 font-mono font-bold text-gray-700" }, this.state.code)), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, onLeave && /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: () => {
-            this.setState({ error: null, code: "" });
-            onLeave();
-          },
-          className: "min-h-[44px] px-4 rounded-xl bg-indigo-600 text-white text-sm font-bold"
-        },
-        "返回工作台"
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: () => window.location.reload(),
-          className: "min-h-[44px] px-4 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700"
-        },
-        "重新加载"
-      )));
-    }
-  };
-
   // legacy-root/src/panels/dashboard.jsx
-  var { useState: useState9, useEffect: useEffect9 } = React;
+  var { useState: useState10, useEffect: useEffect10 } = React;
   var CREDIT_EXPIRY_WINDOW_DAYS = 14;
+  var DRAFT_CHIP = "px-2.5 rounded-lg text-xs font-bold border min-h-[44px] bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100 inline-flex items-center";
   function DashboardSection(props) {
     const {
       activityMap,
@@ -4134,10 +4479,10 @@
       "{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～",
       { student: name }
     );
-    const [credits, setCredits] = useState9([]);
-    const [overdueReports, setOverdueReports] = useState9([]);
-    const [missed, setMissed] = useState9({ students: [], streak: 3 });
-    useEffect9(() => {
+    const [credits, setCredits] = useState10([]);
+    const [overdueReports, setOverdueReports] = useState10([]);
+    const [missed, setMissed] = useState10({ students: [], streak: 3 });
+    useEffect10(() => {
       if (!TENANT_SLUG) return void 0;
       let gone = false;
       v1Api("/scheduling/credits").then((d) => {
@@ -4358,17 +4703,26 @@
               className: "px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
             },
             /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" })
-          )))
+          ), /* @__PURE__ */ React.createElement("span", { className: "ml-1 inline-flex" }, /* @__PURE__ */ React.createElement(
+            DraftButton,
+            {
+              kind: "low_credits",
+              recordId: s.id,
+              compact: true,
+              copyText,
+              title: `为 ${s.name} 起草续费提醒`,
+              className: DRAFT_CHIP
+            }
+          ))))
         });
       }
       if (missed.students.length > 0) rows.push({
         key: "missed",
         icon: "calendar",
         text: `${missed.students.length} 名学员排了课却连续 ${missed.streak} 次以上没来`,
-        chips: missed.students.slice(0, 12).map((m) => /* @__PURE__ */ React.createElement(
+        chips: missed.students.slice(0, 12).map((m) => /* @__PURE__ */ React.createElement("span", { key: m.studentId, className: "inline-flex items-stretch gap-1" }, /* @__PURE__ */ React.createElement(
           "button",
           {
-            key: m.studentId,
             type: "button",
             onClick: () => {
               setTab("students");
@@ -4377,7 +4731,17 @@
             className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]"
           },
           m.lastAttended ? `${m.studentName} · 连续 ${m.missed} 次 · 上次 ${fmtDate(m.lastAttended)}` : `${m.studentName} · 连续 ${m.missed} 次 · 没有签到记录`
-        ))
+        ), /* @__PURE__ */ React.createElement(
+          DraftButton,
+          {
+            kind: "missed_lessons",
+            recordId: m.studentId,
+            compact: true,
+            copyText,
+            title: `为 ${m.studentName} 起草问候`,
+            className: DRAFT_CHIP
+          }
+        )))
       });
       const horizon = (() => {
         const d = /* @__PURE__ */ new Date();
@@ -4390,7 +4754,17 @@
         icon: "clock",
         text: `${expiring.length} 张补课额度 ${CREDIT_EXPIRY_WINDOW_DAYS} 天内到期`,
         ...allowedTabs.includes("roster") ? { cta: "去排课", go: () => setTab("roster") } : {},
-        chips: expiring.slice(0, 12).map((c) => /* @__PURE__ */ React.createElement("span", { key: c.id, className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center" }, `${c.student_name} · ${fmtDate(c.expires_on)} 到期`))
+        chips: expiring.slice(0, 12).map((c) => /* @__PURE__ */ React.createElement("span", { key: c.id, className: "inline-flex items-stretch gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center" }, `${c.student_name} · ${fmtDate(c.expires_on)} 到期`), /* @__PURE__ */ React.createElement(
+          DraftButton,
+          {
+            kind: "expiring_makeup",
+            recordId: c.id,
+            compact: true,
+            copyText,
+            title: `为 ${c.student_name} 起草补课邀请`,
+            className: DRAFT_CHIP
+          }
+        )))
       });
       if (overdueReports.length > 0) rows.push({
         key: "reports",
@@ -4511,7 +4885,7 @@
   }
 
   // legacy-root/src/panels/scheduling.jsx
-  var { useState: useState10 } = React;
+  var { useState: useState11 } = React;
   function CoursesSection(props) {
     const {
       archiveCourse,
@@ -4601,7 +4975,7 @@
       undoCheckIn,
       updateRosterEntry
     } = props;
-    const [monthOpen, setMonthOpen] = useState10(() => {
+    const [monthOpen, setMonthOpen] = useState11(() => {
       try {
         return localStorage.getItem("lp_ui_roster_month") === "1";
       } catch (e) {
@@ -5596,7 +5970,7 @@
       const d = new Date(bk.holdExpiresAt);
       const p2 = (n) => String(n).padStart(2, "0");
       return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
-    })())), !bk.holding && bk.holdExpiresAt && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "名额保留已到期"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
+    })())), !bk.holding && bk.holdExpiresAt && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "名额保留已到期"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end flex-wrap" }, /* @__PURE__ */ React.createElement(DraftButton, { kind: "booking_reply", recordId: bk.id, label: "起草回复" }), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => reviewBooking(bk, "declined"),
@@ -6539,63 +6913,63 @@
   }
 
   // legacy-root/src/cms-app.jsx
-  var { useState: useState11, useEffect: useEffect10, useMemo: useMemo7, useRef: useRef3, useCallback: useCallback9 } = React;
+  var { useState: useState12, useEffect: useEffect11, useMemo: useMemo7, useRef: useRef4, useCallback: useCallback9 } = React;
   function App() {
-    const [db, setDb] = useState11({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState11([]);
-    const [auditScope, setAuditScope] = useState11("full");
+    const [db, setDb] = useState12({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState12([]);
+    const [auditScope, setAuditScope] = useState12("full");
     const initialCmsRoute = useMemo7(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState11(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState11(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState11(initialCmsRoute.settingsSection);
-    const [rosterSection, setRosterSectionState] = useState11(initialCmsRoute.rosterSection);
-    const [routeRecordId, setRouteRecordId] = useState11(initialCmsRoute.recordId);
-    const [routeInvoiceId, setRouteInvoiceId] = useState11(initialCmsRoute.invoiceId);
-    const [moreOpen, setMoreOpen] = useState11(false);
-    const [selS, setSelS] = useState11(null);
-    const [editP, setEditP] = useState11(false);
-    const [studentProfileTab, setStudentProfileTab] = useState11("profile");
-    const [busy, setBusy] = useState11(false);
-    const [conn, setConn] = useState11(false);
-    const [connErr, setConnErr] = useState11(null);
-    const [accessDenied, setAccessDenied] = useState11(null);
-    const [toast, setToast] = useState11(null);
-    const [cmsNotifications, setCmsNotifications] = useState11([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState11(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState11(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState11("");
-    const cmsNotificationCursorRef = useRef3(0);
-    const cmsNotificationPollingRef = useRef3(false);
-    const [confirmDialog, setConfirmDialog] = useState11(null);
-    const [showSettings, setShowSettings] = useState11(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState11(false);
-    const [loggedIn, setLoggedIn] = useState11(false);
-    const [pwOld, setPwOld] = useState11("");
-    const [pwNew1, setPwNew1] = useState11("");
-    const [pwNew2, setPwNew2] = useState11("");
-    const [pwBusy, setPwBusy] = useState11(false);
-    const [pwMsg, setPwMsg] = useState11(null);
-    const [gOpen, setGOpen] = useState11(false);
-    const [gQ, setGQ] = useState11("");
-    const [portLB, setPortLB] = useState11(null);
-    const [portUpload, setPortUpload] = useState11(false);
-    const [portUpFile, setPortUpFile] = useState11(null);
-    const [portEdit, setPortEdit] = useState11(null);
-    const [portBusy, setPortBusy] = useState11(false);
-    const portLightboxDialogRef = useRef3(null);
-    const portUploadDialogRef = useRef3(null);
-    const portEditDialogRef = useRef3(null);
-    const searchDialogRef = useRef3(null);
-    const settingsDialogRef = useRef3(null);
-    const profileDialogRef = useRef3(null);
-    const [accessCodeResult, setAccessCodeResult] = useState11(null);
-    const [consentEdit, setConsentEdit] = useState11(null);
-    useEffect10(() => {
+    const [tab, setTabState] = useState12(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState12(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState12(initialCmsRoute.settingsSection);
+    const [rosterSection, setRosterSectionState] = useState12(initialCmsRoute.rosterSection);
+    const [routeRecordId, setRouteRecordId] = useState12(initialCmsRoute.recordId);
+    const [routeInvoiceId, setRouteInvoiceId] = useState12(initialCmsRoute.invoiceId);
+    const [moreOpen, setMoreOpen] = useState12(false);
+    const [selS, setSelS] = useState12(null);
+    const [editP, setEditP] = useState12(false);
+    const [studentProfileTab, setStudentProfileTab] = useState12("profile");
+    const [busy, setBusy] = useState12(false);
+    const [conn, setConn] = useState12(false);
+    const [connErr, setConnErr] = useState12(null);
+    const [accessDenied, setAccessDenied] = useState12(null);
+    const [toast, setToast] = useState12(null);
+    const [cmsNotifications, setCmsNotifications] = useState12([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState12(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState12(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState12("");
+    const cmsNotificationCursorRef = useRef4(0);
+    const cmsNotificationPollingRef = useRef4(false);
+    const [confirmDialog, setConfirmDialog] = useState12(null);
+    const [showSettings, setShowSettings] = useState12(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState12(false);
+    const [loggedIn, setLoggedIn] = useState12(false);
+    const [pwOld, setPwOld] = useState12("");
+    const [pwNew1, setPwNew1] = useState12("");
+    const [pwNew2, setPwNew2] = useState12("");
+    const [pwBusy, setPwBusy] = useState12(false);
+    const [pwMsg, setPwMsg] = useState12(null);
+    const [gOpen, setGOpen] = useState12(false);
+    const [gQ, setGQ] = useState12("");
+    const [portLB, setPortLB] = useState12(null);
+    const [portUpload, setPortUpload] = useState12(false);
+    const [portUpFile, setPortUpFile] = useState12(null);
+    const [portEdit, setPortEdit] = useState12(null);
+    const [portBusy, setPortBusy] = useState12(false);
+    const portLightboxDialogRef = useRef4(null);
+    const portUploadDialogRef = useRef4(null);
+    const portEditDialogRef = useRef4(null);
+    const searchDialogRef = useRef4(null);
+    const settingsDialogRef = useRef4(null);
+    const profileDialogRef = useRef4(null);
+    const [accessCodeResult, setAccessCodeResult] = useState12(null);
+    const [consentEdit, setConsentEdit] = useState12(null);
+    useEffect11(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
-    const lbTouchX = useRef3(0);
+    const lbTouchX = useRef4(0);
     const syncCmsRoute = useCallback9((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
@@ -6653,7 +7027,7 @@
       setShowSettings(false);
       syncCmsRoute({ tab: "roster", rosterSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect10(() => {
+    useEffect11(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -6687,7 +7061,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState11(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState12(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -6695,37 +7069,37 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState11("");
-    const [sortBy, setSortBy] = useState11("date-desc");
-    const [filterBy, setFilterBy] = useState11("all");
+    const [srch, setSrch] = useState12("");
+    const [sortBy, setSortBy] = useState12("date-desc");
+    const [filterBy, setFilterBy] = useState12("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState11(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState11([]);
-    const [rDate, setRDate] = useState11(todayISO);
-    const [rPick, setRPick] = useState11(null);
-    const [defaultClassTime, setDefaultClassTime] = useState11("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState11("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState11(false);
-    const [bookingHoldHours, setBookingHoldHours] = useState11(48);
-    const [rTime, setRTime] = useState11("14:30");
-    const [icsPreview, setIcsPreview] = useState11(null);
-    const [icsNotice, setIcsNotice] = useState11("");
-    const [icsBusy, setIcsBusy] = useState11(false);
-    const icsDialogRef = useRef3(null);
-    const icsCloseButtonRef = useRef3(null);
-    const [rOneToOne, setROneToOne] = useState11(false);
-    const [grpSel, setGrpSel] = useState11("");
-    const [schedules, setSchedules] = useState11([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState11("");
-    const [bizStats, setBizStats] = useState11(null);
-    const [attHistory, setAttHistory] = useState11(null);
-    const [schedEdit, setSchedEdit] = useState11(null);
-    const [schedPick, setSchedPick] = useState11(null);
-    const [courses, setCourses] = useState11([]);
-    const [schedCancel, setSchedCancel] = useState11(null);
-    const [bookings, setBookings] = useState11([]);
-    const [courseEdit, setCourseEdit] = useState11(null);
-    const [renewTh, setRenewTh] = useState11(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [studentPage, setStudentPage] = useState12(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState12([]);
+    const [rDate, setRDate] = useState12(todayISO);
+    const [rPick, setRPick] = useState12(null);
+    const [defaultClassTime, setDefaultClassTime] = useState12("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState12("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState12(false);
+    const [bookingHoldHours, setBookingHoldHours] = useState12(48);
+    const [rTime, setRTime] = useState12("14:30");
+    const [icsPreview, setIcsPreview] = useState12(null);
+    const [icsNotice, setIcsNotice] = useState12("");
+    const [icsBusy, setIcsBusy] = useState12(false);
+    const icsDialogRef = useRef4(null);
+    const icsCloseButtonRef = useRef4(null);
+    const [rOneToOne, setROneToOne] = useState12(false);
+    const [grpSel, setGrpSel] = useState12("");
+    const [schedules, setSchedules] = useState12([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState12("");
+    const [bizStats, setBizStats] = useState12(null);
+    const [attHistory, setAttHistory] = useState12(null);
+    const [schedEdit, setSchedEdit] = useState12(null);
+    const [schedPick, setSchedPick] = useState12(null);
+    const [courses, setCourses] = useState12([]);
+    const [schedCancel, setSchedCancel] = useState12(null);
+    const [bookings, setBookings] = useState12([]);
+    const [courseEdit, setCourseEdit] = useState12(null);
+    const [renewTh, setRenewTh] = useState12(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -6733,66 +7107,66 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState11(null);
-    const [settleMode, setSettleMode] = useState11("topup");
-    const [rfCr, setRfCr] = useState11("");
-    const [rfAmt, setRfAmt] = useState11("");
-    const [rfAmountTouched, setRfAmountTouched] = useState11(false);
-    const [rfReason, setRfReason] = useState11("");
-    const [rfSourceId, setRfSourceId] = useState11("");
-    const [refundSources, setRefundSources] = useState11([]);
-    const [refundSourcesBusy, setRefundSourcesBusy] = useState11(false);
-    const [refundSourceError, setRefundSourceError] = useState11("");
-    const [rfAdjustDocuments, setRfAdjustDocuments] = useState11(false);
-    const [tuCr, setTuCr] = useState11("");
-    const [tuFee, setTuFee] = useState11("");
-    const [tuPkg, setTuPkg] = useState11("");
-    const [tuPay, setTuPay] = useState11("微信");
-    const [tuCreateInvoice, setTuCreateInvoice] = useState11(false);
-    const [tuPaymentReceived, setTuPaymentReceived] = useState11(true);
-    const [settlementAccounts, setSettlementAccounts] = useState11([]);
-    const [settlementTaxCodes, setSettlementTaxCodes] = useState11([]);
-    const [settlementPayerState, setSettlementPayerState] = useState11({
+    const [tuStu, setTuStu] = useState12(null);
+    const [settleMode, setSettleMode] = useState12("topup");
+    const [rfCr, setRfCr] = useState12("");
+    const [rfAmt, setRfAmt] = useState12("");
+    const [rfAmountTouched, setRfAmountTouched] = useState12(false);
+    const [rfReason, setRfReason] = useState12("");
+    const [rfSourceId, setRfSourceId] = useState12("");
+    const [refundSources, setRefundSources] = useState12([]);
+    const [refundSourcesBusy, setRefundSourcesBusy] = useState12(false);
+    const [refundSourceError, setRefundSourceError] = useState12("");
+    const [rfAdjustDocuments, setRfAdjustDocuments] = useState12(false);
+    const [tuCr, setTuCr] = useState12("");
+    const [tuFee, setTuFee] = useState12("");
+    const [tuPkg, setTuPkg] = useState12("");
+    const [tuPay, setTuPay] = useState12("微信");
+    const [tuCreateInvoice, setTuCreateInvoice] = useState12(false);
+    const [tuPaymentReceived, setTuPaymentReceived] = useState12(true);
+    const [settlementAccounts, setSettlementAccounts] = useState12([]);
+    const [settlementTaxCodes, setSettlementTaxCodes] = useState12([]);
+    const [settlementPayerState, setSettlementPayerState] = useState12({
       mode: "student",
       accountId: "",
       createPayload: null,
       linkedStudentIds: []
     });
-    const [settlementPayerError, setSettlementPayerError] = useState11("");
-    const settlementResolvedAccountRef = useRef3("");
-    const settlementPayerIntentRef = useRef3("");
-    const settlementRequestRef = useRef3({ signature: "", id: "" });
-    const refundRequestRef = useRef3({ signature: "", id: "" });
-    const [lSrch, setLSrch] = useState11("");
-    const [lStu, setLStu] = useState11(null);
-    const [lAct, setLAct] = useState11("");
-    const [lDateFrom, setLDateFrom] = useState11("");
-    const [lDateTo, setLDateTo] = useState11("");
-    const [lPage, setLPage] = useState11(1);
+    const [settlementPayerError, setSettlementPayerError] = useState12("");
+    const settlementResolvedAccountRef = useRef4("");
+    const settlementPayerIntentRef = useRef4("");
+    const settlementRequestRef = useRef4({ signature: "", id: "" });
+    const refundRequestRef = useRef4({ signature: "", id: "" });
+    const [lSrch, setLSrch] = useState12("");
+    const [lStu, setLStu] = useState12(null);
+    const [lAct, setLAct] = useState12("");
+    const [lDateFrom, setLDateFrom] = useState12("");
+    const [lDateTo, setLDateTo] = useState12("");
+    const [lPage, setLPage] = useState12(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState11("monthly");
-    const [sYear, setSYear] = useState11(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState11("");
-    const [sTo, setSTo] = useState11("");
-    const [sStu, setSStu] = useState11(null);
-    const [sStu2, setSStu2] = useState11(null);
-    const [approveCredits, setApproveCredits] = useState11({});
-    const [dupPick, setDupPick] = useState11(null);
-    const [arSummary, setArSummary] = useState11(null);
-    const [followUpDates, setFollowUpDates] = useState11({});
-    const [pendingBucket, setPendingBucket] = useState11("due");
-    const [pendingQuery, setPendingQuery] = useState11("");
-    const [pkgEditId, setPkgEditId] = useState11(null);
-    const [pkgName, setPkgName] = useState11("");
-    const [pkgCredits, setPkgCredits] = useState11("");
-    const [pkgPrice, setPkgPrice] = useState11("");
-    const [tenantBrand, setTenantBrand] = useState11(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState11([]);
-    const [teamBusy, setTeamBusy] = useState11(false);
-    const [teamForm, setTeamForm] = useState11({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState11("");
-    const [supportSession, setSupportSession] = useState11(null);
-    const [sessionExpired, setSessionExpired] = useState11(false);
+    const [sPeriod, setSPeriod] = useState12("monthly");
+    const [sYear, setSYear] = useState12(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState12("");
+    const [sTo, setSTo] = useState12("");
+    const [sStu, setSStu] = useState12(null);
+    const [sStu2, setSStu2] = useState12(null);
+    const [approveCredits, setApproveCredits] = useState12({});
+    const [dupPick, setDupPick] = useState12(null);
+    const [arSummary, setArSummary] = useState12(null);
+    const [followUpDates, setFollowUpDates] = useState12({});
+    const [pendingBucket, setPendingBucket] = useState12("due");
+    const [pendingQuery, setPendingQuery] = useState12("");
+    const [pkgEditId, setPkgEditId] = useState12(null);
+    const [pkgName, setPkgName] = useState12("");
+    const [pkgCredits, setPkgCredits] = useState12("");
+    const [pkgPrice, setPkgPrice] = useState12("");
+    const [tenantBrand, setTenantBrand] = useState12(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState12([]);
+    const [teamBusy, setTeamBusy] = useState12(false);
+    const [teamForm, setTeamForm] = useState12({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState12("");
+    const [supportSession, setSupportSession] = useState12(null);
+    const [sessionExpired, setSessionExpired] = useState12(false);
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -6833,10 +7207,12 @@
       ["operational", "运营默认", canManageOperations],
       ["billing-identity", "开票信息", canManageOperations],
       ["integrations", "集成", ownerRoles.includes(actorRole)],
+      /* 打开 AI 起草等于替家长接受隐私条款，所以只有店主（Lee，2026-10-14）。 */
+      ["drafting", "AI 起草", Boolean(TENANT_SLUG) && ownerRoles.includes(actorRole)],
       ["maintenance", "数据维护", canManageOperations],
       ["workspace", "工作区链接", true]
     ];
-    useEffect10(() => {
+    useEffect11(() => {
       if (tab !== "settings" || !actorRole) return;
       const visible = SETTINGS_SECTIONS.filter(([, , ok]) => ok !== false).map(([key]) => key);
       if (!visible.length) return;
@@ -6845,18 +7221,18 @@
       if (resolved !== settingsSection) setSettingsSectionState(resolved);
       if (raw !== resolved) syncCmsRoute({ tab: "settings", settingsSection: resolved }, true);
     }, [tab, settingsSection, actorRole, canManageOperations]);
-    const [formPhoto, setFormPhoto] = useState11("");
-    const [editPhoto, setEditPhoto] = useState11("");
-    const cooldowns = useRef3(/* @__PURE__ */ new Set());
-    const wasDownRef = useRef3(false);
+    const [formPhoto, setFormPhoto] = useState12("");
+    const [editPhoto, setEditPhoto] = useState12("");
+    const cooldowns = useRef4(/* @__PURE__ */ new Set());
+    const wasDownRef = useRef4(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect10(() => {
+    useEffect11(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect10(() => {
+    useEffect11(() => {
       if (!canUseSettlementBilling || tab !== "topup") return void 0;
       let alive = true;
       Promise.all([
@@ -6871,7 +7247,7 @@
         alive = false;
       };
     }, [canUseSettlementBilling, tab]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (!TENANT_SLUG || settleMode !== "refund" || !tuStu || !canRefund) {
         setRefundSources([]);
         setRefundSourcesBusy(false);
@@ -6897,13 +7273,13 @@
         alive = false;
       };
     }, [settleMode, tuStu, canRefund]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -7041,7 +7417,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect10(() => {
+    useEffect11(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -7052,7 +7428,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect10(() => {
+    useEffect11(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -7093,7 +7469,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect10(() => {
+    useEffect11(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -7103,7 +7479,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect10(() => {
+    useEffect11(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -7128,15 +7504,15 @@
       }
     }).catch(() => {
     });
-    useEffect10(() => {
+    useEffect11(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
-    const revRef = useRef3(0);
-    useEffect10(() => {
+    const revRef = useRef4(0);
+    useEffect11(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (tab !== "dashboard" || !TENANT_SLUG || !canUseSettlementBilling) return;
       let gone = false;
       v1Api("/billing/invoices").then((d) => {
@@ -7155,7 +7531,7 @@
         gone = true;
       };
     }, [tab, loggedIn]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -7177,7 +7553,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -7457,7 +7833,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    useEffect10(() => {
+    useEffect11(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
@@ -7528,8 +7904,8 @@
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    const [worksQuery, setWorksQuery] = useState11("");
-    const [worksBucket, setWorksBucket] = useState11("all");
+    const [worksQuery, setWorksQuery] = useState12("");
+    const [worksBucket, setWorksBucket] = useState12("all");
     const worksPublicState = ({ student, item }) => {
       if (!item.public) return "private";
       if (student.archived) return "blocked";
@@ -7556,7 +7932,7 @@
         return [student.name, item.title, item.note].some((v) => String(v || "").toLowerCase().includes(needle));
       });
     }, [portfolioEntries, worksQuery, worksBucket]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -7765,10 +8141,10 @@
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
     const logActions = useMemo7(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect10(() => {
+    useEffect11(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect10(() => {
+    useEffect11(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
     const bizReport = useMemo7(() => {
@@ -7932,8 +8308,8 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const [rosterAttendance, setRosterAttendance] = useState11(null);
-    useEffect10(() => {
+    const [rosterAttendance, setRosterAttendance] = useState12(null);
+    useEffect11(() => {
       if (!TENANT_SLUG) {
         setRosterAttendance(null);
         return void 0;
@@ -10680,7 +11056,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             showToast,
             canManage: ownerRoles.includes(actorRole)
           }
-        )), ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "integrations", active: settingsSection === "integrations" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "集成"), /* @__PURE__ */ React.createElement(IntegrationsPanel, { api: v1Api, showToast, confirm: confirm2, canManage: ownerRoles.includes(actorRole) })), /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "workspace", active: settingsSection === "workspace" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "学员注册页面"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500 flex-1 font-mono truncate" }, window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`), /* @__PURE__ */ React.createElement(
+        )), ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "integrations", active: settingsSection === "integrations" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "集成"), /* @__PURE__ */ React.createElement(IntegrationsPanel, { api: v1Api, showToast, confirm: confirm2, canManage: ownerRoles.includes(actorRole) })), TENANT_SLUG && ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "drafting", active: settingsSection === "drafting" }, /* @__PURE__ */ React.createElement(DraftingSettings, { showToast })), /* @__PURE__ */ React.createElement(TabPanel, { idBase: "settings", name: "workspace", active: settingsSection === "workspace" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "学员注册页面"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500 flex-1 font-mono truncate" }, window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`), /* @__PURE__ */ React.createElement(
           "button",
           {
             type: "button",

@@ -31,11 +31,12 @@ from . import (  # noqa: F401
     tenant,
     platform,
     misc,
+    drafting,
 )
 
 _pkg = _sys.modules[__name__]
 for _mod in (_shared, public, auth, students, scheduling, billing, teaching,
-             xero, media, tenant, platform, misc):
+             xero, media, tenant, platform, misc, drafting):
     for _name in vars(_mod):
         if _name.startswith("__"):
             continue

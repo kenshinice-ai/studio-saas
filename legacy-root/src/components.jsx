@@ -65,7 +65,7 @@ export const CMS_ROUTE_TABS = new Set([
 export const CMS_ROUTE_SECTIONS = Object.assign(Object.create(null), {
     settings: {
         allowed: ['account', 'team', 'operational', 'billing-identity',
-                  'integrations', 'maintenance', 'workspace'],
+                  'integrations', 'drafting', 'maintenance', 'workspace'],
         fallback: 'account',
     },
     /* 排课页的两个职能。`checkin` 是 fallback，也就是没有 `?section=` 时
@@ -175,6 +175,9 @@ export const AUDIT_ACTION_ZH = {
     'team.member_updated':                 '调整成员权限',
     'operations.default_class_time_updated':'修改默认上课时间',
     'operations.booking_hold_hours_updated':'修改约课保留时长',
+    'draft.created':'AI 起草',
+    'drafting.enabled':'打开 AI 起草',
+    'drafting.disabled':'关闭 AI 起草',
 };
 /* Human-readable detail per audit action. The raw metadata is machine shape
    (uuid lists, asset ids); showing it verbatim is what produced rows like

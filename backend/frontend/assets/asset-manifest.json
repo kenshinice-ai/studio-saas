@@ -3,9 +3,9 @@
   "assets": {
     "admin-i18n.js": "20c2755dd0501ed23cd7d40806084b040ec888e8c253bdfa23940e6eaafec905",
     "brand-system.css": "1bee850f81dbfb311dad70cbfda9ae1ebaa6641e08ee16b2ed91a67740c95ab9",
-    "cms-app.js": "1ac72f6bb0fa91442921396e751df74749629491060ee60c7a16c17dee146add",
-    "cms-i18n.js": "5834fb8a6dcbe6a87f34919ea3aa27b6f23502b393a27a230890ce0c40d1c7cf",
-    "cms-tailwind.css": "fa6dbdd2375c9dfd61a1955482e1ea2c3654a1ca51e547a8efddff517a041271",
+    "cms-app.js": "d49c4836f266eb0043dc14509bd0a42a1a347454db401d788a91f0773031a698",
+    "cms-i18n.js": "5a993e832fbe148e9b9e31dddf3a4f6e7f8380c4bd9c0dc146ac4bd88bf423cc",
+    "cms-tailwind.css": "559d079c49b7d00439d626f9b627e46ed1f100e03d1276056a3adab5534d1f62",
     "console-theme.css": "a0b7f2f6ad067a9570aa2b84b93e34801792a850250bb27215a03ccd0d21ada5",
     "customer-resources.css": "f29bfd0fa125f6cdfdc9635e3956a5915d3c6dd94a0c457099e2d1a8f19cc325",
     "customer-resources.js": "e03eefff798e442996d32c9c76e9639474b1fe53e321bd1717e2388a4281ef1d",

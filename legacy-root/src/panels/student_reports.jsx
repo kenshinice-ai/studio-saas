@@ -15,6 +15,7 @@
  * React 树抛错白屏。tests/test_cms_panels.py 现在会替我们抓这件事。
  */
 import { aud, fmtApiDate } from './_shared.jsx';
+import { DraftButton } from './drafting.jsx';
 
 const { useState, useEffect, useCallback } = React;
 
@@ -194,6 +195,11 @@ export function StudentProgressReports({ api, studentId, studentName, canWrite, 
                                                     className="min-h-[44px] px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50">
                                                     保存草稿
                                                 </button>
+                                                {/* Claude 按这一周期的出勤和课堂笔记起草；老师改完再保存。
+                                                    起草读的是已保存的报告内容，不是这个输入框。 */}
+                                                <DraftButton kind="report_comment" recordId={r.id} label="让 Claude 起草评语"
+                                                    onUse={text => setDraft(text)}
+                                                    useLabel={draft.trim() ? '填入评语（替换现有内容）' : '填入评语'}/>
                                                 {canPublish && (
                                                     <button onClick={() => publish(r)} disabled={busy || !draft.trim()}
                                                         className="min-h-[44px] px-4 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-50">

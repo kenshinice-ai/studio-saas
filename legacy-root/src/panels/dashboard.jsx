@@ -5,11 +5,15 @@
  */
 
 import { EmptyState, Icon, TENANT_SLUG, daysSince, fmtDate, todayISO, v1Api } from "../components.jsx";
+import { DraftButton } from "./drafting.jsx";
 
 const { useState, useEffect } = React;
 
 /** 补课额度「快到期」的窗口。两周够前台排一次课，又不会把整学期的额度都列出来。 */
 const CREDIT_EXPIRY_WINDOW_DAYS = 14;
+
+/** 例外行里每个名字旁边的「起草」小按钮。起草没打开时 DraftButton 什么都不渲染。 */
+const DRAFT_CHIP = "px-2.5 rounded-lg text-xs font-bold border min-h-[44px] bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100 inline-flex items-center";
 
 export function DashboardSection(props) {
     const {
@@ -274,6 +278,8 @@ export function DashboardSection(props) {
                         className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
                         <Icon name="money" className="w-4 h-4"/>
                     </button>}
+                    <span className="ml-1 inline-flex"><DraftButton kind="low_credits" recordId={s.id} compact copyText={copyText}
+                        title={`为 ${s.name} 起草续费提醒`} className={DRAFT_CHIP}/></span>
                     </span>
                 )),
             });
@@ -286,12 +292,16 @@ export function DashboardSection(props) {
             key: 'missed', icon: 'calendar',
             text: `${missed.students.length} 名学员排了课却连续 ${missed.streak} 次以上没来`,
             chips: missed.students.slice(0,12).map(m => (
-                <button key={m.studentId} type="button" onClick={()=>{setTab('students');setSrch(m.studentName);}}
+                <span key={m.studentId} className="inline-flex items-stretch gap-1">
+                <button type="button" onClick={()=>{setTab('students');setSrch(m.studentName);}}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
                     {m.lastAttended
                         ? `${m.studentName} · 连续 ${m.missed} 次 · 上次 ${fmtDate(m.lastAttended)}`
                         : `${m.studentName} · 连续 ${m.missed} 次 · 没有签到记录`}
                 </button>
+                <DraftButton kind="missed_lessons" recordId={m.studentId} compact copyText={copyText}
+                    title={`为 ${m.studentName} 起草问候`} className={DRAFT_CHIP}/>
+                </span>
             )),
         });
         const horizon = (() => {
@@ -305,8 +315,12 @@ export function DashboardSection(props) {
             text: `${expiring.length} 张补课额度 ${CREDIT_EXPIRY_WINDOW_DAYS} 天内到期`,
             ...(allowedTabs.includes('roster') ? {cta: '去排课', go: ()=>setTab('roster')} : {}),
             chips: expiring.slice(0,12).map(c => (
-                <span key={c.id} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center">
+                <span key={c.id} className="inline-flex items-stretch gap-1">
+                <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center">
                     {`${c.student_name} · ${fmtDate(c.expires_on)} 到期`}
+                </span>
+                <DraftButton kind="expiring_makeup" recordId={c.id} compact copyText={copyText}
+                    title={`为 ${c.student_name} 起草补课邀请`} className={DRAFT_CHIP}/>
                 </span>
             )),
         });

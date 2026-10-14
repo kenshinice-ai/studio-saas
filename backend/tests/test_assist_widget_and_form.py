@@ -285,7 +285,7 @@ def test_the_privacy_policy_covers_the_form_and_the_assistant(client, no_plan_qu
             "people at PWE read the questions the assistant could not answer",
             "deleted after 90 days",
             "it has no access to any studio’s records",
-            "11 · Changes to this policy",
+            "12 · Changes to this policy",
         )),
         ("/zh/customer-resources/Privacy_Policy.html", (
             "十 · 我们自己的网站：留言与 AI 助手",
@@ -294,7 +294,7 @@ def test_the_privacy_policy_covers_the_form_and_the_assistant(client, no_plan_qu
             "以及法律要求它保留的除外",
             "我们的人会读助手没答上的提问",
             "对话在 90 天后删除",
-            "十一 · 本政策的变更",
+            "十二 · 本政策的变更",
         )),
     ):
         body = client.get(path).get_data(as_text=True)

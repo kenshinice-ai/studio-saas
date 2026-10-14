@@ -13,6 +13,7 @@ import { OverdueReports } from "./panels/progress_reports.jsx";
 import { FilterBar } from "./panels/filter_bar.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
+import { DraftingSettings } from "./panels/drafting.jsx";
 
 import { AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_SECTIONS, CMS_ROUTE_TABS, CmsNotificationCenter, ConfirmDialog, ErrorBoundary, Icon, iconMarkup } from "./components.jsx";
 import { LoginScreen, MaintSection, PhotoAvatar, StudentPicker, TENANT_SLUG, Toast } from "./components.jsx";
@@ -410,6 +411,8 @@ function App() {
         ['operational', '运营默认', canManageOperations],
         ['billing-identity', '开票信息', canManageOperations],
         ['integrations', '集成', ownerRoles.includes(actorRole)],
+        /* 打开 AI 起草等于替家长接受隐私条款，所以只有店主（Lee，2026-10-14）。 */
+        ['drafting', 'AI 起草', Boolean(TENANT_SLUG) && ownerRoles.includes(actorRole)],
         ['maintenance', '数据维护', canManageOperations],
         ['workspace', '工作区链接', true],
     ];
@@ -4284,6 +4287,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {ownerRoles.includes(actorRole) && <TabPanel idBase="settings" name="integrations" active={settingsSection==='integrations'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
                             <IntegrationsPanel api={v1Api} showToast={showToast} confirm={confirm} canManage={ownerRoles.includes(actorRole)} />
+                        </TabPanel>}
+                        {TENANT_SLUG && ownerRoles.includes(actorRole) && <TabPanel idBase="settings" name="drafting" active={settingsSection==='drafting'}>
+                            <DraftingSettings showToast={showToast}/>
                         </TabPanel>}
                         <TabPanel idBase="settings" name="workspace" active={settingsSection==='workspace'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>

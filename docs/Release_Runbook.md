@@ -49,6 +49,13 @@ with `STUDIOSAAS_DB_CONNECT_TIMEOUT` (seconds, default 5),
 `STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` (default 30000), and
 `STUDIOSAAS_DB_LOCK_TIMEOUT_MS` (default 10000).
 
+Optional, Claude drafting (added 2026-10-14): `STUDIOSAAS_DRAFTING_API_KEY`
+turns the feature on for the host; without it every draft request answers 503
+`unavailable` and no button appears. `STUDIOSAAS_DRAFTING_MODEL` overrides the
+model (default `claude-opus-5-5` until the evaluation decides). Lee places the
+key on the host himself; it is never committed and never passes through a
+session. Each tenant's owner still has to turn drafting on.
+
 ## Where production runs
 
 **2026-09-17: `pwestudio.online` moved off AWS Lightsail.** It now runs on an
