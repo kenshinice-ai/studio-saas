@@ -612,6 +612,10 @@
      * 每行是一句完整的话加一个去处，所以整句走下面的规则，标题与去处按钮
      * 是定值，进词典。 */
     ['需要注意', 'Needs attention'],
+    /* 工作台的「今日待办」（v10.21）：两个区块合成一张例外清单。 */
+    ['去处理', 'Open'], ['去排课', 'Schedule'],
+    ['本周生日', 'Birthdays this week'], ['本月生日', 'Birthdays this month'],
+    ['今天没有需要处理的事。', 'Nothing needs handling today.'],
     ['去审核', 'Review'], ['看名单', 'See the list'], ['进账单中心', 'Open billing'],
     ['名学员余额 ≤ 2 课时', 'students have 2 credits or fewer'],
     ['名学员有余额但超过', 'students still hold credits but have not attended for'],
@@ -1868,6 +1872,22 @@
       [/^未付清\s*(\d+)\s*张，其中逾期\s*(\d+)\s*张\s*·\s*应收\s*(.+)$/,
        '$1 unpaid, $2 overdue · $3 outstanding'],
       [/^未付清\s*(\d+)\s*张\s*·\s*应收\s*(.+)$/, '$1 unpaid · $2 outstanding'],
+      /* 「今日待办」的例外行。每一行在 dashboard.jsx 里是一个模板字符串，
+       * 所以整句在这里一次翻完。 */
+      [/^(\d+)\s*条报名和约课等待答复，其中\s*(\d+)\s*条跟进已到期$/,
+       (_m, n, due) => `${n} ${n === '1' ? 'request is' : 'registrations and booking requests are'} waiting for a reply, ${due} with a follow-up due`],
+      [/^(\d+)\s*条报名和约课等待答复$/,
+       (_m, n) => `${n} ${n === '1' ? 'request is' : 'registrations and booking requests are'} waiting for a reply`],
+      [/^(\d+)\s*名学员余额\s*≤\s*2\s*课时，其中\s*(\d+)\s*名已用完$/,
+       '$1 students have 2 credits or fewer, $2 with none left'],
+      [/^(\d+)\s*张补课额度\s*(\d+)\s*天内到期$/,
+       (_m, n, days) => `${n} make-up ${n === '1' ? 'credit expires' : 'credits expire'} within ${days} days`],
+      [/^(\d+)\s*份成长报告过了周期还没写$/,
+       (_m, n) => (n === '1'
+           ? '1 progress report is past its period and still unwritten'
+           : `${n} progress reports are past their period and still unwritten`)],
+      [/^(.+?)\s*·\s*(\S+)\s*到期$/, '$1 · expires $2'],
+      [/^(.+?)\s*·\s*逾期\s*(\d+)\s*天$/, '$1 · $2 days overdue'],
       [/^(\d+)\s*个课包$/, '$1 credit packs'],
       [/^没有匹配的老师。清除筛选可以看到全部\s*(\d+)\s*位。$/,
        'No teacher matches. Clear the filters to see all $1.'],

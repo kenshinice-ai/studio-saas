@@ -4093,6 +4093,8 @@
   };
 
   // legacy-root/src/panels/dashboard.jsx
+  var { useState: useState9, useEffect: useEffect9 } = React;
+  var CREDIT_EXPIRY_WINDOW_DAYS = 14;
   function DashboardSection(props) {
     const {
       activityMap,
@@ -4107,6 +4109,7 @@
       canWriteCredits,
       canWriteStudents,
       copyText,
+      bookings,
       db,
       inactiveDays,
       loadSchedules,
@@ -4130,6 +4133,23 @@
       "{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～",
       { student: name }
     );
+    const [credits, setCredits] = useState9([]);
+    const [overdueReports, setOverdueReports] = useState9([]);
+    useEffect9(() => {
+      if (!TENANT_SLUG) return void 0;
+      let gone = false;
+      v1Api("/scheduling/credits").then((d) => {
+        if (!gone) setCredits(d.credits || []);
+      }).catch(() => {
+      });
+      v1Api("/progress-reports/overdue").then((d) => {
+        if (!gone) setOverdueReports(d.overdue || []);
+      }).catch(() => {
+      });
+      return () => {
+        gone = true;
+      };
+    }, []);
     const actionsByRole = {
       owner: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", null, "calendar"], ["students", "搜索学员", null, "users"], ["stats", "查看经营统计", null, "trend"]],
       platform_super_admin: [["pending", "处理待处理", pendingCount, "clipboard"], ["roster", "查看今日课程", null, "calendar"], ["students", "搜索学员", null, "users"], ["stats", "查看经营统计", null, "trend"]],
@@ -4274,98 +4294,67 @@
       /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l, " ", /* @__PURE__ */ React.createElement("span", { className: "text-indigo-400" }, "→")),
       /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v)
     ) : /* @__PURE__ */ React.createElement("div", { key: l, className: "bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 text-left w-full" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l), /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v))))), (() => {
-      const todoClear = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 0 && s.lastActive);
-      const todoLast = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 1);
-      const todoRisk = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id] || 0) === 0);
-      const now = /* @__PURE__ */ new Date();
-      now.setHours(0, 0, 0, 0);
-      const bdayWithin = (s, span) => {
-        if (!s.birthday || s.archived) return false;
-        const mm = parseInt(s.birthday.slice(5, 7), 10), dd = parseInt(s.birthday.slice(8, 10), 10);
-        if (!mm || !dd) return false;
-        for (let i = 0; i < span; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-          if (d.getMonth() + 1 === mm && d.getDate() === dd) return true;
-          if (mm === 2 && dd === 29 && d.getMonth() === 2 && d.getDate() === 1 && new Date(d.getFullYear(), 1, 29).getDate() !== 29) return true;
-        }
-        return false;
-      };
-      const todoBdayWeek = db.students.filter((s) => bdayWithin(s, 8));
-      const todoBdayMonth = db.students.filter((s) => {
-        if (!s.birthday || s.archived) return false;
-        return s.birthday.slice(5, 7) === String(now.getMonth() + 1).padStart(2, "0") && !todoBdayWeek.includes(s);
+      const rows = [];
+      const pendingRegs = db.pending || [];
+      const pendingBookings = bookings || [];
+      const waiting = pendingRegs.length + pendingBookings.length;
+      const followUpDue = pendingRegs.filter((item) => item.nextFollowUpAt && String(item.nextFollowUpAt).slice(0, 10) <= todayISO());
+      if (waiting > 0 && allowedTabs.includes("pending")) rows.push({
+        key: "pending",
+        icon: "clipboard",
+        text: followUpDue.length > 0 ? `${waiting} 条报名和约课等待答复，其中 ${followUpDue.length} 条跟进已到期` : `${waiting} 条报名和约课等待答复`,
+        cta: "去处理",
+        go: () => setTab("pending")
       });
-      const todoFollowUp = (db.pending || []).filter((item) => item.nextFollowUpAt && String(item.nextFollowUpAt).slice(0, 10) <= todayISO());
-      const total = todoClear.length + todoLast.length + todoRisk.length + todoBdayWeek.length + todoBdayMonth.length + todoFollowUp.length;
-      if (!total) return null;
-      const names = (arr, max = 4) => arr.slice(0, max).map((s) => s.name).join("、") + (arr.length > max ? ` 等${arr.length}人` : "");
-      return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 bg-gray-50 border-b flex items-center justify-between" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-gray-700 text-sm" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "今日待办"), /* @__PURE__ */ React.createElement("span", { className: "bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full" }, total, " 项")), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, todoFollowUp.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-indigo-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), "报名跟进到期 · ", todoFollowUp.length, " 项"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, todoFollowUp.slice(0, 4).map((item) => `${item.firstName || ""} ${item.lastName || ""}`.trim()).join("、"))), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => setTab("pending"),
-          className: "flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "处理 →"
-      )), todoClear.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-red-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "课时已清零 · ", todoClear.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoClear))), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            setFilterBy("zero");
-            setTab("students");
-          },
-          className: "flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "查看 →"
-      )), todoLast.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-orange-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "最后 1 课时 · ", todoLast.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoLast))), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
+      if (arSummary && arSummary.unpaidCount > 0) rows.push({
+        key: "ar",
+        icon: "money",
+        text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ""} · 应收 ${`$${(arSummary.unpaidCents / 100).toFixed(2)}`}`,
+        cta: "进账单中心",
+        go: () => setTab("billing")
+      });
+      if (analytics.lowBalance.length > 0) {
+        const usedUp = analytics.lowBalance.filter((s) => (parseInt(s.balance, 10) || 0) <= 0).length;
+        rows.push({
+          key: "low",
+          icon: "bolt",
+          text: usedUp > 0 ? `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时，其中 ${usedUp} 名已用完` : `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
+          cta: "看名单",
+          go: () => {
+            setSortBy("bal-asc");
             setFilterBy("low");
             setTab("students");
           },
-          className: "flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "查看 →"
-      )), todoRisk.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between px-4 py-3 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-amber-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4" }), "流失风险 · ", todoRisk.length, " 人"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate mt-0.5" }, names(todoRisk))), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            setFilterBy("tag-risk");
-            setTab("students");
-          },
-          className: "flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "查看 →"
-      )), todoBdayWeek.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 space-y-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-pink-600" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "本周生日 · ", todoBdayWeek.length, " 人"), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            const msg = todoBdayWeek.map((s) => birthdayWish(s.name)).join("\n");
-            copyText(msg, "祝福语已复制");
-          },
-          className: "flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "复制祝福 →"
-      )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, todoBdayWeek.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" })))))), todoBdayMonth.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 space-y-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-pink-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "本月生日 · ", todoBdayMonth.length, " 人"), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            const msg = todoBdayMonth.map((s) => birthdayWish(s.name)).join("\n");
-            copyText(msg, "祝福语已复制");
-          },
-          className: "flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[44px]"
-        },
-        "复制祝福 →"
-      )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, todoBdayMonth.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" }))))))));
-    })(), (() => {
-      const rows = [];
-      if ((db.pending || []).length > 0 && allowedTabs.includes("pending")) rows.push({
-        key: "pending",
-        icon: "clipboard",
-        text: `${(db.pending || []).length} 位学员等待审核`,
-        cta: "去审核",
-        go: () => setTab("pending")
-      });
+          chips: analytics.lowBalance.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-stretch" }, /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                setTab("students");
+                setSrch(s.name);
+              },
+              className: `px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance, 10) <= 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-800 border-amber-200"}`
+            },
+            s.name,
+            " (",
+            s.balance,
+            ")"
+          ), canWriteCredits && /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                setTuStu(s.id);
+                setTab("topup");
+              },
+              title: "去充值",
+              "aria-label": `为 ${s.name} 充值`,
+              className: "px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
+            },
+            /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" })
+          )))
+        });
+      }
       if (analytics.inactive.length > 0) rows.push({
         key: "inactive",
         icon: "calendar",
@@ -4389,53 +4378,67 @@
           ")"
         ))
       });
-      if (arSummary && arSummary.unpaidCount > 0) rows.push({
-        key: "ar",
-        icon: "invoice",
-        text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ""} · 应收 ${`$${(arSummary.unpaidCents / 100).toFixed(2)}`}`,
-        cta: "进账单中心",
-        go: () => setTab("billing")
+      const horizon = (() => {
+        const d = /* @__PURE__ */ new Date();
+        d.setDate(d.getDate() + CREDIT_EXPIRY_WINDOW_DAYS);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      const expiring = credits.filter((c) => c.status === "available" && !c.is_expired && c.expires_on && c.expires_on <= horizon).sort((a, b) => a.expires_on.localeCompare(b.expires_on));
+      if (expiring.length > 0) rows.push({
+        key: "credits",
+        icon: "clock",
+        text: `${expiring.length} 张补课额度 ${CREDIT_EXPIRY_WINDOW_DAYS} 天内到期`,
+        ...allowedTabs.includes("roster") ? { cta: "去排课", go: () => setTab("roster") } : {},
+        chips: expiring.slice(0, 12).map((c) => /* @__PURE__ */ React.createElement("span", { key: c.id, className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center" }, `${c.student_name} · ${fmtDate(c.expires_on)} 到期`))
       });
-      if (analytics.lowBalance.length > 0) rows.push({
-        key: "low",
-        icon: "bolt",
-        text: `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
-        cta: "看名单",
-        go: () => {
-          setSortBy("bal-asc");
-          setFilterBy("low");
-          setTab("students");
-        },
-        chips: analytics.lowBalance.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-stretch" }, /* @__PURE__ */ React.createElement(
+      if (overdueReports.length > 0) rows.push({
+        key: "reports",
+        icon: "scroll",
+        text: `${overdueReports.length} 份成长报告过了周期还没写`,
+        chips: overdueReports.slice(0, 12).map((r) => /* @__PURE__ */ React.createElement(
           "button",
           {
+            key: r.id,
             type: "button",
             onClick: () => {
               setTab("students");
-              setSrch(s.name);
+              setSrch(r.display_name);
             },
-            className: `px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance, 10) === 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-800 border-amber-200"}`
+            className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]"
           },
-          s.name,
-          " (",
-          s.balance,
-          ")"
-        ), canWriteCredits && /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            type: "button",
-            onClick: () => {
-              setTuStu(s.id);
-              setTab("topup");
-            },
-            title: "去充值",
-            "aria-label": `为 ${s.name} 充值`,
-            className: "px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
-          },
-          /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" })
-        )))
+          `${r.display_name} · 逾期 ${r.days_overdue} 天`
+        ))
       });
-      if (!rows.length) return null;
+      const now = /* @__PURE__ */ new Date();
+      now.setHours(0, 0, 0, 0);
+      const bdayWithin = (s, span) => {
+        if (!s.birthday || s.archived) return false;
+        const mm = parseInt(s.birthday.slice(5, 7), 10), dd = parseInt(s.birthday.slice(8, 10), 10);
+        if (!mm || !dd) return false;
+        for (let i = 0; i < span; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+          if (d.getMonth() + 1 === mm && d.getDate() === dd) return true;
+          if (mm === 2 && dd === 29 && d.getMonth() === 2 && d.getDate() === 1 && new Date(d.getFullYear(), 1, 29).getDate() !== 29) return true;
+        }
+        return false;
+      };
+      const bdayWeek = db.students.filter((s) => bdayWithin(s, 8));
+      const bdayMonth = db.students.filter((s) => {
+        if (!s.birthday || s.archived) return false;
+        return s.birthday.slice(5, 7) === String(now.getMonth() + 1).padStart(2, "0") && !bdayWeek.includes(s);
+      });
+      const birthdayRow = (key, list, label) => list.length > 0 && /* @__PURE__ */ React.createElement("div", { key, className: "px-4 py-3 space-y-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4 text-pink-500" }), label, " · ", list.length, " 人"), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            const msg = list.map((s) => birthdayWish(s.name)).join("\n");
+            copyText(msg, "祝福语已复制");
+          },
+          className: "flex-shrink-0 px-2 min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800 whitespace-nowrap"
+        },
+        "复制祝福 →"
+      )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, list.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.id, className: "inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700" }, s.name, s.mobile && /* @__PURE__ */ React.createElement("a", { href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(birthdayWish(s.name))}`, "aria-label": "发送祝福短信", className: "text-pink-400 ml-0.5 active:text-pink-600 inline-flex" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-3.5 h-3.5" }))))));
       const goButton = (row) => row.go ? /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -4450,18 +4453,19 @@
         row.cta,
         " →"
       ) : null;
-      return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden", "aria-labelledby": "needs-attention-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-4 h-4 text-amber-700" }), /* @__PURE__ */ React.createElement("h3", { id: "needs-attention-title", className: "text-sm font-bold text-amber-900" }, "需要注意"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 tabular-nums" }, rows.length)), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, rows.map((row) => row.chips ? /* @__PURE__ */ React.createElement("details", { key: row.key, className: "group" }, /* @__PURE__ */ React.createElement("summary", { className: "flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-amber-50" }, /* @__PURE__ */ React.createElement(Icon, { name: row.icon, className: "w-4 h-4 shrink-0 text-amber-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, row.text), goButton(row), /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-indigo-600 group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 px-4 pb-3" }, row.chips)) : /* @__PURE__ */ React.createElement(
+      const hasBirthdays = bdayWeek.length > 0 || bdayMonth.length > 0;
+      return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden", "aria-labelledby": "today-todo-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border-b border-gray-200 px-4 py-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4 text-gray-600" }), /* @__PURE__ */ React.createElement("h3", { id: "today-todo-title", className: "text-sm font-bold text-gray-800" }, "今日待办"), rows.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-auto rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white tabular-nums" }, rows.length)), rows.length === 0 && !hasBirthdays && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-3 text-sm text-gray-500" }, "今天没有需要处理的事。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, rows.map((row) => row.chips ? /* @__PURE__ */ React.createElement("details", { key: row.key, className: "group" }, /* @__PURE__ */ React.createElement("summary", { className: "flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-gray-50" }, /* @__PURE__ */ React.createElement(Icon, { name: row.icon, className: "w-4 h-4 shrink-0 text-amber-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, row.text), goButton(row), /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-indigo-600 group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 px-4 pb-3" }, row.chips)) : /* @__PURE__ */ React.createElement(
         "button",
         {
           key: row.key,
           type: "button",
           onClick: row.go,
-          className: "flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-amber-50"
+          className: "flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-gray-50"
         },
         /* @__PURE__ */ React.createElement(Icon, { name: row.icon, className: "w-4 h-4 shrink-0 text-amber-600" }),
         /* @__PURE__ */ React.createElement("span", { className: "flex-1 text-sm text-gray-700" }, row.text),
         /* @__PURE__ */ React.createElement("span", { className: "shrink-0 px-2 text-xs font-bold text-indigo-600 whitespace-nowrap" }, row.cta, " →")
-      ))));
+      )), birthdayRow("bday-week", bdayWeek, "本周生日"), birthdayRow("bday-month", bdayMonth, "本月生日")));
     })(), TENANT_SLUG && bizStats && /* @__PURE__ */ React.createElement("details", { className: "bg-white rounded-2xl shadow-sm border border-emerald-100" }, /* @__PURE__ */ React.createElement("summary", { className: "inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none" }, /* @__PURE__ */ React.createElement(Icon, { name: "trend", className: "w-4 h-4" }), canViewFinancialAnalytics ? "经营真账（估算）" : "教学出勤", " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "已上课 ", bizStats.attended_total, " 人次", bizStats.avg_price !== void 0 ? ` · 加权均价 $${bizStats.avg_price}/课时` : "")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4" }, [
       ["已上课人次", `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, "text-gray-800"],
       ...bizStats.earned_revenue !== void 0 ? [["已赚收入(估)", `$${bizStats.earned_revenue}`, "人次 × 加权均价", "text-emerald-600"]] : [],
@@ -4506,7 +4510,7 @@
   }
 
   // legacy-root/src/panels/scheduling.jsx
-  var { useState: useState9 } = React;
+  var { useState: useState10 } = React;
   function CoursesSection(props) {
     const {
       archiveCourse,
@@ -4596,7 +4600,7 @@
       undoCheckIn,
       updateRosterEntry
     } = props;
-    const [monthOpen, setMonthOpen] = useState9(() => {
+    const [monthOpen, setMonthOpen] = useState10(() => {
       try {
         return localStorage.getItem("lp_ui_roster_month") === "1";
       } catch (e) {
@@ -6530,58 +6534,58 @@
   }
 
   // legacy-root/src/cms-app.jsx
-  var { useState: useState10, useEffect: useEffect9, useMemo: useMemo7, useRef: useRef3, useCallback: useCallback9 } = React;
+  var { useState: useState11, useEffect: useEffect10, useMemo: useMemo7, useRef: useRef3, useCallback: useCallback9 } = React;
   function App() {
-    const [db, setDb] = useState10({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState10([]);
-    const [auditScope, setAuditScope] = useState10("full");
+    const [db, setDb] = useState11({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState11([]);
+    const [auditScope, setAuditScope] = useState11("full");
     const initialCmsRoute = useMemo7(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState10(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState10(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState10(initialCmsRoute.settingsSection);
-    const [rosterSection, setRosterSectionState] = useState10(initialCmsRoute.rosterSection);
-    const [routeRecordId, setRouteRecordId] = useState10(initialCmsRoute.recordId);
-    const [routeInvoiceId, setRouteInvoiceId] = useState10(initialCmsRoute.invoiceId);
-    const [moreOpen, setMoreOpen] = useState10(false);
-    const [selS, setSelS] = useState10(null);
-    const [editP, setEditP] = useState10(false);
-    const [studentProfileTab, setStudentProfileTab] = useState10("profile");
-    const [busy, setBusy] = useState10(false);
-    const [conn, setConn] = useState10(false);
-    const [connErr, setConnErr] = useState10(null);
-    const [accessDenied, setAccessDenied] = useState10(null);
-    const [toast, setToast] = useState10(null);
-    const [cmsNotifications, setCmsNotifications] = useState10([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState10(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState10(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState10("");
+    const [tab, setTabState] = useState11(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState11(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState11(initialCmsRoute.settingsSection);
+    const [rosterSection, setRosterSectionState] = useState11(initialCmsRoute.rosterSection);
+    const [routeRecordId, setRouteRecordId] = useState11(initialCmsRoute.recordId);
+    const [routeInvoiceId, setRouteInvoiceId] = useState11(initialCmsRoute.invoiceId);
+    const [moreOpen, setMoreOpen] = useState11(false);
+    const [selS, setSelS] = useState11(null);
+    const [editP, setEditP] = useState11(false);
+    const [studentProfileTab, setStudentProfileTab] = useState11("profile");
+    const [busy, setBusy] = useState11(false);
+    const [conn, setConn] = useState11(false);
+    const [connErr, setConnErr] = useState11(null);
+    const [accessDenied, setAccessDenied] = useState11(null);
+    const [toast, setToast] = useState11(null);
+    const [cmsNotifications, setCmsNotifications] = useState11([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState11(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState11(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState11("");
     const cmsNotificationCursorRef = useRef3(0);
     const cmsNotificationPollingRef = useRef3(false);
-    const [confirmDialog, setConfirmDialog] = useState10(null);
-    const [showSettings, setShowSettings] = useState10(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState10(false);
-    const [loggedIn, setLoggedIn] = useState10(false);
-    const [pwOld, setPwOld] = useState10("");
-    const [pwNew1, setPwNew1] = useState10("");
-    const [pwNew2, setPwNew2] = useState10("");
-    const [pwBusy, setPwBusy] = useState10(false);
-    const [pwMsg, setPwMsg] = useState10(null);
-    const [gOpen, setGOpen] = useState10(false);
-    const [gQ, setGQ] = useState10("");
-    const [portLB, setPortLB] = useState10(null);
-    const [portUpload, setPortUpload] = useState10(false);
-    const [portUpFile, setPortUpFile] = useState10(null);
-    const [portEdit, setPortEdit] = useState10(null);
-    const [portBusy, setPortBusy] = useState10(false);
+    const [confirmDialog, setConfirmDialog] = useState11(null);
+    const [showSettings, setShowSettings] = useState11(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState11(false);
+    const [loggedIn, setLoggedIn] = useState11(false);
+    const [pwOld, setPwOld] = useState11("");
+    const [pwNew1, setPwNew1] = useState11("");
+    const [pwNew2, setPwNew2] = useState11("");
+    const [pwBusy, setPwBusy] = useState11(false);
+    const [pwMsg, setPwMsg] = useState11(null);
+    const [gOpen, setGOpen] = useState11(false);
+    const [gQ, setGQ] = useState11("");
+    const [portLB, setPortLB] = useState11(null);
+    const [portUpload, setPortUpload] = useState11(false);
+    const [portUpFile, setPortUpFile] = useState11(null);
+    const [portEdit, setPortEdit] = useState11(null);
+    const [portBusy, setPortBusy] = useState11(false);
     const portLightboxDialogRef = useRef3(null);
     const portUploadDialogRef = useRef3(null);
     const portEditDialogRef = useRef3(null);
     const searchDialogRef = useRef3(null);
     const settingsDialogRef = useRef3(null);
     const profileDialogRef = useRef3(null);
-    const [accessCodeResult, setAccessCodeResult] = useState10(null);
-    const [consentEdit, setConsentEdit] = useState10(null);
-    useEffect9(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState11(null);
+    const [consentEdit, setConsentEdit] = useState11(null);
+    useEffect10(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
@@ -6644,7 +6648,7 @@
       setShowSettings(false);
       syncCmsRoute({ tab: "roster", rosterSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect9(() => {
+    useEffect10(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -6678,7 +6682,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState10(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState11(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -6686,36 +6690,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState10("");
-    const [sortBy, setSortBy] = useState10("date-desc");
-    const [filterBy, setFilterBy] = useState10("all");
+    const [srch, setSrch] = useState11("");
+    const [sortBy, setSortBy] = useState11("date-desc");
+    const [filterBy, setFilterBy] = useState11("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState10(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState10([]);
-    const [rDate, setRDate] = useState10(todayISO);
-    const [rPick, setRPick] = useState10(null);
-    const [defaultClassTime, setDefaultClassTime] = useState10("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState10("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState10(false);
-    const [rTime, setRTime] = useState10("14:30");
-    const [icsPreview, setIcsPreview] = useState10(null);
-    const [icsNotice, setIcsNotice] = useState10("");
-    const [icsBusy, setIcsBusy] = useState10(false);
+    const [studentPage, setStudentPage] = useState11(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState11([]);
+    const [rDate, setRDate] = useState11(todayISO);
+    const [rPick, setRPick] = useState11(null);
+    const [defaultClassTime, setDefaultClassTime] = useState11("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState11("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState11(false);
+    const [rTime, setRTime] = useState11("14:30");
+    const [icsPreview, setIcsPreview] = useState11(null);
+    const [icsNotice, setIcsNotice] = useState11("");
+    const [icsBusy, setIcsBusy] = useState11(false);
     const icsDialogRef = useRef3(null);
     const icsCloseButtonRef = useRef3(null);
-    const [rOneToOne, setROneToOne] = useState10(false);
-    const [grpSel, setGrpSel] = useState10("");
-    const [schedules, setSchedules] = useState10([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState10("");
-    const [bizStats, setBizStats] = useState10(null);
-    const [attHistory, setAttHistory] = useState10(null);
-    const [schedEdit, setSchedEdit] = useState10(null);
-    const [schedPick, setSchedPick] = useState10(null);
-    const [courses, setCourses] = useState10([]);
-    const [schedCancel, setSchedCancel] = useState10(null);
-    const [bookings, setBookings] = useState10([]);
-    const [courseEdit, setCourseEdit] = useState10(null);
-    const [renewTh, setRenewTh] = useState10(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState11(false);
+    const [grpSel, setGrpSel] = useState11("");
+    const [schedules, setSchedules] = useState11([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState11("");
+    const [bizStats, setBizStats] = useState11(null);
+    const [attHistory, setAttHistory] = useState11(null);
+    const [schedEdit, setSchedEdit] = useState11(null);
+    const [schedPick, setSchedPick] = useState11(null);
+    const [courses, setCourses] = useState11([]);
+    const [schedCancel, setSchedCancel] = useState11(null);
+    const [bookings, setBookings] = useState11([]);
+    const [courseEdit, setCourseEdit] = useState11(null);
+    const [renewTh, setRenewTh] = useState11(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -6723,66 +6727,66 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState10(null);
-    const [settleMode, setSettleMode] = useState10("topup");
-    const [rfCr, setRfCr] = useState10("");
-    const [rfAmt, setRfAmt] = useState10("");
-    const [rfAmountTouched, setRfAmountTouched] = useState10(false);
-    const [rfReason, setRfReason] = useState10("");
-    const [rfSourceId, setRfSourceId] = useState10("");
-    const [refundSources, setRefundSources] = useState10([]);
-    const [refundSourcesBusy, setRefundSourcesBusy] = useState10(false);
-    const [refundSourceError, setRefundSourceError] = useState10("");
-    const [rfAdjustDocuments, setRfAdjustDocuments] = useState10(false);
-    const [tuCr, setTuCr] = useState10("");
-    const [tuFee, setTuFee] = useState10("");
-    const [tuPkg, setTuPkg] = useState10("");
-    const [tuPay, setTuPay] = useState10("微信");
-    const [tuCreateInvoice, setTuCreateInvoice] = useState10(false);
-    const [tuPaymentReceived, setTuPaymentReceived] = useState10(true);
-    const [settlementAccounts, setSettlementAccounts] = useState10([]);
-    const [settlementTaxCodes, setSettlementTaxCodes] = useState10([]);
-    const [settlementPayerState, setSettlementPayerState] = useState10({
+    const [tuStu, setTuStu] = useState11(null);
+    const [settleMode, setSettleMode] = useState11("topup");
+    const [rfCr, setRfCr] = useState11("");
+    const [rfAmt, setRfAmt] = useState11("");
+    const [rfAmountTouched, setRfAmountTouched] = useState11(false);
+    const [rfReason, setRfReason] = useState11("");
+    const [rfSourceId, setRfSourceId] = useState11("");
+    const [refundSources, setRefundSources] = useState11([]);
+    const [refundSourcesBusy, setRefundSourcesBusy] = useState11(false);
+    const [refundSourceError, setRefundSourceError] = useState11("");
+    const [rfAdjustDocuments, setRfAdjustDocuments] = useState11(false);
+    const [tuCr, setTuCr] = useState11("");
+    const [tuFee, setTuFee] = useState11("");
+    const [tuPkg, setTuPkg] = useState11("");
+    const [tuPay, setTuPay] = useState11("微信");
+    const [tuCreateInvoice, setTuCreateInvoice] = useState11(false);
+    const [tuPaymentReceived, setTuPaymentReceived] = useState11(true);
+    const [settlementAccounts, setSettlementAccounts] = useState11([]);
+    const [settlementTaxCodes, setSettlementTaxCodes] = useState11([]);
+    const [settlementPayerState, setSettlementPayerState] = useState11({
       mode: "student",
       accountId: "",
       createPayload: null,
       linkedStudentIds: []
     });
-    const [settlementPayerError, setSettlementPayerError] = useState10("");
+    const [settlementPayerError, setSettlementPayerError] = useState11("");
     const settlementResolvedAccountRef = useRef3("");
     const settlementPayerIntentRef = useRef3("");
     const settlementRequestRef = useRef3({ signature: "", id: "" });
     const refundRequestRef = useRef3({ signature: "", id: "" });
-    const [lSrch, setLSrch] = useState10("");
-    const [lStu, setLStu] = useState10(null);
-    const [lAct, setLAct] = useState10("");
-    const [lDateFrom, setLDateFrom] = useState10("");
-    const [lDateTo, setLDateTo] = useState10("");
-    const [lPage, setLPage] = useState10(1);
+    const [lSrch, setLSrch] = useState11("");
+    const [lStu, setLStu] = useState11(null);
+    const [lAct, setLAct] = useState11("");
+    const [lDateFrom, setLDateFrom] = useState11("");
+    const [lDateTo, setLDateTo] = useState11("");
+    const [lPage, setLPage] = useState11(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState10("monthly");
-    const [sYear, setSYear] = useState10(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState10("");
-    const [sTo, setSTo] = useState10("");
-    const [sStu, setSStu] = useState10(null);
-    const [sStu2, setSStu2] = useState10(null);
-    const [approveCredits, setApproveCredits] = useState10({});
-    const [dupPick, setDupPick] = useState10(null);
-    const [arSummary, setArSummary] = useState10(null);
-    const [followUpDates, setFollowUpDates] = useState10({});
-    const [pendingBucket, setPendingBucket] = useState10("due");
-    const [pendingQuery, setPendingQuery] = useState10("");
-    const [pkgEditId, setPkgEditId] = useState10(null);
-    const [pkgName, setPkgName] = useState10("");
-    const [pkgCredits, setPkgCredits] = useState10("");
-    const [pkgPrice, setPkgPrice] = useState10("");
-    const [tenantBrand, setTenantBrand] = useState10(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState10([]);
-    const [teamBusy, setTeamBusy] = useState10(false);
-    const [teamForm, setTeamForm] = useState10({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState10("");
-    const [supportSession, setSupportSession] = useState10(null);
-    const [sessionExpired, setSessionExpired] = useState10(false);
+    const [sPeriod, setSPeriod] = useState11("monthly");
+    const [sYear, setSYear] = useState11(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState11("");
+    const [sTo, setSTo] = useState11("");
+    const [sStu, setSStu] = useState11(null);
+    const [sStu2, setSStu2] = useState11(null);
+    const [approveCredits, setApproveCredits] = useState11({});
+    const [dupPick, setDupPick] = useState11(null);
+    const [arSummary, setArSummary] = useState11(null);
+    const [followUpDates, setFollowUpDates] = useState11({});
+    const [pendingBucket, setPendingBucket] = useState11("due");
+    const [pendingQuery, setPendingQuery] = useState11("");
+    const [pkgEditId, setPkgEditId] = useState11(null);
+    const [pkgName, setPkgName] = useState11("");
+    const [pkgCredits, setPkgCredits] = useState11("");
+    const [pkgPrice, setPkgPrice] = useState11("");
+    const [tenantBrand, setTenantBrand] = useState11(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState11([]);
+    const [teamBusy, setTeamBusy] = useState11(false);
+    const [teamForm, setTeamForm] = useState11({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState11("");
+    const [supportSession, setSupportSession] = useState11(null);
+    const [sessionExpired, setSessionExpired] = useState11(false);
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -6826,7 +6830,7 @@
       ["maintenance", "数据维护", canManageOperations],
       ["workspace", "工作区链接", true]
     ];
-    useEffect9(() => {
+    useEffect10(() => {
       if (tab !== "settings" || !actorRole) return;
       const visible = SETTINGS_SECTIONS.filter(([, , ok]) => ok !== false).map(([key]) => key);
       if (!visible.length) return;
@@ -6835,18 +6839,18 @@
       if (resolved !== settingsSection) setSettingsSectionState(resolved);
       if (raw !== resolved) syncCmsRoute({ tab: "settings", settingsSection: resolved }, true);
     }, [tab, settingsSection, actorRole, canManageOperations]);
-    const [formPhoto, setFormPhoto] = useState10("");
-    const [editPhoto, setEditPhoto] = useState10("");
+    const [formPhoto, setFormPhoto] = useState11("");
+    const [editPhoto, setEditPhoto] = useState11("");
     const cooldowns = useRef3(/* @__PURE__ */ new Set());
     const wasDownRef = useRef3(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect9(() => {
+    useEffect10(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect9(() => {
+    useEffect10(() => {
       if (!canUseSettlementBilling || tab !== "topup") return void 0;
       let alive = true;
       Promise.all([
@@ -6861,7 +6865,7 @@
         alive = false;
       };
     }, [canUseSettlementBilling, tab]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (!TENANT_SLUG || settleMode !== "refund" || !tuStu || !canRefund) {
         setRefundSources([]);
         setRefundSourcesBusy(false);
@@ -6887,13 +6891,13 @@
         alive = false;
       };
     }, [settleMode, tuStu, canRefund]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -7031,7 +7035,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect9(() => {
+    useEffect10(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -7042,7 +7046,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect9(() => {
+    useEffect10(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -7083,7 +7087,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect9(() => {
+    useEffect10(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -7093,7 +7097,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect9(() => {
+    useEffect10(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -7118,15 +7122,15 @@
       }
     }).catch(() => {
     });
-    useEffect9(() => {
+    useEffect10(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef3(0);
-    useEffect9(() => {
+    useEffect10(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (tab !== "dashboard" || !TENANT_SLUG || !canUseSettlementBilling) return;
       let gone = false;
       v1Api("/billing/invoices").then((d) => {
@@ -7145,7 +7149,7 @@
         gone = true;
       };
     }, [tab, loggedIn]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -7167,7 +7171,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -7446,7 +7450,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    useEffect9(() => {
+    useEffect10(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
@@ -7517,8 +7521,8 @@
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    const [worksQuery, setWorksQuery] = useState10("");
-    const [worksBucket, setWorksBucket] = useState10("all");
+    const [worksQuery, setWorksQuery] = useState11("");
+    const [worksBucket, setWorksBucket] = useState11("all");
     const worksPublicState = ({ student, item }) => {
       if (!item.public) return "private";
       if (student.archived) return "blocked";
@@ -7545,7 +7549,7 @@
         return [student.name, item.title, item.note].some((v) => String(v || "").toLowerCase().includes(needle));
       });
     }, [portfolioEntries, worksQuery, worksBucket]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -7754,10 +7758,10 @@
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
     const logActions = useMemo7(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect9(() => {
+    useEffect10(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect9(() => {
+    useEffect10(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
     const bizReport = useMemo7(() => {
@@ -7921,8 +7925,8 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const [rosterAttendance, setRosterAttendance] = useState10(null);
-    useEffect9(() => {
+    const [rosterAttendance, setRosterAttendance] = useState11(null);
+    useEffect10(() => {
       if (!TENANT_SLUG) {
         setRosterAttendance(null);
         return void 0;
@@ -10385,7 +10389,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         setUserMenuOpen(false);
         confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" });
       }, className: "w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50" }, "退出登录"))))),
-      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, bookings, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
         BillingPanel,
         {
           api: v1Api,

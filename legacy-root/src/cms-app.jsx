@@ -3961,7 +3961,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 <ErrorBoundary key={tab} onLeave={() => setTab('dashboard')}>
 
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
-{tab==='dashboard' && <DashboardSection {...{activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount}}/>}
+{tab==='dashboard' && <DashboardSection {...{activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, bookings, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount}}/>}
 
 {/* ═══ COURSES ════════════════════════════════════════════════ */}
 {tab==='courses' && <CoursesSection {...{archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab}}/>}

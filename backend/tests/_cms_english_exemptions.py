@@ -98,7 +98,6 @@ EXEMPT_ASSEMBLED: dict[str, str] = {
     "改名: Zed→7": DATA,
     "入学日期: Zed→7": DATA,
     "Zed 分钟7": HAND,
-    "等Zed人": HAND,
     "共 Zed 7": HAND,
     "已记录：Zed、7Zed": HAND,
     "已Zed": HAND,

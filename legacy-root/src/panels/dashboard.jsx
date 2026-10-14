@@ -4,13 +4,18 @@
  * 处理函数经 props 显式传入（与 billing.jsx 同一约定，避免循环依赖）。
  */
 
-import { EmptyState, Icon, TENANT_SLUG, daysSince, fmtDate, todayISO } from "../components.jsx";
+import { EmptyState, Icon, TENANT_SLUG, daysSince, fmtDate, todayISO, v1Api } from "../components.jsx";
+
+const { useState, useEffect } = React;
+
+/** 补课额度「快到期」的窗口。两周够前台排一次课，又不会把整学期的额度都列出来。 */
+const CREDIT_EXPIRY_WINDOW_DAYS = 14;
 
 export function DashboardSection(props) {
     const {
         activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary,
         bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText,
-        db, inactiveDays, loadSchedules, pendingCount, scheduleLoadError, setFilterBy,
+        bookings, db, inactiveDays, loadSchedules, pendingCount, scheduleLoadError, setFilterBy,
         setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab,
         setTuStu, showToast, todayCheckedCount, todayEffectiveCount,
         renderMessage,
@@ -36,6 +41,19 @@ export function DashboardSection(props) {
        同一个变量在一屏上出现三遍，读者会当成三件事去核对。
        规则：**门上的数字只表示「有东西在等你」。** 待处理是等着的，今天几个人
        来、一共几个学员不是——那两个归下面那块专门放数字的地方。 */
+    /* 两类例外不在 db 里，要单独问服务端：快到期的补课额度、过了周期还没写的
+       成长报告。没有权限或没开这项功能的角色会拿到 403，那就是答案 —— 这一行
+       不出现，不报错。 */
+    const [credits, setCredits] = useState([]);
+    const [overdueReports, setOverdueReports] = useState([]);
+    useEffect(() => {
+        if (!TENANT_SLUG) return undefined;
+        let gone = false;
+        v1Api('/scheduling/credits').then(d => { if (!gone) setCredits(d.credits || []); }).catch(() => {});
+        v1Api('/progress-reports/overdue').then(d => { if (!gone) setOverdueReports(d.overdue || []); }).catch(() => {});
+        return () => { gone = true; };
+    }, []);
+
     const actionsByRole = {
         owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','搜索学员',null,'users'],['stats','查看经营统计',null,'trend']],
         platform_super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',null,'calendar'],['students','搜索学员',null,'users'],['stats','查看经营统计',null,'trend']],
@@ -204,11 +222,101 @@ export function DashboardSection(props) {
     </div>
     </div>
 
-    {/* ⏰ 今日待办 */}
+    {/* 今日待办 — 只列例外。
+       v10.20 以前这里是两个区块：「今日待办」（清零、最后 1 课时、流失风险、
+       跟进到期、生日）和「需要注意」（待审核、长期未到访、应收、余额 ≤ 2）。
+       两块讲的是同一件事，而且一半重复：清零和最后 1 课时都在「余额 ≤ 2」里，
+       流失风险和长期未到访是同一个口径，跟进到期是待审核的子集。前台要在两块
+       之间来回对，才知道今天到底有几件事。
+
+       现在是一张清单，每类一行，按「拖下去会损失什么」排：家长在等回复 →
+       钱没收回 → 课时要续 → 学员在流失 → 补课额度要过期 → 报告欠着家长 →
+       生日。合并的是块，不是信息：每行仍带自己的数据源、权限判定和去处。
+       名单默认折叠。 */}
     {(()=>{
-        const todoClear   = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 0 && s.lastActive);
-        const todoLast    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 1);
-        const todoRisk    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id]||0) === 0);
+        const rows = [];
+        const pendingRegs = db.pending || [];
+        const pendingBookings = bookings || [];
+        const waiting = pendingRegs.length + pendingBookings.length;
+        const followUpDue = pendingRegs.filter(item=>item.nextFollowUpAt && String(item.nextFollowUpAt).slice(0,10)<=todayISO());
+        if (waiting > 0 && allowedTabs.includes('pending')) rows.push({
+            key: 'pending', icon: 'clipboard',
+            text: followUpDue.length > 0
+                ? `${waiting} 条报名和约课等待答复，其中 ${followUpDue.length} 条跟进已到期`
+                : `${waiting} 条报名和约课等待答复`,
+            cta: '去处理', go: ()=>setTab('pending'),
+        });
+        if (arSummary && arSummary.unpaidCount > 0) rows.push({
+            key: 'ar', icon: 'money',
+            text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ''} · 应收 ${`$${(arSummary.unpaidCents/100).toFixed(2)}`}`,
+            cta: '进账单中心', go: ()=>setTab('billing'),
+        });
+        if (analytics.lowBalance.length > 0) {
+            const usedUp = analytics.lowBalance.filter(s => (parseInt(s.balance,10)||0) <= 0).length;
+            rows.push({
+                key: 'low', icon: 'bolt',
+                text: usedUp > 0
+                    ? `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时，其中 ${usedUp} 名已用完`
+                    : `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
+                cta: '看名单', go: ()=>{setSortBy('bal-asc');setFilterBy('low');setTab('students');},
+                chips: analytics.lowBalance.map(s => (
+                    <span key={s.id} className="inline-flex items-stretch">
+                    <button type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
+                        className={`px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)<=0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                        {s.name} ({s.balance})
+                    </button>
+                    {/* E4: renewal is the point of this row — one tap lands on the
+                        top-up form with this student preselected. */}
+                    {canWriteCredits && <button type="button" onClick={()=>{setTuStu(s.id);setTab('topup');}}
+                        title="去充值" aria-label={`为 ${s.name} 充值`}
+                        className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
+                        <Icon name="money" className="w-4 h-4"/>
+                    </button>}
+                    </span>
+                )),
+            });
+        }
+        /* 「长期没来」沿用设置里的天数（默认 90）。「排了课却连续缺席」是另一个
+           口径，要按课表比对出勤，还没定，所以这里不冒充它。 */
+        if (analytics.inactive.length > 0) rows.push({
+            key: 'inactive', icon: 'calendar',
+            text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
+            chips: analytics.inactive.slice(0,12).map(s => (
+                <button key={s.id} type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
+                    {/* daysSince returns the 9999 sentinel for "no class on
+                        record"; printing it raw read as "9999天前". */}
+                    {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
+                </button>
+            )),
+        });
+        const horizon = (() => {
+            const d = new Date(); d.setDate(d.getDate() + CREDIT_EXPIRY_WINDOW_DAYS);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        })();
+        const expiring = credits.filter(c => c.status === 'available' && !c.is_expired && c.expires_on && c.expires_on <= horizon)
+            .sort((a, b) => a.expires_on.localeCompare(b.expires_on));
+        if (expiring.length > 0) rows.push({
+            key: 'credits', icon: 'clock',
+            text: `${expiring.length} 张补课额度 ${CREDIT_EXPIRY_WINDOW_DAYS} 天内到期`,
+            ...(allowedTabs.includes('roster') ? {cta: '去排课', go: ()=>setTab('roster')} : {}),
+            chips: expiring.slice(0,12).map(c => (
+                <span key={c.id} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 min-h-[44px] inline-flex items-center">
+                    {`${c.student_name} · ${fmtDate(c.expires_on)} 到期`}
+                </span>
+            )),
+        });
+        if (overdueReports.length > 0) rows.push({
+            key: 'reports', icon: 'scroll',
+            text: `${overdueReports.length} 份成长报告过了周期还没写`,
+            chips: overdueReports.slice(0,12).map(r => (
+                <button key={r.id} type="button" onClick={()=>{setTab('students');setSrch(r.display_name);}}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
+                    {`${r.display_name} · 逾期 ${r.days_overdue} 天`}
+                </button>
+            )),
+        });
+
         const now = new Date(); now.setHours(0,0,0,0); // normalise to midnight so today's birthdays are included
         /* 逐日向前扫，不要把生日拼成「今年的那一天」再比大小：12 月 29 号看
            1 月 3 号的生日，new Date(今年,0,3) 落在过去，`bd>=now` 为假，这个人
@@ -230,171 +338,46 @@ export function DashboardSection(props) {
             }
             return false;
         };
-        const todoBdayWeek  = db.students.filter(s => bdayWithin(s, 8));
-        const todoBdayMonth = db.students.filter(s => { if(!s.birthday||s.archived) return false; return s.birthday.slice(5,7)===String(now.getMonth()+1).padStart(2,'0') && !todoBdayWeek.includes(s); });
-        const todoFollowUp = (db.pending||[]).filter(item=>item.nextFollowUpAt && String(item.nextFollowUpAt).slice(0,10)<=todayISO());
-        const total = todoClear.length + todoLast.length + todoRisk.length + todoBdayWeek.length + todoBdayMonth.length + todoFollowUp.length;
-        if (!total) return null;
-        const names = (arr, max=4) => arr.slice(0,max).map(s=>s.name).join('、') + (arr.length>max?` 等${arr.length}人`:'');
-        return (
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                    <p className="inline-flex items-center gap-1.5 font-bold text-gray-700 text-sm"><Icon name="clock" className="w-4 h-4"/>今日待办</p>
-                    <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total} 项</span>
+        const bdayWeek  = db.students.filter(s => bdayWithin(s, 8));
+        const bdayMonth = db.students.filter(s => { if(!s.birthday||s.archived) return false; return s.birthday.slice(5,7)===String(now.getMonth()+1).padStart(2,'0') && !bdayWeek.includes(s); });
+        const birthdayRow = (key, list, label) => list.length > 0 && (
+            <div key={key} className="px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                    <p className="inline-flex items-center gap-1.5 text-sm text-gray-700"><Icon name="cake" className="w-4 h-4 text-pink-500"/>{label} · {list.length} 人</p>
+                    <button type="button" onClick={()=>{ const msg=list.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
+                        className="flex-shrink-0 px-2 min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800 whitespace-nowrap">复制祝福 →</button>
                 </div>
-                <div className="divide-y divide-gray-50">
-                    {todoFollowUp.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 gap-3">
-                            <div className="min-w-0">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-700"><Icon name="phone" className="w-4 h-4"/>报名跟进到期 · {todoFollowUp.length} 项</p>
-                                <p className="text-xs text-gray-400 truncate mt-0.5">{todoFollowUp.slice(0,4).map(item=>`${item.firstName||''} ${item.lastName||''}`.trim()).join('、')}</p>
-                            </div>
-                            <button onClick={()=>setTab('pending')}
-                                className="flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[44px]">处理 →</button>
-                        </div>
-                    )}
-                    {todoClear.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 gap-3">
-                            <div className="min-w-0">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-red-700"><Icon name="warning" className="w-4 h-4"/>课时已清零 · {todoClear.length} 人</p>
-                                <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoClear)}</p>
-                            </div>
-                            <button onClick={()=>{setFilterBy('zero');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
-                        </div>
-                    )}
-                    {todoLast.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 gap-3">
-                            <div className="min-w-0">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-700"><Icon name="bolt" className="w-4 h-4"/>最后 1 课时 · {todoLast.length} 人</p>
-                                <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoLast)}</p>
-                            </div>
-                            <button onClick={()=>{setFilterBy('low');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
-                        </div>
-                    )}
-                    {todoRisk.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 gap-3">
-                            <div className="min-w-0">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-700"><Icon name="warning" className="w-4 h-4"/>流失风险 · {todoRisk.length} 人</p>
-                                <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoRisk)}</p>
-                            </div>
-                            <button onClick={()=>{setFilterBy('tag-risk');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[44px]">查看 →</button>
-                        </div>
-                    )}
-                    {todoBdayWeek.length > 0 && (
-                        <div className="px-4 py-3 space-y-2">
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600"><Icon name="cake" className="w-4 h-4"/>本周生日 · {todoBdayWeek.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayWeek.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[44px]">复制祝福 →</button>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {todoBdayWeek.map(s=>(
-                                    <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
-                                        {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(birthdayWish(s.name))}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    {todoBdayMonth.length > 0 && (
-                        <div className="px-4 py-3 space-y-2">
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-400"><Icon name="cake" className="w-4 h-4"/>本月生日 · {todoBdayMonth.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayMonth.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[44px]">复制祝福 →</button>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {todoBdayMonth.map(s=>(
-                                    <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
-                                        {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(birthdayWish(s.name))}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                <div className="flex flex-wrap gap-1.5">
+                    {list.map(s=>(
+                        <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
+                            {s.name}
+                            {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(birthdayWish(s.name))}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
+                        </span>
+                    ))}
                 </div>
             </div>
         );
-    })()}
 
-    {/* 需要注意 — 这四条曾经是四个独立区块，被别的内容隔开：待审核 72px、
-       长期未到访 210px（手机 698px，学员胶囊换行）、应收 78px、课时预警 106px，
-       桌面合计 466px、手机 986px。它们是 v5.3 到 v10.7 逐版本累加的，每一条
-       单看都合理，摞在一起就成了一条提醒的走廊，而工作台是落地页。
-
-       它们说的其实是同一件事——「有 N 个东西需要你看一眼」——所以合成一个区、
-       每类一行，名单默认折叠。合并的是块，不是信息：每一行仍然带着自己的
-       数据源、权限判定和去处，四行跳向四个不同的页面。
-
-       「长期未到访」没有跳转按钮，因为学员列表里没有与之对应的筛选值
-       （合法值见 students.jsx:65，最接近的 tag-risk 是另一套口径）。
-       对这一行，展开名单本身就是操作。 */}
-    {(()=>{
-        const rows = [];
-        if ((db.pending||[]).length > 0 && allowedTabs.includes('pending')) rows.push({
-            key: 'pending', icon: 'clipboard',
-            text: `${(db.pending||[]).length} 位学员等待审核`,
-            cta: '去审核', go: ()=>setTab('pending'),
-        });
-        if (analytics.inactive.length > 0) rows.push({
-            key: 'inactive', icon: 'calendar',
-            text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
-            chips: analytics.inactive.slice(0,12).map(s => (
-                <button key={s.id} type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
-                    {/* daysSince returns the 9999 sentinel for "no class on
-                        record"; printing it raw read as "9999天前". */}
-                    {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
-                </button>
-            )),
-        });
-        if (arSummary && arSummary.unpaidCount > 0) rows.push({
-            key: 'ar', icon: 'invoice',
-            text: `未付清 ${arSummary.unpaidCount} 张${arSummary.overdueCount > 0 ? `，其中逾期 ${arSummary.overdueCount} 张` : ''} · 应收 ${`$${(arSummary.unpaidCents/100).toFixed(2)}`}`,
-            cta: '进账单中心', go: ()=>setTab('billing'),
-        });
-        if (analytics.lowBalance.length > 0) rows.push({
-            key: 'low', icon: 'bolt',
-            text: `${analytics.lowBalance.length} 名学员余额 ≤ 2 课时`,
-            cta: '看名单', go: ()=>{setSortBy('bal-asc');setFilterBy('low');setTab('students');},
-            chips: analytics.lowBalance.map(s => (
-                <span key={s.id} className="inline-flex items-stretch">
-                <button type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
-                    className={`px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
-                    {s.name} ({s.balance})
-                </button>
-                {/* E4: renewal is the point of this row — one tap lands on the
-                    top-up form with this student preselected. */}
-                {canWriteCredits && <button type="button" onClick={()=>{setTuStu(s.id);setTab('topup');}}
-                    title="去充值" aria-label={`为 ${s.name} 充值`}
-                    className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
-                    <Icon name="money" className="w-4 h-4"/>
-                </button>}
-                </span>
-            )),
-        });
-        if (!rows.length) return null;
         const goButton = (row) => row.go ? (
             <button type="button" onClick={e=>{e.preventDefault();e.stopPropagation();row.go();}}
                 className="shrink-0 px-2 min-h-[44px] text-xs font-bold text-indigo-600 active:text-indigo-800 whitespace-nowrap">
                 {row.cta} →
             </button>
         ) : null;
-        return <section className="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden" aria-labelledby="needs-attention-title">
-            <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-3">
-                <Icon name="warning" className="w-4 h-4 text-amber-700"/>
-                <h3 id="needs-attention-title" className="text-sm font-bold text-amber-900">需要注意</h3>
-                <span className="ml-auto rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 tabular-nums">{rows.length}</span>
+        const hasBirthdays = bdayWeek.length > 0 || bdayMonth.length > 0;
+        return <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" aria-labelledby="today-todo-title">
+            <div className="flex items-center gap-2 bg-gray-50 border-b border-gray-200 px-4 py-3">
+                <Icon name="clock" className="w-4 h-4 text-gray-600"/>
+                <h3 id="today-todo-title" className="text-sm font-bold text-gray-800">今日待办</h3>
+                {rows.length > 0 && <span className="ml-auto rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white tabular-nums">{rows.length}</span>}
             </div>
+            {rows.length === 0 && !hasBirthdays && (
+                <p className="px-4 py-3 text-sm text-gray-500">今天没有需要处理的事。</p>
+            )}
             <div className="divide-y divide-gray-100">
                 {rows.map(row => row.chips ? (
                     <details key={row.key} className="group">
-                        <summary className="flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-amber-50">
+                        <summary className="flex cursor-pointer select-none items-center gap-3 px-4 py-2 min-h-[44px] active:bg-gray-50">
                             <Icon name={row.icon} className="w-4 h-4 shrink-0 text-amber-600"/>
                             <span className="flex-1 text-sm text-gray-700">{row.text}</span>
                             {goButton(row)}
@@ -404,12 +387,14 @@ export function DashboardSection(props) {
                     </details>
                 ) : (
                     <button key={row.key} type="button" onClick={row.go}
-                        className="flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-amber-50">
+                        className="flex w-full items-center gap-3 px-4 py-2 min-h-[44px] text-left active:bg-gray-50">
                         <Icon name={row.icon} className="w-4 h-4 shrink-0 text-amber-600"/>
                         <span className="flex-1 text-sm text-gray-700">{row.text}</span>
                         <span className="shrink-0 px-2 text-xs font-bold text-indigo-600 whitespace-nowrap">{row.cta} →</span>
                     </button>
                 ))}
+                {birthdayRow('bday-week', bdayWeek, '本周生日')}
+                {birthdayRow('bday-month', bdayMonth, '本月生日')}
             </div>
         </section>;
     })()}
