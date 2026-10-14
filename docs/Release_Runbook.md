@@ -52,7 +52,7 @@ with `STUDIOSAAS_DB_CONNECT_TIMEOUT` (seconds, default 5),
 Optional, Claude drafting (added 2026-10-14): `STUDIOSAAS_DRAFTING_API_KEY`
 turns the feature on for the host; without it every draft request answers 503
 `unavailable` and no button appears. `STUDIOSAAS_DRAFTING_MODEL` overrides the
-model (default `claude-opus-5-5` until the evaluation decides). Lee places the
+model (default `claude-haiku-5-5`, chosen by Lee on 2026-10-14 after the evaluation). Lee places the
 key on the host himself; it is never committed and never passes through a
 session. Each tenant's owner still has to turn drafting on.
 

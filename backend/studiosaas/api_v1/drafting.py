@@ -40,9 +40,11 @@ from ._shared import (
 #: Drafts per tenant per calendar month (tenant's own time zone).
 MONTHLY_LIMIT = 300
 
-#: Model until the evaluation decides (plan, section 3). Override with
-#: STUDIOSAAS_DRAFTING_MODEL on the host.
-DEFAULT_MODEL = "claude-opus-5-5"
+#: Lee chose Haiku 5.5 on 2026-10-14 after the evaluation
+#: (docs/design/Claude_Drafting_Eval_2026-10-14.md): tone within noise of
+#: Opus 5.5, no invented figures, about 1/23 of the cost, 2.6 s median.
+#: Override with STUDIOSAAS_DRAFTING_MODEL on the host.
+DEFAULT_MODEL = "claude-haiku-5-5"
 
 KIND_PERMISSIONS = {
     _drafting.REPORT_COMMENT: "progress_reports:write",
