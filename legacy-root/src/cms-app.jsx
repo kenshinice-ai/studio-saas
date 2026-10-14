@@ -217,6 +217,8 @@ function App() {
     const [defaultClassTime, setDefaultClassTime] = useState('14:30');
     const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState('14:30');
     const [operationalSettingsBusy, setOperationalSettingsBusy] = useState(false);
+    /* 公开约课申请保留名额的时长（小时）。服务端持有，0 = 不保留。 */
+    const [bookingHoldHours, setBookingHoldHours] = useState(48);
     const [rTime, setRTime] = useState('14:30');
     /* Calendar download: preview first, then fetch the file with credentials. */
     const [icsPreview, setIcsPreview] = useState(null);
@@ -957,6 +959,7 @@ function App() {
             const nextDefaultClassTime = d.operationalSettings?.defaultClassTime || '14:30';
             setDefaultClassTime(nextDefaultClassTime);
             setDefaultClassTimeDraft(nextDefaultClassTime);
+            setBookingHoldHours(Number.isInteger(d.operationalSettings?.bookingHoldHours) ? d.operationalSettings.bookingHoldHours : 48);
             setRTime(current => current === '14:30' ? nextDefaultClassTime : (current || nextDefaultClassTime));
             revRef.current = d.rev || 1;   /* D2 */
             setDb(d); setConn(true);
@@ -2068,6 +2071,21 @@ function App() {
             showToast(`默认上课时间已设为 ${saved}`);
         } catch (error) {
             showToast(`默认时间保存失败：${error.message}`, 'error');
+        } finally { setOperationalSettingsBusy(false); }
+    };
+
+    const saveBookingHoldHours = async (hours) => {
+        if (operationalSettingsBusy || hours === bookingHoldHours) return;
+        setOperationalSettingsBusy(true);
+        try {
+            const data = await v1Api('/operational-settings', {
+                method:'PATCH',
+                body:JSON.stringify({bookingHoldHours:hours}),
+            });
+            setBookingHoldHours(data.bookingHoldHours);
+            showToast('约课申请保留时长已保存');
+        } catch (error) {
+            showToast(`约课保留时长保存失败：${error.message}`, 'error');
         } finally { setOperationalSettingsBusy(false); }
     };
 
@@ -4181,6 +4199,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40">
                                     {operationalSettingsBusy?'保存中…':'保存'}
                                 </button>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">约课申请保留名额</p>
+                            <p className="text-xs text-gray-400">公开课表上的约课申请，提交时如果还有空位，就为它保留这么久；到期后名额自动放回。改动只影响之后的新申请。</p>
+                            <div className="flex gap-2" role="group" aria-label="约课申请保留名额">
+                                {[[0,'不保留'],[24,'24 小时'],[48,'48 小时'],[72,'72 小时']].map(([h,label])=>(
+                                    <button key={h} type="button" onClick={()=>saveBookingHoldHours(h)} disabled={operationalSettingsBusy}
+                                        aria-pressed={bookingHoldHours===h}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold border min-h-[44px] ${bookingHoldHours===h?'bg-indigo-600 text-white border-indigo-600':'bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100'}`}>{label}</button>
+                                ))}
+                            </div>
                             </div>
                             </>}
                             {/* Fix ⑪: 未到访预警天数存在本机 localStorage，不随租户走 */}

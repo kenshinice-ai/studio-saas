@@ -174,6 +174,7 @@ export const AUDIT_ACTION_ZH = {
     'team.member_upserted':                '新增/更新成员',
     'team.member_updated':                 '调整成员权限',
     'operations.default_class_time_updated':'修改默认上课时间',
+    'operations.booking_hold_hours_updated':'修改约课保留时长',
 };
 /* Human-readable detail per audit action. The raw metadata is machine shape
    (uuid lists, asset ids); showing it verbatim is what produced rows like
@@ -188,6 +189,7 @@ export const auditNote = (action, meta) => {
     if (action.startsWith('daily_roster.')) return String(m.date || '');
     if (action === 'data.exported')  return `${m.type || ''}${m.rows ? ` · ${m.rows} 行` : ''}`.trim();
     if (action === 'operations.default_class_time_updated') return String(m.defaultClassTime || m.value || '');
+    if (action === 'operations.booking_hold_hours_updated') return `${m.bookingHoldHours ?? ''} 小时`;
     if (action.startsWith('schedule.')) return String(m.label || m.name || '');
     if (action.startsWith('team.'))     return String(m.email || m.role || '');
     if (action === 'registration.created') return String(m.name || m.mobile || '');

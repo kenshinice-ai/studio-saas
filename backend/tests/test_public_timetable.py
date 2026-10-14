@@ -184,12 +184,18 @@ def test_a_class_is_addressed_by_date_and_time_never_by_its_uuid() -> None:
 
 # ── seats ───────────────────────────────────────────────────────────────────
 
-def test_a_pending_request_does_not_hold_a_seat() -> None:
+def test_seats_left_counts_approved_bookings_and_live_holds() -> None:
+    """Lee, 2026-10-14: a pending request holds a free place for a while.
+
+    Until then this test asserted the opposite ("a pending request does not
+    hold a seat"). The rule now lives in services/booking_holds.py, and every
+    count — the page, the request, the approval — uses the same expression.
+    """
+
     occurrences = _function("_timetable_occurrences")
-    assert "status = 'approved'" in occurrences, (
-        "seats-left counts something other than approved bookings"
-    )
-    assert "status = 'pending'" not in occurrences
+    assert "_holds.SEAT_TAKEN" in occurrences
+    holds = _read(REPOSITORY_ROOT / "backend/studiosaas/services/booking_holds.py")
+    assert "status = 'approved' OR (status = 'pending' AND hold_expires_at > now())" in holds
 
 
 def test_capacity_is_rechecked_when_the_studio_approves() -> None:

@@ -73,5 +73,37 @@ def test_default_class_time_is_saved_without_brand_publication(app, monkeypatch)
 
     assert response.get_json() == {"ok": True, "defaultClassTime": "14:30"}
     assert connection.committed is True
-    assert connection.cursor_instance.calls[0][1] == ("14:30", "tenant-1")
+    assert connection.cursor_instance.calls[0][1] == ('{"default_class_time": "14:30"}', "tenant-1")
     assert audit[0]["action"] == "operations.default_class_time_updated"
+
+
+def test_booking_hold_hours_is_saved_on_its_own(app, monkeypatch):
+    """The hold time can change without resending the default class time."""
+
+    connection = _Connection()
+    audit = []
+    for _m in (api_v1.tenant, api_v1._shared):
+        monkeypatch.setattr(_m, "connect", lambda: connection)
+    monkeypatch.setattr(
+        api_v1.tenant,
+        "_tenant_context",
+        lambda _conn: SimpleNamespace(tenant_id="tenant-1"),
+    )
+    monkeypatch.setattr(api_v1.tenant, "_audit_request", lambda *_args, **kwargs: audit.append(kwargs))
+
+    with app.test_request_context(json={"bookingHoldHours": 24}):
+        response = api_v1.update_operational_settings.__wrapped__()
+
+    assert response.get_json() == {"ok": True, "bookingHoldHours": 24}
+    assert connection.cursor_instance.calls[0][1] == ('{"booking_hold_hours": 24}', "tenant-1")
+    assert [entry["action"] for entry in audit] == ["operations.booking_hold_hours_updated"]
+
+
+def test_booking_hold_hours_must_be_a_whole_number_in_range(app, monkeypatch):
+    for _m in (api_v1.tenant, api_v1._shared):
+        monkeypatch.setattr(_m, "connect", lambda: (_ for _ in ()).throw(AssertionError("no DB")))
+    for bad in (-1, 169, "48", 4.5, True, None):
+        with app.test_request_context(json={"bookingHoldHours": bad}):
+            response, status = api_v1.update_operational_settings.__wrapped__()
+        assert status == 400, bad
+        assert "bookingHoldHours" in response.get_json()["message"]

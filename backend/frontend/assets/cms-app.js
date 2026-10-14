@@ -3055,7 +3055,8 @@
     "brand.published": "发布网站",
     "team.member_upserted": "新增/更新成员",
     "team.member_updated": "调整成员权限",
-    "operations.default_class_time_updated": "修改默认上课时间"
+    "operations.default_class_time_updated": "修改默认上课时间",
+    "operations.booking_hold_hours_updated": "修改约课保留时长"
   };
   var auditNote = (action, meta) => {
     const m = meta || {};
@@ -3067,6 +3068,7 @@
     if (action.startsWith("daily_roster.")) return String(m.date || "");
     if (action === "data.exported") return `${m.type || ""}${m.rows ? ` · ${m.rows} 行` : ""}`.trim();
     if (action === "operations.default_class_time_updated") return String(m.defaultClassTime || m.value || "");
+    if (action === "operations.booking_hold_hours_updated") return `${m.bookingHoldHours ?? ""} 小时`;
     if (action.startsWith("schedule.")) return String(m.label || m.name || "");
     if (action.startsWith("team.")) return String(m.email || m.role || "");
     if (action === "registration.created") return String(m.name || m.mobile || "");
@@ -5591,7 +5593,11 @@
         showToast,
         onOpenStudent: (id) => setTab("students", { recordId: id })
       }
-    ), pendingTab === "bookings" && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, !bookings.length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待处理的约课申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。")), bookings.map((bk) => /* @__PURE__ */ React.createElement("div", { key: bk.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold text-gray-800" }, bk.contactName, bk.isExistingStudent ? /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[11px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5" }, "已是学员", bk.matchedStudent ? ` · ${bk.matchedStudent}` : "") : /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5" }, "新访客")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), bk.contactPhone), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1" }, bk.date, " ", bk.startTime, " · ", bk.title || "未命名班次"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
+    ), pendingTab === "bookings" && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, !bookings.length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待处理的约课申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。")), bookings.map((bk) => /* @__PURE__ */ React.createElement("div", { key: bk.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold text-gray-800" }, bk.contactName, bk.isExistingStudent ? /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[11px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5" }, "已是学员", bk.matchedStudent ? ` · ${bk.matchedStudent}` : "") : /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5" }, "新访客")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), bk.contactPhone), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1" }, bk.date, " ", bk.startTime, " · ", bk.title || "未命名班次"), bk.holding && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-indigo-700 mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "mr-1" }, "名额保留到"), /* @__PURE__ */ React.createElement("span", null, (() => {
+      const d = new Date(bk.holdExpiresAt);
+      const p2 = (n) => String(n).padStart(2, "0");
+      return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    })())), !bk.holding && bk.holdExpiresAt && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "名额保留已到期"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => reviewBooking(bk, "declined"),
@@ -6701,6 +6707,7 @@
     const [defaultClassTime, setDefaultClassTime] = useState11("14:30");
     const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState11("14:30");
     const [operationalSettingsBusy, setOperationalSettingsBusy] = useState11(false);
+    const [bookingHoldHours, setBookingHoldHours] = useState11(48);
     const [rTime, setRTime] = useState11("14:30");
     const [icsPreview, setIcsPreview] = useState11(null);
     const [icsNotice, setIcsNotice] = useState11("");
@@ -7356,6 +7363,7 @@
         const nextDefaultClassTime = d.operationalSettings?.defaultClassTime || "14:30";
         setDefaultClassTime(nextDefaultClassTime);
         setDefaultClassTimeDraft(nextDefaultClassTime);
+        setBookingHoldHours(Number.isInteger(d.operationalSettings?.bookingHoldHours) ? d.operationalSettings.bookingHoldHours : 48);
         setRTime((current) => current === "14:30" ? nextDefaultClassTime : current || nextDefaultClassTime);
         revRef.current = d.rev || 1;
         setDb(d);
@@ -8391,6 +8399,22 @@
         showToast(`默认上课时间已设为 ${saved}`);
       } catch (error) {
         showToast(`默认时间保存失败：${error.message}`, "error");
+      } finally {
+        setOperationalSettingsBusy(false);
+      }
+    };
+    const saveBookingHoldHours = async (hours) => {
+      if (operationalSettingsBusy || hours === bookingHoldHours) return;
+      setOperationalSettingsBusy(true);
+      try {
+        const data = await v1Api("/operational-settings", {
+          method: "PATCH",
+          body: JSON.stringify({ bookingHoldHours: hours })
+        });
+        setBookingHoldHours(data.bookingHoldHours);
+        showToast("约课申请保留时长已保存");
+      } catch (error) {
+        showToast(`约课保留时长保存失败：${error.message}`, "error");
       } finally {
         setOperationalSettingsBusy(false);
       }
@@ -10588,7 +10612,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
             className: "px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40"
           },
           operationalSettingsBusy ? "保存中…" : "保存"
-        ))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
+        )), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "约课申请保留名额"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "公开课表上的约课申请，提交时如果还有空位，就为它保留这么久；到期后名额自动放回。改动只影响之后的新申请。"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2", role: "group", "aria-label": "约课申请保留名额" }, [[0, "不保留"], [24, "24 小时"], [48, "48 小时"], [72, "72 小时"]].map(([h, label]) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: h,
+            type: "button",
+            onClick: () => saveBookingHoldHours(h),
+            disabled: operationalSettingsBusy,
+            "aria-pressed": bookingHoldHours === h,
+            className: `flex-1 py-2 rounded-xl text-xs font-bold border min-h-[44px] ${bookingHoldHours === h ? "bg-indigo-600 text-white border-indigo-600" : "bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100"}`
+          },
+          label
+        ))))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
           "button",
           {
             key: d,

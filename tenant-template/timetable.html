@@ -485,12 +485,20 @@
           ? T(`目前有 ${data.waiting} 份申请在等待确认。`, `${data.waiting} requests are waiting to be confirmed.`)
           : '';
         const seats = typeof data.seatsLeft === 'number'
-          ? T(`这节课还有 ${data.seatsLeft} 个位置。`, `This class has ${data.seatsLeft} place(s) left.`)
+          ? T(`提交时这节课还有 ${data.seatsLeft} 个空位。`, `When you sent this, the class had ${data.seatsLeft} place(s) free.`)
           : '';
         const head = data.duplicate
           ? T('已经收到了，请等待工作室确认。', 'We already have your request — please wait for the studio to confirm.')
           : T('已收到，工作室确认后会联系你。', 'Received. The studio will contact you once it is confirmed.');
-        document.getElementById('bookDone').textContent = [head, seats, queue].filter(Boolean).join(' ');
+        /* The hold time is the studio's setting, the same for every visitor. It
+           deliberately does not say whether THIS request got a hold: that
+           would tell anyone typing a phone number whether it already has a
+           request waiting here. */
+        const hold = data.holdHours > 0 && !data.duplicate
+          ? T(`如果提交时还有空位，这个位置会为你保留 ${data.holdHours} 小时，等工作室确认。`,
+              `If a place was free when you sent this, it is kept for you for ${data.holdHours} hours while the studio confirms.`)
+          : '';
+        document.getElementById('bookDone').textContent = [head, hold, seats, queue].filter(Boolean).join(' ');
         document.getElementById('bookDone').hidden = false;
         document.getElementById('bookFields').hidden = true;
         submit.hidden = true;

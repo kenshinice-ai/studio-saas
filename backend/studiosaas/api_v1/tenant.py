@@ -31,6 +31,7 @@ from ..presets import (
     resolve_style_id,
     style_theme,
 )
+from ..services import booking_holds as _holds
 from ..services.media import (
     MediaQuotaExceededError,
     MediaUploadError,
@@ -1085,6 +1086,11 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
             # One tenant-owned default keeps every staff device consistent.
             # Existing roster rows retain their explicitly saved class_time.
             "defaultClassTime": tenant_settings.get("default_class_time") or "14:30",
+            # How long a public booking request keeps a free place. Absent
+            # means the default (services/booking_holds.py).
+            "bookingHoldHours": _holds.clamp_hours(
+                tenant_settings.get("booking_hold_hours", _holds.DEFAULT_HOLD_HOURS)
+            ),
         },
         # The stored rev is bumped by every aggregate save; falling back to
         # wall-clock keeps pre-rev tenants working (their first save records
@@ -1159,15 +1165,35 @@ def update_operational_settings():
     This is deliberately separate from the brand publishing route: changing a
     roster default must not create a brand version or republish the website.
     The value only seeds new controls; it never rewrites existing bookings.
+
+    Two settings live here, and a request may change either or both:
+    ``defaultClassTime`` (HH:MM) and ``bookingHoldHours`` (0–168; how long a
+    public booking request keeps a free place, 0 = it keeps none). A changed
+    hold time applies to requests that arrive afterwards; holds already
+    running keep the end time they were given.
     """
 
     try:
         payload = _json_payload()
-        default_class_time = _class_time(
-            payload.get("defaultClassTime", payload.get("default_class_time"))
-        )
-        if default_class_time is None:
-            raise ValueError("defaultClassTime is required and must use HH:MM.")
+        changes: dict[str, object] = {}
+        if "defaultClassTime" in payload or "default_class_time" in payload:
+            default_class_time = _class_time(
+                payload.get("defaultClassTime", payload.get("default_class_time"))
+            )
+            if default_class_time is None:
+                raise ValueError("defaultClassTime must use HH:MM.")
+            changes["default_class_time"] = default_class_time
+        if "bookingHoldHours" in payload:
+            raw = payload.get("bookingHoldHours")
+            if isinstance(raw, bool) or not isinstance(raw, int) or not (
+                0 <= raw <= _holds.MAX_HOLD_HOURS
+            ):
+                raise ValueError(
+                    f"bookingHoldHours must be a whole number from 0 to {_holds.MAX_HOLD_HOURS}."
+                )
+            changes["booking_hold_hours"] = raw
+        if not changes:
+            raise ValueError("Send defaultClassTime, bookingHoldHours, or both.")
     except ValueError as exc:
         return _error(str(exc))
 
@@ -1177,26 +1203,35 @@ def update_operational_settings():
             cur.execute(
                 """
                 UPDATE tenants
-                SET settings = jsonb_set(
-                        COALESCE(settings, '{}'::jsonb),
-                        '{default_class_time}',
-                        to_jsonb(%s::text),
-                        true
-                    ),
+                SET settings = COALESCE(settings, '{}'::jsonb) || %s::jsonb,
                     updated_at = now()
                 WHERE id = %s
                 """,
-                (default_class_time, tenant.tenant_id),
+                (json.dumps(changes), tenant.tenant_id),
             )
-        _audit_request(
-            conn,
-            tenant_id=tenant.tenant_id,
-            action="operations.default_class_time_updated",
-            resource_type="tenant_settings",
-            metadata={"defaultClassTime": default_class_time},
-        )
+        if "default_class_time" in changes:
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="operations.default_class_time_updated",
+                resource_type="tenant_settings",
+                metadata={"defaultClassTime": changes["default_class_time"]},
+            )
+        if "booking_hold_hours" in changes:
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="operations.booking_hold_hours_updated",
+                resource_type="tenant_settings",
+                metadata={"bookingHoldHours": changes["booking_hold_hours"]},
+            )
         conn.commit()
-    return jsonify({"ok": True, "defaultClassTime": default_class_time})
+    response = {"ok": True}
+    if "default_class_time" in changes:
+        response["defaultClassTime"] = changes["default_class_time"]
+    if "booking_hold_hours" in changes:
+        response["bookingHoldHours"] = changes["booking_hold_hours"]
+    return jsonify(response)
 
 
 

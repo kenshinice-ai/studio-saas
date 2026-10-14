@@ -25,6 +25,7 @@ from ..calendar_export import (
 )
 from ..db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from ..errors import api_error
+from ..services import booking_holds as _holds
 from ..services import entitlements as _entitlements
 from ..services import scheduling as _scheduling
 import uuid as _uuid
@@ -1393,7 +1394,7 @@ def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
 
     rows = fetch_all(
         conn,
-        """
+        f"""
         SELECT b.id, to_char(b.on_date, 'YYYY-MM-DD') AS on_date, b.contact_name,
                b.contact_phone, b.message, b.created_at, b.student_id,
                cs.label, cs.capacity,
@@ -1402,9 +1403,11 @@ def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
                s.display_name AS matched_student,
                (SELECT count(*) FROM class_schedule_students css
                  WHERE css.schedule_id = cs.id) AS enrolled,
-               (SELECT count(*) FROM class_bookings ab
-                 WHERE ab.schedule_id = b.schedule_id AND ab.on_date = b.on_date
-                   AND ab.status = 'approved') AS approved
+               (SELECT count(*) FROM class_bookings
+                 WHERE schedule_id = b.schedule_id AND on_date = b.on_date
+                   AND id <> b.id AND {_holds.SEAT_TAKEN}) AS taken_by_others,
+               b.hold_expires_at,
+               (b.hold_expires_at > now()) AS holding
         FROM class_bookings b
         JOIN class_schedules cs ON cs.id = b.schedule_id
         LEFT JOIN courses c ON c.id = cs.course_id
@@ -1418,7 +1421,7 @@ def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
     out = []
     for r in rows:
         capacity = int(r["capacity"] or 0)
-        taken = int(r["enrolled"] or 0) + int(r["approved"] or 0)
+        taken = int(r["enrolled"] or 0) + int(r["taken_by_others"] or 0)
         out.append({
             "id": str(r["id"]),
             "date": r["on_date"],
@@ -1433,7 +1436,11 @@ def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
             "matchedStudent": r["matched_student"] or "",
             "isExistingStudent": bool(r["student_id"]),
             "capacity": capacity,
+            # Places left for THIS request: everyone else's seats are taken
+            # out, its own hold is not.
             "seatsLeft": max(0, capacity - taken),
+            "holding": bool(r["holding"]),
+            "holdExpiresAt": r["hold_expires_at"].isoformat() if r["hold_expires_at"] else None,
         })
     return out
 
@@ -1512,15 +1519,15 @@ def review_class_booking(booking_id: str):
 
             registration_id = None
             if decision == "approved":
-                cur.execute(
-                    "SELECT (SELECT count(*) FROM class_schedule_students css "
-                    "         WHERE css.schedule_id = %s) "
-                    "     + (SELECT count(*) FROM class_bookings ab "
-                    "         WHERE ab.schedule_id = %s AND ab.on_date = %s "
-                    "           AND ab.status = 'approved') AS taken",
-                    (booking["schedule_id"], booking["schedule_id"], booking["on_date"]),
+                # Other people's live holds count; this request's own does
+                # not — if it holds a place, that place is the one it takes.
+                # The class lock makes two approvals for the last place queue
+                # up instead of both succeeding.
+                _holds.lock_class(cur, booking["schedule_id"])
+                taken = _holds.seats_taken(
+                    cur, booking["schedule_id"], booking["on_date"],
+                    exclude_booking_id=parsed_id,
                 )
-                taken = int((cur.fetchone() or {}).get("taken") or 0)
                 if taken >= int(booking["capacity"] or 0):
                     return _error(
                         "That class is now full. Decline this request, or raise the "

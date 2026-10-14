@@ -399,6 +399,15 @@ export function PendingSection(props) {
                         </p>
                         <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{bk.contactPhone}</p>
                         <p className="text-sm text-gray-600 mt-1">{bk.date} {bk.startTime} · {bk.title||'未命名班次'}</p>
+                        {/* 名额保留（v10.21）：提交时还有空位的申请会占住一个位置，
+                            到期自动放回。时间按这台设备的本地时间显示。 */}
+                        {bk.holding && (
+                            <p className="text-xs font-bold text-indigo-700 mt-1">
+                                <span className="mr-1">名额保留到</span>
+                                <span>{(() => { const d = new Date(bk.holdExpiresAt); const p2 = n => String(n).padStart(2,'0'); return `${p2(d.getDate())}/${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`; })()}</span>
+                            </p>
+                        )}
+                        {!bk.holding && bk.holdExpiresAt && <p className="text-xs text-gray-500 mt-1">名额保留已到期</p>}
                         {bk.message && <p className="text-sm text-gray-500 mt-1 whitespace-pre-wrap">{bk.message}</p>}
                     </div>
                     <div className="text-right flex-shrink-0">

@@ -86,6 +86,8 @@ CREATE INDEX idx_class_bookings_pending
 
 ### 3.1 待确认的请求**不占座**
 
+> 2026-10-14 起被取代：Lee 决定待确认的请求在有空位时保留名额，默认 48 小时，租户可改。规则见 `backend/studiosaas/services/booking_holds.py` 和 `docs/design/Calcom_Adoption_Discussion_2026-10-11.md`。下面保留原来的理由。
+
 否则一个随手点的请求会挡住一个真要来的人，工作室还得去追。
 
 - 公开页 `seatsLeft = capacity − 已批准`

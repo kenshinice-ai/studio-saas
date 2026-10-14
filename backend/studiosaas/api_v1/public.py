@@ -19,6 +19,7 @@ from ..auth import (
 )
 from ..db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from ..errors import api_error
+from ..services import booking_holds as _holds
 from ..services import calendar_subscriptions as _calendar_subs
 from ..presets import (
     FREE_ACCENT_STYLE_ID,
@@ -836,14 +837,14 @@ def _timetable_occurrences(conn, tenant_id: str, weeks: int, timezone_name: str)
             (tenant_id, today, horizon),
         )
     }
-    # Approved bookings hold seats; pending ones deliberately do not. See
-    # `public_class_booking` — a request nobody has looked at yet must not
-    # block a family who would actually turn up.
+    # Approved bookings take seats, and so do pending requests whose hold is
+    # still running (services/booking_holds.py). An expired hold stops
+    # counting on its own: the filter is `hold_expires_at > now()`.
     booked: dict[tuple[str, object], int] = {}
     for r in fetch_all(
         conn,
         "SELECT schedule_id, on_date, count(*) AS n FROM class_bookings "
-        "WHERE tenant_id = %s AND status = 'approved' AND on_date >= %s AND on_date < %s "
+        f"WHERE tenant_id = %s AND {_holds.SEAT_TAKEN} AND on_date >= %s AND on_date < %s "
         "GROUP BY schedule_id, on_date",
         (tenant_id, today, horizon),
     ):
@@ -864,7 +865,7 @@ def _timetable_occurrences(conn, tenant_id: str, weeks: int, timezone_name: str)
 
 
 
-def _timetable_entry(day, row, exception, approved, fields, want_booking):
+def _timetable_entry(day, row, exception, booked, fields, want_booking):
     """One class on one date, as the public page receives it.
 
     Two rules run through every line here:
@@ -879,7 +880,8 @@ def _timetable_entry(day, row, exception, approved, fields, want_booking):
 
     cancelled = bool(exception and exception["cancelled"])
     capacity = int(row["capacity"] or 0)
-    taken = int(row["enrolled"] or 0) + int(approved or 0)
+    # `booked` is approved bookings plus live holds (_timetable_occurrences).
+    taken = int(row["enrolled"] or 0) + int(booked or 0)
     seats_left = max(0, capacity - taken)
 
     entry = {
@@ -970,8 +972,8 @@ def public_timetable(tenant_slug: str):
             conn, tenant.tenant_id, weeks, timezone_name)
 
     days: list[dict] = []
-    for day, schedule, exception, approved in occurrences:
-        entry = _timetable_entry(day, schedule, exception, approved, fields, want_booking)
+    for day, schedule, exception, booked in occurrences:
+        entry = _timetable_entry(day, schedule, exception, booked, fields, want_booking)
         if not days or days[-1]["date"] != entry["date"]:
             days.append({"date": entry["date"],
                          "weekday": day.isoweekday() % 7,
@@ -1009,10 +1011,14 @@ def public_class_booking(tenant_slug: str):
     here?" about anyone. That is not a hypothetical; it is the same endpoint
     used slightly differently.
 
-    **2. A pending request does not hold a seat.** Capacity is re-checked at
-    approval, not here. A tap that nobody has looked at yet must not lock out
-    a family who would actually turn up, and by approval time this moment's
-    arithmetic is stale anyway.
+    **2. A request holds a free place for a while, and only then.** Until
+    v10.21 it held nothing. Since Lee's decision of 2026-10-14 a request that
+    finds a free place keeps it for the tenant's hold time (48 hours by
+    default); a request for a full class, or from a phone that already holds a
+    place here, holds nothing. The reply does not say which happened: it gives
+    the tenant's hold time, which is the same for everybody, so it cannot be
+    used to learn whether a phone has another request in flight. Capacity is
+    still re-checked at approval. Rules: services/booking_holds.py.
 
     **3. But the parent is told where they stand.** A class showing "1 place
     left" that quietly collects five requests will disappoint four people. The
@@ -1083,13 +1089,12 @@ def public_class_booking(tenant_slug: str):
                 "That class is not on the published timetable. Please pick one from the list.",
                 404,
             )
-        _day, schedule, exception, approved = match
+        _day, schedule, exception, _taken = match
         if exception and exception["cancelled"]:
             return _error("That class is not running on this date.")
 
         capacity = int(schedule["capacity"] or 0)
-        taken = int(schedule["enrolled"] or 0) + int(approved or 0)
-        seats_left = max(0, capacity - taken)
+        hold_hours = _holds.hold_hours(conn, tenant.tenant_id) if capacity > 0 else 0
         class_title = schedule["course_name"] or schedule["label"] or ""
 
         # Matching happens here and the result goes ONLY into the record. It
@@ -1103,19 +1108,30 @@ def public_class_booking(tenant_slug: str):
         student_id = (lookup.student or {}).get("id") if lookup.status == "matched" else None
 
         with conn.cursor() as cur:
+            # The count and the write are one step for this class: two
+            # requests for the last place cannot both find it free.
+            _holds.lock_class(cur, schedule["id"])
+            seats_left = max(0, capacity - _holds.seats_taken(cur, schedule["id"], on_date))
+            holds = (
+                hold_hours > 0 and seats_left > 0
+                and not _holds.phone_holds_a_place(cur, tenant.tenant_id, phone)
+            )
             cur.execute(
                 """
                 INSERT INTO class_bookings
                     (tenant_id, schedule_id, on_date, student_id, contact_name,
-                     contact_phone, message, privacy_notice_version, source_language, campaign)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                     contact_phone, message, privacy_notice_version, source_language, campaign,
+                     hold_expires_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb,
+                        CASE WHEN %s THEN now() + make_interval(hours => %s) END)
                 ON CONFLICT (schedule_id, on_date, contact_phone)
                     WHERE status = 'pending' DO NOTHING
                 RETURNING id
                 """,
                 (tenant.tenant_id, schedule["id"], on_date, student_id, name, phone,
                  message, PRIVACY_NOTICE_VERSION, language,
-                 json.dumps(_campaign_from_payload(payload), ensure_ascii=False)),
+                 json.dumps(_campaign_from_payload(payload), ensure_ascii=False),
+                 holds, hold_hours),
             )
             created = cur.fetchone()
             cur.execute(
@@ -1182,6 +1198,9 @@ def public_class_booking(tenant_slug: str):
         "duplicate": created is None,
         "seatsLeft": seats_left,
         "waiting": waiting,
+        # The tenant's setting, identical for every visitor — NOT whether this
+        # request got a hold (see decision 2 above).
+        "holdHours": hold_hours,
         "date": on_date.isoformat(),
         "start": start,
         "title": class_title,
