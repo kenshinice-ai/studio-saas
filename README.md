@@ -1,12 +1,13 @@
 # PWE Studio
 
-## v10.20.10 release identity — who reads what the assistant could not answer
+## v10.21.0 release identity — family calendars, one dashboard list, booking holds
 
-`VERSION` = **10.20.10** and `backend/server.py` reports `APP_VERSION=10.20.10`.
-**Zero migrations.** One sentence in each language in privacy policy section
-10: people at PWE read the questions PWE Assist could not answer, kept with the
-conversation and deleted with it after 90 days. Round notes:
-`docs/handoff/claude/2026-10-10-assist-followups.md`.
+`VERSION` = **10.21.0** and `backend/server.py` reports `APP_VERSION=10.21.0`.
+**Two additive migrations** (`0048` calendar feed token lookup, `0049` booking
+holds). The family calendar feed works under the runtime role and can be issued
+from the CMS; the dashboard keeps one list of exceptions; a public booking
+request holds a free place for 48 hours by default. Round notes:
+`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -21,9 +22,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.20.10, released** — deployed commit `7bdf353` on `main` | One sentence per language in the privacy policy and the test that pins it; **zero migrations**. Local gate `All checks passed`, pytest 2575 passed / 41 skipped; CI gate passed on the same commit (run 38048003468). |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.20.10.tar.gz` SHA-256 `1fbc940bb175a15ba5b95107bed40a8b103e1317bcd6858c76ec01b9ce604105` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.20.10.tar.gz` SHA-256 `0a83453208c98048a79ecc9c3a022456be37b242ddf61c061e3ef8cf05f428c2`. Three-way commit guard equal. |
-| Production | **v10.20.10** (`pwestudio.online`, Oracle ARM, commit `7bdf353`) | Measured 2026-10-10: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. Both language versions of the privacy policy carry the "who sees it" sentence. Assist knowledge commit `10.20.10-a63e0cbd` equals the Worker's. The logged-in browser matrix was not run: no signed-in surface changed. |
+| Source | **v10.21.0, release candidate** — on branch `release/10.21.0` | Calendar feed, dashboard list, booking holds; migrations `0048`, `0049`. Local gate and CI gate: recorded at step 9. |
+| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
+| Production | **v10.20.10** (`pwestudio.online`, Oracle ARM, commit `7bdf353`) | Unchanged until step 8. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

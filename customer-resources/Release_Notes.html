@@ -56,6 +56,15 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.21.0 — family calendars work, the dashboard lists only exceptions, booking requests hold a place</strong><strong data-lang="zh">v10.21.0 —— 家庭日历订阅能用了；工作台只列例外；约课申请保留空位</strong>
+      <p data-lang="en">Family calendar subscriptions now work. The v10.0.0 notes said a family could subscribe to their child’s lessons, but nothing in the console could issue a link, the feed could not find a subscription, and if it had, every lesson would have appeared a day late and make-up lessons not at all. All three are fixed. Create the link on the student’s profile, under the Area tab, and give it to the family; it is shown once and can be revoked at any time. Phone calendars refresh on their own schedule, so a same-day change still needs its own message.</p>
+      <p data-lang="zh">家庭日历订阅能用了。v10.0.0 的版本记录说家长可以订阅孩子的课表，但后台一直没有发放链接的地方，订阅地址也查不到任何订阅；即使查到，课也会晚一天，补课不会出现。三处都修好了。在学员档案的「专区」页生成链接交给家长；链接只显示一次，可以随时停用。手机日历按自己的节奏刷新，当天的临时变动仍要另外通知。</p>
+      <p data-lang="en">The dashboard’s two blocks are now one list of exceptions: families waiting for a reply, unpaid invoices, students running out of credits, students who have stopped coming, make-up credits that expire within 14 days, progress reports past their period, then birthdays. When there is nothing, it says so.</p>
+      <p data-lang="zh">工作台的两个区块合成一张例外清单：等回复的报名和约课、未付清的发票、课时快用完的学员、长期没来的学员、14 天内到期的补课额度、过了周期还没写的成长报告，最后是生日。没有事的时候它会直接说。</p>
+      <p data-lang="en">A booking request from your public timetable now holds a free place for 48 hours while you decide, then releases it. A full class still takes requests; they hold nothing. One phone number holds one place at a time. Change the time, or turn it off, under Settings → Operating defaults. Creating a calendar link now needs permission to edit students, not only to view them. Two additive migrations; nothing for a studio to do.</p>
+      <p data-lang="zh">公开课表上的约课申请，如果提交时还有空位，会为家长保留 48 小时等你确认，到期自动放回。满员的班照样收申请，只是不保留；同一个手机号同时只保留一个位置。时长在「系统设置 → 运营默认」里修改或关闭。生成日历链接现在需要能修改学员资料的权限，不再是能查看就行。两个只加不改的迁移，工作室这边无需操作。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.20.10 — who reads what the assistant could not answer</strong><strong data-lang="zh">v10.20.10 —— 谁会读助手没答上的提问</strong>
       <p data-lang="en">One sentence added to section 10 of the privacy policy. When the assistant on our own pages cannot answer a question, people at PWE read that question so that we can fix what the pages leave unclear. The policy said what is kept and for how long; it now also says who reads it. Those questions are kept in the same place as the conversation and deleted with it after 90 days. This is about visitors to our own pages. Nothing in your studio’s data or screens changed. Zero migrations; nothing for a studio to do.</p>
       <p data-lang="zh">隐私政策第十节加了一句话。我们自己页面上的助手答不上某个提问时，PWE 的人会读那个提问，用来把页面没写清楚的地方补上。政策此前写了保存什么、保留多久，现在也写明了谁会读。这些提问和对话保存在同一处，同样在 90 天后删除。这说的是我们自己页面的访客。你工作室的数据和界面都没有变化。零迁移，工作室这边无需操作。</p>
