@@ -211,7 +211,8 @@ def _variants(fact: str) -> set[str]:
         # Times are stored 24-hour; prose writes "4:30 pm", "4.30pm" or "6pm".
         hour, minute = (int(part) for part in fact.split(":"))
         twelve = hour % 12 or 12
-        forms |= {f"{twelve}:{minute:02d}", f"{twelve}.{minute:02d}", f"{hour}:{minute:02d}"}
+        forms |= {f"{twelve}:{minute:02d}", f"{twelve}.{minute:02d}", f"{hour}:{minute:02d}",
+                  f"{twelve}点{minute}分", f"{hour}点{minute}分", f"{twelve}点", f"{hour}点"}
         if minute == 0:
             forms |= {str(twelve), str(hour)}
     if re.fullmatch(r"-?\d+(\.\d+)?", fact):

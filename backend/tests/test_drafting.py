@@ -202,3 +202,13 @@ def test_a_24_hour_time_may_be_written_the_12_hour_way():
     facts = {"start_time": "16:30", "other": "18:00"}
     assert drafting.unbacked_figures("Class at 4:30 pm, or 4.30pm, then 6pm or 6:00 pm.", facts) == []
     assert drafting.unbacked_figures("Class at 5:30 pm.", facts) == ["5:30"]
+
+
+def test_chinese_times_pass_and_a_worked_out_date_does_not():
+    """Evaluation 2026-10-14, booking replies: "下午4点30分" is 16:30; a date the
+    model worked out itself ("the Saturday of that week") is not in the facts
+    and must be checked by a person."""
+
+    facts = {"class_date": "2026-10-14", "start_time": "16:30"}
+    assert drafting.unbacked_figures("10月14日下午4点30分上课。", facts) == []
+    assert drafting.unbacked_figures("可以改约周六（10月17日）。", facts) == ["17"]
