@@ -56,6 +56,11 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.22.1 — a more accurate internal estimate of drafting cost</strong><strong data-lang="zh">v10.22.1 —— 起草费用的内部估算更准确</strong>
+      <p data-lang="en">Each AI draft records its usage and an estimated cost in the activity log. The estimate left out one item, the cache write, so the first draft in each five-minute window was under-estimated by about US$0.0001. It is now included. This only affects our own bookkeeping: drafting is included in your subscription and nothing on your screens changes. Zero migrations.</p>
+      <p data-lang="zh">每次 AI 起草都会在操作记录里记下用量和估算费用。估算以前漏了一项「缓存写入」，每五分钟内的第一次起草会少估约 0.0001 美元，现在算进去了。这只影响我们内部的记账：起草包含在订阅内，你的界面没有任何变化。零迁移。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.22.0 — AI drafting: Claude drafts, you check and send</strong><strong data-lang="zh">v10.22.0 —— 用 AI 起草消息：只起草，由你确认后自己发</strong>
       <p data-lang="en">When it is on, a Draft button appears beside progress-report comments, the dashboard’s exceptions (credits running low, scheduled lessons missed, make-up credits about to expire), overdue invoices and pending booking requests. Claude writes a draft from the facts in your records; your staff edit it and copy it, or open it in their own mail or messages app. The system never sends a message for you. Each draft lists the facts it used, says what it was missing instead of inventing it, and marks any number or date that does not match your records. Staff can add one line on what they want to say.</p>
       <p data-lang="zh">打开后，成长报告评语、工作台的例外（课时快用完、排了课连续没来、补课额度快到期）、逾期发票和待处理约课申请旁边会出现「起草」按钮。Claude 按系统里的事实写一段草稿，员工修改后复制，或用自己的邮件、短信应用打开。系统不会替你发送任何消息。每份草稿都列出所用事实，缺什么会写出来而不是编一个，与你的记录对不上的数字或日期会被标出。员工可以写一句「想说的要点」。</p>

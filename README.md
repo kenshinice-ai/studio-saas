@@ -1,14 +1,11 @@
 # PWE Studio
 
-## v10.22.0 release identity — Claude drafts, people send
+## v10.22.1 release identity — drafting cost estimate counts cache writes
 
-`VERSION` = **10.22.0** and `backend/server.py` reports `APP_VERSION=10.22.0`.
-**Zero migrations.** AI drafting: a Draft button on progress-report comments,
-dashboard exceptions, overdue invoices and booking requests; off until a
-tenant's owner turns it on; Claude Haiku 5.5 by default; nothing is sent by
-the system. Needs `STUDIOSAAS_DRAFTING_API_KEY` on the host to be usable.
-Plan, evaluation and round notes: `docs/design/Claude_Drafting_Plan_2026-10-14.md`,
-`docs/design/Claude_Drafting_Eval_2026-10-14.md`,
+`VERSION` = **10.22.1** and `backend/server.py` reports `APP_VERSION=10.22.1`.
+**Zero migrations.** The drafting cost estimate now includes the cache write
+(`cacheWriteTokens` in the audit row). AI drafting itself is live since
+v10.22.0 with Lee's production key. Round notes:
 `docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
@@ -24,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.0, released** — deployed commit `0e6a86c` on `main` | AI drafting, Haiku 5.5 by default; **zero migrations**. Local gate `All checks passed`, pytest 2662 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit (run 38554201731). |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.0.tar.gz` SHA-256 `aead8473e7628a1783238137fd32647dd01d4a48d07678bc05b7209af67d52eb` (archival); `dist/PWE-Studio-Edition-10.22.0.tar.gz` SHA-256 `50cf7774dbdda29fb072ec77a9a04a6375f590b2104cefdbecc69e4c0a5ad694`. Three-way commit guard equal. |
-| Production | **v10.22.0** (`pwestudio.online`, Oracle ARM, commit `0e6a86c`) | Measured 2026-10-14: deep health `db=ok`, `mode=saas`, 5 tenants; drafting routes answer 401 without a session; privacy section 11 and terms live. The drafting key was placed on the host by Lee the same evening and the commit redeployed; two synthetic drafts inside the container succeeded on Haiku 5.5 (2.1–3.5 s, cache read on the second, about US$0.0003). |
+| Source | **v10.22.1, release candidate** — on branch `release/10.22.1` | Drafting cost estimate counts cache writes; **zero migrations**. Gates recorded at step 9. |
+| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
+| Production | **v10.22.0** (`pwestudio.online`, Oracle ARM, commit `0e6a86c`) | Unchanged until step 8. Drafting key live. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
