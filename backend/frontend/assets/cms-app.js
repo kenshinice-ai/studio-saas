@@ -4113,7 +4113,6 @@
       copyText,
       bookings,
       db,
-      inactiveDays,
       loadSchedules,
       pendingCount,
       scheduleLoadError,
@@ -4137,6 +4136,7 @@
     );
     const [credits, setCredits] = useState9([]);
     const [overdueReports, setOverdueReports] = useState9([]);
+    const [missed, setMissed] = useState9({ students: [], streak: 3 });
     useEffect9(() => {
       if (!TENANT_SLUG) return void 0;
       let gone = false;
@@ -4146,6 +4146,10 @@
       });
       v1Api("/progress-reports/overdue").then((d) => {
         if (!gone) setOverdueReports(d.overdue || []);
+      }).catch(() => {
+      });
+      v1Api("/students/missed-lessons").then((d) => {
+        if (!gone) setMissed({ students: d.students || [], streak: d.streak || 3 });
       }).catch(() => {
       });
       return () => {
@@ -4357,27 +4361,22 @@
           )))
         });
       }
-      if (analytics.inactive.length > 0) rows.push({
-        key: "inactive",
+      if (missed.students.length > 0) rows.push({
+        key: "missed",
         icon: "calendar",
-        text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
-        chips: analytics.inactive.slice(0, 12).map((s) => /* @__PURE__ */ React.createElement(
+        text: `${missed.students.length} 名学员排了课却连续 ${missed.streak} 次以上没来`,
+        chips: missed.students.slice(0, 12).map((m) => /* @__PURE__ */ React.createElement(
           "button",
           {
-            key: s.id,
+            key: m.studentId,
             type: "button",
             onClick: () => {
               setTab("students");
-              setSrch(s.name);
+              setSrch(m.studentName);
             },
             className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]"
           },
-          s.name,
-          " (",
-          s.balance,
-          "课 · ",
-          daysSince(s.lastActive) < 9999 ? `${daysSince(s.lastActive)}天前` : "从未上课",
-          ")"
+          m.lastAttended ? `${m.studentName} · 连续 ${m.missed} 次 · 上次 ${fmtDate(m.lastAttended)}` : `${m.studentName} · 连续 ${m.missed} 次 · 没有签到记录`
         ))
       });
       const horizon = (() => {
@@ -10413,7 +10412,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         setUserMenuOpen(false);
         confirm2("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" });
       }, className: "w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50" }, "退出登录"))))),
-      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, bookings, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(ErrorBoundary, { key: tab, onLeave: () => setTab("dashboard") }, tab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardSection, { ...{ activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, bookings, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount } }), tab === "courses" && /* @__PURE__ */ React.createElement(CoursesSection, { ...{ archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab } }), tab === "roster" && /* @__PURE__ */ React.createElement(RosterSection, { ...{ WEEKDAYS: WEEKDAYS2, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, confirm: confirm2, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSection, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRosterSection, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry } }), tab === "works" && /* @__PURE__ */ React.createElement(WorksSection, { ...{ canWritePortfolio, worksPublicState, portfolioEntries, setEditP, setPortUpload, setSelS, setStudentProfileTab, setTab, setWorksBucket, setWorksQuery, worksBucket, worksBuckets, worksQuery, worksVisible } }), tab === "students" && /* @__PURE__ */ React.createElement(StudentsSection, { ...{ archiveSelected, busy, canManageOperations, canWriteAttendance, canWriteCredits, canWriteStudents, copySelectedReminders, copyText, exportStudentsCSV, filterBy, getTag, isStudentScheduledOn, pageStudents, preferenceRows, renderMessage, renewTh, scheduleStudentToday, selectedStudentIds, selectedStudents, setEditP, setFilterBy, setSelS, setSelectedStudentIds, setSortBy, setSrch, setStudentPage, setTab, setTuStu, sortBy, sortedFiltered, srch, studentPage, studentPageCount, toggleSelectPage, toggleSelectStudent } }), tab === "new_student" && /* @__PURE__ */ React.createElement(NewStudentSection, { ...{ busy, formPhoto, handleAddStudent, notify, preferenceProfile, setFormPhoto, setTab } }), tab === "pending" && /* @__PURE__ */ React.createElement(PendingSection, { ...{ advanceRegistration, pendingBucket, pendingQuery, setPendingBucket, setPendingQuery, approveCredits, approveStudent, approveTenant, bookings, busy, canReviewBookings, db, dupPick, followUpDates, pendingCount, pendingTab, preferenceRows, rejectStudent, reviewBooking, setApproveCredits, setDupPick, setFollowUpDates, setPendingTab, setTab, showToast } }), tab === "billing" && /* @__PURE__ */ React.createElement(
         BillingPanel,
         {
           api: v1Api,

@@ -44,7 +44,7 @@ def test_each_named_exception_has_a_row():
     # Lee, 2026-10-10: low credits not renewed, not attending, overdue
     # invoices, make-up credits about to expire, overdue progress reports,
     # booking requests nobody answered.
-    for key in ("'low'", "'inactive'", "'ar'", "'credits'", "'reports'", "'pending'"):
+    for key in ("'low'", "'missed'", "'ar'", "'credits'", "'reports'", "'pending'"):
         assert f"key: {key}" in source, f"row {key} is missing"
 
 
@@ -53,6 +53,7 @@ def test_the_two_new_rows_read_their_own_endpoints():
 
     assert "v1Api('/scheduling/credits')" in source
     assert "v1Api('/progress-reports/overdue')" in source
+    assert "v1Api('/students/missed-lessons')" in source
 
 
 def test_waiting_requests_count_class_bookings_too():

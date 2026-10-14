@@ -1890,6 +1890,10 @@
        '$1 students have 2 credits or fewer, $2 with none left'],
       [/^(\d+)\s*张补课额度\s*(\d+)\s*天内到期$/,
        (_m, n, days) => `${n} make-up ${n === '1' ? 'credit expires' : 'credits expire'} within ${days} days`],
+      [/^(\d+)\s*名学员排了课却连续\s*(\d+)\s*次以上没来$/,
+       (_m, n, k) => `${n} ${n === '1' ? 'student has' : 'students have'} missed ${k} or more scheduled lessons in a row`],
+      [/^(.+?)\s*·\s*连续\s*(\d+)\s*次\s*·\s*上次\s*(\S+)$/, '$1 · $2 in a row · last came $3'],
+      [/^(.+?)\s*·\s*连续\s*(\d+)\s*次\s*·\s*没有签到记录$/, '$1 · $2 in a row · no check-ins on record'],
       [/^(\d+)\s*份成长报告过了周期还没写$/,
        (_m, n) => (n === '1'
            ? '1 progress report is past its period and still unwritten'

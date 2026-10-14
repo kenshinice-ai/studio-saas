@@ -15,7 +15,7 @@ export function DashboardSection(props) {
     const {
         activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary,
         bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText,
-        bookings, db, inactiveDays, loadSchedules, pendingCount, scheduleLoadError, setFilterBy,
+        bookings, db, loadSchedules, pendingCount, scheduleLoadError, setFilterBy,
         setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab,
         setTuStu, showToast, todayCheckedCount, todayEffectiveCount,
         renderMessage,
@@ -46,11 +46,13 @@ export function DashboardSection(props) {
        不出现，不报错。 */
     const [credits, setCredits] = useState([]);
     const [overdueReports, setOverdueReports] = useState([]);
+    const [missed, setMissed] = useState({students: [], streak: 3});
     useEffect(() => {
         if (!TENANT_SLUG) return undefined;
         let gone = false;
         v1Api('/scheduling/credits').then(d => { if (!gone) setCredits(d.credits || []); }).catch(() => {});
         v1Api('/progress-reports/overdue').then(d => { if (!gone) setOverdueReports(d.overdue || []); }).catch(() => {});
+        v1Api('/students/missed-lessons').then(d => { if (!gone) setMissed({students: d.students || [], streak: d.streak || 3}); }).catch(() => {});
         return () => { gone = true; };
     }, []);
 
@@ -230,7 +232,7 @@ export function DashboardSection(props) {
        之间来回对，才知道今天到底有几件事。
 
        现在是一张清单，每类一行，按「拖下去会损失什么」排：家长在等回复 →
-       钱没收回 → 课时要续 → 学员在流失 → 补课额度要过期 → 报告欠着家长 →
+       钱没收回 → 课时要续 → 排了课却不来 → 补课额度要过期 → 报告欠着家长 →
        生日。合并的是块，不是信息：每行仍带自己的数据源、权限判定和去处。
        名单默认折叠。 */}
     {(()=>{
@@ -276,17 +278,19 @@ export function DashboardSection(props) {
                 )),
             });
         }
-        /* 「长期没来」沿用设置里的天数（默认 90）。「排了课却连续缺席」是另一个
-           口径，要按课表比对出勤，还没定，所以这里不冒充它。 */
-        if (analytics.inactive.length > 0) rows.push({
-            key: 'inactive', icon: 'calendar',
-            text: `${analytics.inactive.length} 名学员有余额但超过 ${inactiveDays} 天未上课`,
-            chips: analytics.inactive.slice(0,12).map(s => (
-                <button key={s.id} type="button" onClick={()=>{setTab('students');setSrch(s.name);}}
+        /* 「长期没来」= 排了课、最近连续 3 次都没来（Lee，2026-10-14）。
+           以前是「有余额但超过 N 天没上课」：要等三个月才报，而且会把只是
+           没排课的学员也算进来。规则在 services/missed_lessons.py；不记签到的
+           工作室拿到空表，这一行不出现。按天数的口径仍是学员列表里的筛选。 */
+        if (missed.students.length > 0) rows.push({
+            key: 'missed', icon: 'calendar',
+            text: `${missed.students.length} 名学员排了课却连续 ${missed.streak} 次以上没来`,
+            chips: missed.students.slice(0,12).map(m => (
+                <button key={m.studentId} type="button" onClick={()=>{setTab('students');setSrch(m.studentName);}}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 active:bg-amber-200 min-h-[44px]">
-                    {/* daysSince returns the 9999 sentinel for "no class on
-                        record"; printing it raw read as "9999天前". */}
-                    {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
+                    {m.lastAttended
+                        ? `${m.studentName} · 连续 ${m.missed} 次 · 上次 ${fmtDate(m.lastAttended)}`
+                        : `${m.studentName} · 连续 ${m.missed} 次 · 没有签到记录`}
                 </button>
             )),
         });

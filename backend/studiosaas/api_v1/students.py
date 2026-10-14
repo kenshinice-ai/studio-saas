@@ -30,6 +30,7 @@ from ..lifecycle import (
 from ..services import billing as _billing
 from ..services import credit_settlements as _credit_settlements
 from ..services import credit_refunds as _credit_refunds
+from ..services import missed_lessons as _missed_lessons
 from ..services import student_timeline as _student_timeline
 from ..services import entitlements as _entitlements
 from ..services import notifications as _notifications
@@ -1976,3 +1977,21 @@ def student_progress_reports(student_id: str):
     return jsonify({"reports": rows})
 
 
+
+
+@api_v1.route("/students/missed-lessons", methods=["GET"])
+@permission_required("students:read")
+def students_missed_lessons():
+    """Students who missed their last three scheduled lessons in a row.
+
+    The dashboard's "stopped coming" row. The rules — what counts as
+    scheduled, what counts as came — are in services/missed_lessons.py.
+    """
+
+    import datetime as _dt
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        today = _dt.datetime.now(ZoneInfo(_tenant_timezone(conn, tenant.tenant_id))).date()
+        rows = _missed_lessons.missed_streaks(conn, tenant.tenant_id, today=today)
+    return jsonify({"students": rows, "streak": _missed_lessons.DEFAULT_STREAK})
