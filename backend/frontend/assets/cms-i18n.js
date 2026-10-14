@@ -445,6 +445,19 @@
 
     /* ── Student area and consent ── */
     ['学员专区', 'Student area'], ['专区', 'Area'],
+    /* ── Family calendar feed (student profile → Area) ── */
+    ['家庭日历订阅', 'Family calendar'],
+    ['家长订阅一次，孩子的课就会出现在他们手机自带的日历里；调课和停课会跟着同步。', 'The family subscribes once and this student’s lessons appear in their own phone calendar; reschedules and cancellations follow.'],
+    ['仅显示一次，请现在交给家长', 'Shown once — give it to the family now'],
+    ['iPhone：设置 → 日历 → 账户 → 添加账户 → 其他 → 添加已订阅的日历。Google 日历：其他日历 → 通过网址添加。', 'iPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar. Google Calendar: Other calendars → From URL.'],
+    ['手机日历按自己的节奏刷新，当天的临时变动不一定及时到达。', 'Phone calendars refresh on their own schedule, so a same-day change may arrive late.'],
+    ['生成订阅链接', 'Create subscription link'], ['再生成一条链接', 'Create another link'],
+    ['已发出的订阅链接', 'Subscription links issued'],
+    ['生成于', 'Created'], ['最近同步：', 'Last synced:'], ['还没有同步过', 'Not synced yet'],
+    ['确认停用', 'Confirm'],
+    ['停用后这条链接立刻失效，家长日历里的课会在下次刷新时消失。', 'A revoked link stops working at once; the lessons leave the family’s calendar at its next refresh.'],
+    ['订阅链接已复制', 'Subscription link copied'], ['订阅链接已停用', 'Subscription link revoked'],
+    ['生成失败', 'Could not create it'], ['停用失败', 'Could not revoke it'],
     ['姓名、手机与独立 6 位访问码验证；访问码不会保存明文。',
      'Verified by name, mobile and a 6-digit access code. The code is never stored in plain text.'],
     ['请先补充学员手机号码，再生成访问码。', 'Add the student\'s mobile number before issuing an access code.'],

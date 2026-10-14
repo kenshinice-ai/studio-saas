@@ -2,7 +2,7 @@
 
 Version: v10.13.0 documentation baseline
 Date: 2026-08-23
-Release: v10.13.0; migration `0047_xero_transport.sql` is current
+Release: v10.13.0; migration `0048_calendar_feed_token_lookup.sql` is current (added 2026-10-14)
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
@@ -12,7 +12,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ locally; production uses `postgres:16-alpine` on the Lightsail host (not RDS)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0047_xero_transport.sql`
+- **Canonical schema evolution:** ordered migrations through `0048_calendar_feed_token_lookup.sql`
 - **Isolation model:** Tenant-scoped tables use `tenant_id`, forced row-level security, and a restricted runtime role; application code also binds tenant context.
 
 ### 1.1 Design Principles
@@ -260,7 +260,8 @@ backend/db/
     ├── 0044_credit_refund_source.sql
     ├── 0045_xero_oauth_state.sql
     ├── 0046_plan_student_limits_match_published.sql
-    └── 0047_xero_transport.sql
+    ├── 0047_xero_transport.sql
+    └── 0048_calendar_feed_token_lookup.sql
 ```
 
 Migration 0019 (v7.4.1 stability pass) adds tenant-leading indexes for
@@ -295,6 +296,10 @@ teacher-payable tables, channel routing, billing identity, forced RLS,
 settlement/refund provenance, Xero OAuth state and the one-way Xero transport.
 Migration `0046` aligns published student limits to 50 / 250 / 500; `0047`
 adds persistent retry timing and organisation-scoped Xero object links.
+Migration `0048` adds `calendar_subscription_tenant(token_hash)`: the one
+function that may read `calendar_subscriptions` before a tenant is bound. It
+returns only the owning tenant's id, and the feed then binds that tenant. The
+table itself stays under forced RLS.
 
 Tracking table:
 

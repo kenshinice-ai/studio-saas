@@ -7,7 +7,7 @@
 import { BalBadge, EmptyState, Icon, PhotoAvatar, PhotoUploader, StudentTimeline } from "../components.jsx";
 import { TENANT_SLUG, TabPanel, Tabs, fmtDate, portfolioSrcSet, portfolioThumbSrc } from "../components.jsx";
 import { todayISO, v1Api } from "../components.jsx";
-import { StudentBillingAccount, StudentProgressReports } from "./student_reports.jsx";
+import { StudentBillingAccount, StudentCalendarFeed, StudentProgressReports } from "./student_reports.jsx";
 
 export function StudentProfileModal(props) {
     const {
@@ -222,6 +222,9 @@ export function StudentProfileModal(props) {
                                         )}
                                     </div>
                                 </div>
+                            </div>
+                            <div className="mt-3">
+                                <StudentCalendarFeed api={v1Api} studentId={selS.id} copyText={copyText} showToast={showToast}/>
                             </div>
                           </TabPanel>
                         )}

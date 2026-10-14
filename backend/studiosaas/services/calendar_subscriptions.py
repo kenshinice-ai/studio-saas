@@ -24,11 +24,13 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from ..calendar_export import CalendarDocument, CalendarEvent
 from ..db import fetch_all, fetch_one
+from ..tenant_context import bind_tenant_session
+from . import scheduling
 
 
 class SubscriptionError(RuntimeError):
@@ -79,18 +81,35 @@ def create(
 
 
 def resolve(conn, raw_token: object) -> dict[str, Any] | None:
-    """Find a live subscription by its token.
+    """Find a live subscription by its token, and bind ``conn`` to its tenant.
 
-    Deliberately not tenant-scoped: the token arrives from a calendar client
-    with no session and no tenant header, so it has to identify the tenant
-    itself. That is safe because the token is 256 bits of entropy and is matched
-    by hash — but it does mean every caller must read the tenant from the row it
-    gets back and never from anything the request supplied.
+    The token arrives from a calendar client with no session and no tenant
+    header, so it has to identify the tenant itself. ``calendar_subscriptions``
+    is under forced row-level security, which hides every row from a
+    connection that has no tenant yet — so the first step asks the one database
+    function that may look across tenants (migration 0048) for the owner of
+    this token hash, and nothing else. The connection is then bound to that
+    tenant, and the subscription and every lesson after it are read under the
+    ordinary tenant policy.
+
+    Binding is a side effect on purpose: everything the feed reads next must be
+    that tenant's, and the tenant must come from the row, never from anything
+    the request supplied. Callers pass a connection used for nothing else.
     """
 
     token = str(raw_token or "").strip()
     if not token:
         return None
+    token_hash = _hash(token)
+    owner = fetch_one(
+        conn,
+        "SELECT calendar_subscription_tenant(%s) AS tenant_id",
+        (token_hash,),
+    )
+    if not owner or not owner["tenant_id"]:
+        return None
+    tenant_id = str(owner["tenant_id"])
+    bind_tenant_session(conn, tenant_id)
     return fetch_one(
         conn,
         """
@@ -100,9 +119,9 @@ def resolve(conn, raw_token: object) -> dict[str, Any] | None:
                t.timezone AS timezone_name, t.address
         FROM calendar_subscriptions cs
         JOIN tenants t ON t.id = cs.tenant_id
-        WHERE cs.token_hash = %s AND cs.revoked_at IS NULL
+        WHERE cs.tenant_id = %s AND cs.token_hash = %s AND cs.revoked_at IS NULL
         """,
-        (_hash(token),),
+        (tenant_id, token_hash),
     )
 
 
@@ -131,6 +150,24 @@ def touch(conn, subscription_id: str) -> None:
         )
 
 
+def _student_ids(conn, tenant_id: str, subscription: dict[str, Any]) -> set[str] | None:
+    """The students a subscription covers, or ``None`` for a teacher's feed."""
+
+    if subscription["scope"] == "teacher":
+        return None
+    if subscription["scope"] == "student":
+        return {str(subscription["student_id"])}
+    rows = fetch_all(
+        conn,
+        """
+        SELECT student_id FROM billing_account_members
+         WHERE tenant_id = %s AND billing_account_id = %s
+        """,
+        (tenant_id, subscription["billing_account_id"]),
+    )
+    return {str(row["student_id"]) for row in rows}
+
+
 def build_document(
     conn,
     subscription: dict[str, Any],
@@ -139,7 +176,15 @@ def build_document(
     today: date | None = None,
     generated_at: datetime | None = None,
 ) -> CalendarDocument:
-    """Expand a subscription's recurring lessons into dated calendar events.
+    """Turn a subscription's lessons into dated calendar events.
+
+    The lessons come from :func:`scheduling.occurrences` — the same expansion
+    the CMS calendar shows — rather than from a second walk over the series
+    here. This module used to keep its own, and it drifted three ways: it read
+    ``weekday`` as Monday = 0 while the schema stores Sunday = 0, so every
+    lesson landed a day late; it never saw make-up lessons, which by definition
+    fall on a day the series does not run; and it applied pause windows to
+    series that were not paused. One expansion, one set of rules.
 
     Cancelled dates are exported as cancelled events rather than omitted. A
     lesson that silently disappears from a parent's calendar looks like a bug in
@@ -150,105 +195,65 @@ def build_document(
     start = today or date.today()
     end = start + timedelta(weeks=weeks_ahead)
 
-    if subscription["scope"] == "family":
-        where, params = (
-            """
-            ls.student_id IN (
-                SELECT student_id FROM billing_account_members
-                 WHERE tenant_id = %s AND billing_account_id = %s
-            )
-            """,
-            (tenant_id, subscription["billing_account_id"]),
-        )
-    elif subscription["scope"] == "student":
-        where, params = "ls.student_id = %s", (subscription["student_id"],)
-    else:
-        where, params = "ls.teacher_user_id = %s", (subscription["teacher_user_id"],)
-
-    series_rows = fetch_all(
-        conn,
-        f"""
-        SELECT ls.id, ls.weekday, ls.start_time, ls.duration_minutes, ls.room,
-               ls.starts_on, ls.ends_on, ls.status, ls.paused_from, ls.paused_to,
-               s.display_name AS student_name,
-               COALESCE(c.name, '') AS course_name
-        FROM lesson_series ls
-        JOIN students s ON s.tenant_id = ls.tenant_id AND s.id = ls.student_id
-        LEFT JOIN courses c ON c.id = ls.course_id
-        WHERE ls.tenant_id = %s AND ls.status <> 'ended' AND ({where})
-        ORDER BY ls.weekday, ls.start_time
-        """,
-        (tenant_id, *params),
+    teacher_user_id = (
+        str(subscription["teacher_user_id"]) if subscription["scope"] == "teacher" else None
     )
-
-    exception_rows = fetch_all(
-        conn,
-        """
-        SELECT series_id, on_date, kind, moved_to_date, moved_to_start_time
-        FROM lesson_exceptions
-        WHERE tenant_id = %s AND on_date BETWEEN %s AND %s
-        """,
-        (tenant_id, start, end),
+    students = _student_ids(conn, tenant_id, subscription)
+    rows = scheduling.occurrences(
+        conn, tenant_id, start=start, end=end, teacher_user_id=teacher_user_id,
     )
-    exceptions: dict[tuple[str, date], dict[str, Any]] = {
-        (str(row["series_id"]), row["on_date"]): row for row in exception_rows
-    }
+    if students is not None:
+        rows = [row for row in rows if str(row["student_id"]) in students]
 
-    closures = {
-        row["on_date"]
+    course_names = {
+        str(row["id"]): row["course_name"]
         for row in fetch_all(
             conn,
-            "SELECT on_date FROM term_closures WHERE tenant_id = %s AND on_date BETWEEN %s AND %s",
-            (tenant_id, start, end),
+            """
+            SELECT ls.id, COALESCE(c.name, '') AS course_name
+            FROM lesson_series ls
+            LEFT JOIN courses c ON c.id = ls.course_id
+            WHERE ls.tenant_id = %s
+            """,
+            (tenant_id,),
         )
     }
 
     events: list[CalendarEvent] = []
-    for series in series_rows:
-        cursor_date = max(start, series["starts_on"])
-        # Python's Monday is 0 and so is the schema's; no conversion needed, and
-        # saying so here stops somebody "fixing" it later.
-        offset = (int(series["weekday"]) - cursor_date.weekday()) % 7
-        cursor_date = cursor_date + timedelta(days=offset)
-        last = min(end, series["ends_on"] or end)
+    for row in rows:
+        kind = row["exception_kind"]
+        on_date = date.fromisoformat(row["on_date"])
+        start_time = row["start_time"]
+        if kind == "rescheduled" and row["moved_to_date"]:
+            # The lesson now happens on the new date. The uid stays the one of
+            # the date it was moved from, so a calendar app moves the event it
+            # already holds instead of adding a second one.
+            on_date = date.fromisoformat(row["moved_to_date"])
+            start_time = row["moved_to_start_time"] or start_time
+        cancelled = kind in {"cancelled_by_student", "cancelled_by_studio"}
 
-        while cursor_date <= last:
-            skip = cursor_date in closures
-            paused = (
-                series["paused_from"]
-                and series["paused_to"]
-                and series["paused_from"] <= cursor_date <= series["paused_to"]
+        course_name = course_names.get(str(row["series_id"]), "")
+        summary = f"{row['student_name']} · {course_name}".strip(" ·")
+        if kind == "makeup":
+            summary = f"Make-up · {summary}"
+        if cancelled:
+            summary = f"CANCELLED · {summary}"
+
+        starts = datetime.combine(on_date, time.fromisoformat(start_time))
+        duration = int(row["duration_minutes"])
+        events.append(
+            CalendarEvent(
+                uid=f"lesson-{row['series_id']}-{row['on_date']}",
+                summary=summary,
+                description=course_name,
+                location=row["room"] or (subscription.get("address") or ""),
+                starts_local=starts,
+                ends_local=starts + timedelta(minutes=duration),
+                duration_minutes=duration,
+                duration_source="lesson_series",
+                one_to_one=True,
             )
-            exception = exceptions.get((str(series["id"]), cursor_date))
-
-            if not skip and not paused:
-                on_date = cursor_date
-                start_time = series["start_time"]
-                summary = f"{series['student_name']} · {series['course_name']}".strip(" ·")
-                cancelled = False
-
-                if exception:
-                    if exception["kind"] in {"cancelled_by_student", "cancelled_by_studio"}:
-                        cancelled = True
-                    elif exception["kind"] == "rescheduled" and exception["moved_to_date"]:
-                        on_date = exception["moved_to_date"]
-                        start_time = exception["moved_to_start_time"] or start_time
-
-                starts = datetime.combine(on_date, start_time)
-                events.append(
-                    CalendarEvent(
-                        uid=f"lesson-{series['id']}-{cursor_date.isoformat()}",
-                        summary=("CANCELLED · " if cancelled else "") + summary,
-                        description=series["course_name"],
-                        location=series["room"] or (subscription.get("address") or ""),
-                        starts_local=starts,
-                        ends_local=starts + timedelta(minutes=int(series["duration_minutes"])),
-                        duration_minutes=int(series["duration_minutes"]),
-                        duration_source="lesson_series",
-                        one_to_one=True,
-                    )
-                )
-            cursor_date += timedelta(days=7)
+        )
 
     events.sort(key=lambda event: event.starts_local)
     label = subscription.get("label") or subscription["tenant_name"]

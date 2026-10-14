@@ -2299,6 +2299,101 @@
       /* @__PURE__ */ React.createElement("span", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-400" }, "未结"), /* @__PURE__ */ React.createElement("span", { className: `font-bold ${a.balance_cents > 0 ? "text-rose-600" : "text-emerald-600"}` }, aud(a.balance_cents)))
     )));
   }
+  function StudentCalendarFeed({ api, studentId, copyText, showToast }) {
+    const [subs, setSubs] = useState6(null);
+    const [issued, setIssued] = useState6(null);
+    const [busy, setBusy] = useState6(false);
+    const [confirmingId, setConfirmingId] = useState6(null);
+    const load = useCallback6(async () => {
+      try {
+        const res = await api(`/calendar/subscriptions?studentId=${encodeURIComponent(studentId)}`);
+        setSubs(res.subscriptions || []);
+      } catch (e) {
+        setSubs(false);
+      }
+    }, [api, studentId]);
+    useEffect6(() => {
+      setIssued(null);
+      setConfirmingId(null);
+      load();
+    }, [load]);
+    if (subs === null || subs === false) return null;
+    async function issue() {
+      setBusy(true);
+      try {
+        const res = await api("/calendar/subscriptions", {
+          method: "POST",
+          body: JSON.stringify({ scope: "student", studentId })
+        });
+        setIssued({ id: res.subscription?.id, url: `${window.location.origin}${res.feedPath}` });
+        await load();
+      } catch (e) {
+        showToast(e.message || "生成失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function revoke(id) {
+      setBusy(true);
+      try {
+        await api(`/calendar/subscriptions/${id}`, { method: "DELETE" });
+        setConfirmingId(null);
+        if (issued && issued.id === id) setIssued(null);
+        showToast("订阅链接已停用", "success");
+        await load();
+      } catch (e) {
+        showToast(e.message || "停用失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    const live = subs.length > 0;
+    return /* @__PURE__ */ React.createElement("div", { className: "border border-indigo-100 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-indigo-800" }, "家庭日历订阅"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-500 mt-0.5" }, "家长订阅一次，孩子的课就会出现在他们手机自带的日历里；调课和停课会跟着同步。")), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-1 rounded-full shrink-0 ${live ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}` }, live ? "已启用" : "未启用")), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3" }, issued && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-amber-200 bg-amber-50 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-800" }, "仅显示一次，请现在交给家长"), /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 mt-2" }, /* @__PURE__ */ React.createElement("code", { className: "text-xs text-gray-900 break-all flex-1" }, issued.url), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => copyText(issued.url, "订阅链接已复制"),
+        className: "px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs font-bold text-amber-800 min-h-[44px] shrink-0"
+      },
+      "复制"
+    )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mt-2" }, "iPhone：设置 → 日历 → 账户 → 添加账户 → 其他 → 添加已订阅的日历。Google 日历：其他日历 → 通过网址添加。")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "手机日历按自己的节奏刷新，当天的临时变动不一定及时到达。"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: issue,
+        className: "w-full py-2.5 rounded-xl bg-indigo-600 active:bg-indigo-700 text-white text-sm font-bold disabled:bg-gray-300 min-h-[44px]"
+      },
+      live ? "再生成一条链接" : "生成订阅链接"
+    ), live && /* @__PURE__ */ React.createElement("ul", { className: "space-y-2", "aria-label": "已发出的订阅链接" }, subs.map((s) => /* @__PURE__ */ React.createElement("li", { key: s.id, className: "rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0 text-xs text-gray-500" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "mr-1" }, "生成于"), /* @__PURE__ */ React.createElement("span", null, fmtApiDate(s.created_at))), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "mr-1" }, "最近同步："), /* @__PURE__ */ React.createElement("span", null, s.last_fetched_at ? fmtApiDate(s.last_fetched_at) : "还没有同步过"))), confirmingId === s.id ? /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 shrink-0" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => setConfirmingId(null),
+        className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-600 min-h-[44px]"
+      },
+      "取消"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => revoke(s.id),
+        className: "px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-bold min-h-[44px]"
+      },
+      "确认停用"
+    )) : /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => setConfirmingId(s.id),
+        className: "px-3 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold min-h-[44px] shrink-0"
+      },
+      "停用"
+    )))), confirmingId && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500", role: "status" }, "停用后这条链接立刻失效，家长日历里的课会在下次刷新时消失。")));
+  }
 
   // legacy-root/src/panels/private_lessons.jsx
   var { useState: useState7, useEffect: useEffect7, useCallback: useCallback7, useMemo: useMemo4 } = React;
@@ -6209,7 +6304,7 @@
           className: "px-3 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold min-h-[44px]"
         },
         "停用学员专区"
-      ))))))), canWritePortfolio && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "student-profile", name: "portfolio", active: studentProfileTab === "portfolio" }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: `border rounded-2xl overflow-hidden ${selS.publicationConsent?.status === "confirmed" ? "border-emerald-100" : selS.publicationConsent?.status === "withdrawn" ? "border-amber-100" : "border-gray-200"}` }, /* @__PURE__ */ React.createElement("div", { className: `px-4 py-3 flex items-center justify-between gap-3 ${selS.publicationConsent?.status === "confirmed" ? "bg-emerald-50" : selS.publicationConsent?.status === "withdrawn" ? "bg-amber-50" : "bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-gray-900" }, /* @__PURE__ */ React.createElement(Icon, { name: "shield", className: "w-4 h-4" }), "官网作品公开授权"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, "授权与撤回均追加为不可覆盖的审计记录。")), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-1 rounded-full shrink-0 ${selS.publicationConsent?.status === "confirmed" ? "bg-emerald-600 text-white" : selS.publicationConsent?.status === "withdrawn" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}` }, selS.publicationConsent?.status === "confirmed" ? "有效" : selS.publicationConsent?.status === "withdrawn" ? "已撤回" : "未记录")), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3" }, selS.publicationConsent?.status === "confirmed" && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-600 space-y-1" }, /* @__PURE__ */ React.createElement("p", null, "授权人：", /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, selS.publicationConsent.by || "—"), " · ", selS.publicationConsent.relationship || "—", " · ", selS.publicationConsent.method || "—"), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, "记录时间：", fmtDate(selS.publicationConsent.at), " · 告知版本 ", selS.publicationConsent.noticeVersion || "—")), consentEdit?.mode === "confirm" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-xl bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement(
+      )))))), /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement(StudentCalendarFeed, { api: v1Api, studentId: selS.id, copyText, showToast }))), canWritePortfolio && /* @__PURE__ */ React.createElement(TabPanel, { idBase: "student-profile", name: "portfolio", active: studentProfileTab === "portfolio" }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: `border rounded-2xl overflow-hidden ${selS.publicationConsent?.status === "confirmed" ? "border-emerald-100" : selS.publicationConsent?.status === "withdrawn" ? "border-amber-100" : "border-gray-200"}` }, /* @__PURE__ */ React.createElement("div", { className: `px-4 py-3 flex items-center justify-between gap-3 ${selS.publicationConsent?.status === "confirmed" ? "bg-emerald-50" : selS.publicationConsent?.status === "withdrawn" ? "bg-amber-50" : "bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm font-bold text-gray-900" }, /* @__PURE__ */ React.createElement(Icon, { name: "shield", className: "w-4 h-4" }), "官网作品公开授权"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, "授权与撤回均追加为不可覆盖的审计记录。")), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-1 rounded-full shrink-0 ${selS.publicationConsent?.status === "confirmed" ? "bg-emerald-600 text-white" : selS.publicationConsent?.status === "withdrawn" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}` }, selS.publicationConsent?.status === "confirmed" ? "有效" : selS.publicationConsent?.status === "withdrawn" ? "已撤回" : "未记录")), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3" }, selS.publicationConsent?.status === "confirmed" && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-600 space-y-1" }, /* @__PURE__ */ React.createElement("p", null, "授权人：", /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, selS.publicationConsent.by || "—"), " · ", selS.publicationConsent.relationship || "—", " · ", selS.publicationConsent.method || "—"), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, "记录时间：", fmtDate(selS.publicationConsent.at), " · 告知版本 ", selS.publicationConsent.noticeVersion || "—")), consentEdit?.mode === "confirm" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-xl bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement(
         "input",
         {
           value: consentEdit.by,

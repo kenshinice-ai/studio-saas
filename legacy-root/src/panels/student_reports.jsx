@@ -1,4 +1,4 @@
-/* 学员档案里的两块：成长报告的撰写与发布，以及这个孩子由谁付账。
+/* 学员档案里的三块：成长报告的撰写与发布、这个孩子由谁付账，以及给家长的日历订阅。
  *
  * 报告写在学员档案里，而不是一个独立的「报告」页面 —— 这条在 v10.1 的界面
  * 方案里论证过：写报告和「谁的报告还没写」是两个问题，后者是待处理收件箱里
@@ -250,6 +250,123 @@ export function StudentBillingAccount({ api, studentId, onOpenBilling }) {
                     </span>
                 </button>
             ))}
+        </div>
+    );
+}
+
+/** 家庭日历订阅：给家长一条链接，孩子的课出现在他们手机自带的日历里。
+ *
+ * 链接本身就是凭证，服务端只存它的哈希，所以只能在生成的那一刻显示一次。
+ * 丢了就再生成一条、停用旧的 —— 和学员专区访问码同一个道理。
+ *
+ * 版本记录从 v10.0.0 起就说「家长可以订阅」，但直到这里，后台没有任何地方
+ * 能发出这条链接，订阅地址在生产角色下也查不到任何一条订阅。
+ */
+export function StudentCalendarFeed({ api, studentId, copyText, showToast }) {
+    const [subs, setSubs] = useState(null);
+    const [issued, setIssued] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [confirmingId, setConfirmingId] = useState(null);
+
+    const load = useCallback(async () => {
+        try {
+            const res = await api(`/calendar/subscriptions?studentId=${encodeURIComponent(studentId)}`);
+            setSubs(res.subscriptions || []);
+        } catch (e) {
+            /* 没有这项权利的租户读不到，这一块就不显示。 */
+            setSubs(false);
+        }
+    }, [api, studentId]);
+
+    useEffect(() => { setIssued(null); setConfirmingId(null); load(); }, [load]);
+
+    if (subs === null || subs === false) return null;
+
+    async function issue() {
+        setBusy(true);
+        try {
+            const res = await api('/calendar/subscriptions', {
+                method: 'POST',
+                body: JSON.stringify({ scope: 'student', studentId }),
+            });
+            setIssued({ id: res.subscription?.id, url: `${window.location.origin}${res.feedPath}` });
+            await load();
+        } catch (e) {
+            showToast(e.message || '生成失败', 'error');
+        } finally { setBusy(false); }
+    }
+
+    async function revoke(id) {
+        setBusy(true);
+        try {
+            await api(`/calendar/subscriptions/${id}`, { method: 'DELETE' });
+            setConfirmingId(null);
+            /* 刚生成的那条被停用了，就别再把一条死链接摆在「请交给家长」的框里。 */
+            if (issued && issued.id === id) setIssued(null);
+            showToast('订阅链接已停用', 'success');
+            await load();
+        } catch (e) {
+            showToast(e.message || '停用失败', 'error');
+        } finally { setBusy(false); }
+    }
+
+    const live = subs.length > 0;
+    return (
+        <div className="border border-indigo-100 rounded-2xl overflow-hidden">
+            <div className="bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                    <p className="text-sm font-bold text-indigo-800">家庭日历订阅</p>
+                    <p className="text-xs text-indigo-500 mt-0.5">家长订阅一次，孩子的课就会出现在他们手机自带的日历里；调课和停课会跟着同步。</p>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${live ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {live ? '已启用' : '未启用'}
+                </span>
+            </div>
+            <div className="p-4 space-y-3">
+                {issued && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-xs font-bold text-amber-800">仅显示一次，请现在交给家长</p>
+                        <div className="flex items-start gap-3 mt-2">
+                            <code className="text-xs text-gray-900 break-all flex-1">{issued.url}</code>
+                            <button type="button" onClick={() => copyText(issued.url, '订阅链接已复制')}
+                                className="px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs font-bold text-amber-800 min-h-[44px] shrink-0">复制</button>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-2">iPhone：设置 → 日历 → 账户 → 添加账户 → 其他 → 添加已订阅的日历。Google 日历：其他日历 → 通过网址添加。</p>
+                    </div>
+                )}
+                <p className="text-xs text-gray-500">手机日历按自己的节奏刷新，当天的临时变动不一定及时到达。</p>
+                <button type="button" disabled={busy} onClick={issue}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 active:bg-indigo-700 text-white text-sm font-bold disabled:bg-gray-300 min-h-[44px]">
+                    {live ? '再生成一条链接' : '生成订阅链接'}
+                </button>
+                {live && (
+                    <ul className="space-y-2" aria-label="已发出的订阅链接">
+                        {subs.map(s => (
+                            <li key={s.id} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 flex items-center gap-3">
+                                <div className="flex-1 min-w-0 text-xs text-gray-500">
+                                    <p><span className="mr-1">生成于</span><span>{fmtApiDate(s.created_at)}</span></p>
+                                    <p>
+                                        <span className="mr-1">最近同步：</span>
+                                        <span>{s.last_fetched_at ? fmtApiDate(s.last_fetched_at) : '还没有同步过'}</span>
+                                    </p>
+                                </div>
+                                {confirmingId === s.id ? (
+                                    <div className="flex gap-2 shrink-0">
+                                        <button type="button" disabled={busy} onClick={() => setConfirmingId(null)}
+                                            className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-600 min-h-[44px]">取消</button>
+                                        <button type="button" disabled={busy} onClick={() => revoke(s.id)}
+                                            className="px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-bold min-h-[44px]">确认停用</button>
+                                    </div>
+                                ) : (
+                                    <button type="button" disabled={busy} onClick={() => setConfirmingId(s.id)}
+                                        className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold min-h-[44px] shrink-0">停用</button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {confirmingId && <p className="text-xs text-gray-500" role="status">停用后这条链接立刻失效，家长日历里的课会在下次刷新时消失。</p>}
+            </div>
         </div>
     );
 }

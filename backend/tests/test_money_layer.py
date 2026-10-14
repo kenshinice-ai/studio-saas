@@ -309,7 +309,7 @@ def test_every_money_route_declares_a_permission():
         "billing_invoice_record_reminder", "billing_invoices", "billing_issue_invoice",
         "billing_payer_monthly_statement", "billing_record_payment",
         "billing_refund_payment", "billing_statement", "billing_tax_codes",
-        "billing_void_invoice", "calendar_subscription_revoke",
+        "billing_void_invoice", "calendar_subscription_revoke", "calendar_subscriptions_list",
         "calendar_subscriptions_route", "get_entitlements", "management_report",
         "notification_usage", "progress_report_create", "progress_report_publish",
         "progress_report_update", "progress_reports_overdue", "public_calendar_feed",

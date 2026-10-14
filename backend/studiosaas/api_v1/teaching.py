@@ -333,14 +333,47 @@ def teaching_period_summary(period_id: str):
 # ── calendar subscriptions ───────────────────────────────────────────────
 
 
-@api_v1.route("/calendar/subscriptions", methods=["GET", "POST"])
+@api_v1.route("/calendar/subscriptions", methods=["GET"])
 @permission_required("students:read")
+def calendar_subscriptions_list():
+    """The live feeds, optionally only those for one student."""
+
+    student_id = (request.args.get("studentId") or "").strip()
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(
+                conn, tenant.tenant_id, _entitlements.FEATURE_CALENDAR_SUBSCRIPTIONS
+            )
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT id, scope, label, billing_account_id, student_id, teacher_user_id,
+                   created_at, last_fetched_at, fetch_count
+            FROM calendar_subscriptions
+            WHERE tenant_id = %s AND revoked_at IS NULL
+              AND (%s = '' OR student_id::text = %s)
+            ORDER BY created_at DESC
+            """,
+            (tenant.tenant_id, student_id, student_id),
+        )
+    return jsonify({"subscriptions": rows})
+
+
+@api_v1.route("/calendar/subscriptions", methods=["POST"])
+@permission_required("students:write")
 def calendar_subscriptions_route():
-    """Issue a family's calendar feed, or list the ones already issued.
+    """Issue a calendar feed.
 
     The raw token is returned once, at creation, and never again. A family that
     loses the link gets a new subscription, which also means the lost one can be
     revoked on its own.
+
+    Issuing needs ``students:write``, the same as revoking. A feed hands a
+    family's lesson times and the student's name to whoever holds the link, so
+    a read-only role must not be able to create one.
     """
 
     with connect() as conn:
@@ -351,20 +384,6 @@ def calendar_subscriptions_route():
             )
         except _entitlements.FeatureUnavailableError as exc:
             return _feature_error(exc)
-
-        if request.method == "GET":
-            rows = fetch_all(
-                conn,
-                """
-                SELECT id, scope, label, billing_account_id, student_id, teacher_user_id,
-                       created_at, last_fetched_at, fetch_count
-                FROM calendar_subscriptions
-                WHERE tenant_id = %s AND revoked_at IS NULL
-                ORDER BY created_at DESC
-                """,
-                (tenant.tenant_id,),
-            )
-            return jsonify({"subscriptions": rows})
 
         try:
             payload = _json_payload()
