@@ -1,12 +1,15 @@
 # PWE Studio
 
-## v10.21.1 release identity — "stopped coming" means missed lessons
+## v10.22.0 release identity — Claude drafts, people send
 
-`VERSION` = **10.21.1** and `backend/server.py` reports `APP_VERSION=10.21.1`.
-**Zero migrations.** The dashboard's "stopped coming" row lists students who
-missed their last three scheduled lessons (`services/missed_lessons.py`,
-`GET /v1/students/missed-lessons`) instead of "no class for N days". Round
-notes: `docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
+`VERSION` = **10.22.0** and `backend/server.py` reports `APP_VERSION=10.22.0`.
+**Zero migrations.** AI drafting: a Draft button on progress-report comments,
+dashboard exceptions, overdue invoices and booking requests; off until a
+tenant's owner turns it on; Claude Haiku 5.5 by default; nothing is sent by
+the system. Needs `STUDIOSAAS_DRAFTING_API_KEY` on the host to be usable.
+Plan, evaluation and round notes: `docs/design/Claude_Drafting_Plan_2026-10-14.md`,
+`docs/design/Claude_Drafting_Eval_2026-10-14.md`,
+`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -21,9 +24,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.21.1, released** — deployed commit `eafaab0` on `main` | Missed-lessons measure for the dashboard; **zero migrations**. Local gate `All checks passed`, pytest 2615 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit (run 38530856586). |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.21.1.tar.gz` SHA-256 `48bbf8f15b15ff7fac755dbb2bec45028ef5cfc7562af3cd9544b566c4ba0b21` (archival); `dist/PWE-Studio-Edition-10.21.1.tar.gz` SHA-256 `b275e927c8b1086e36ae51c93de0d9edeb084d3f2a06bad9fb95805c9308c24b`. Three-way commit guard equal. |
-| Production | **v10.21.1** (`pwestudio.online`, Oracle ARM, commit `eafaab0`) | Measured 2026-10-14: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants; the new route answers 401 without a session. Signed-in screens were checked on the local machine only. |
+| Source | **v10.22.0, release candidate** — on branch `release/10.22.0` | AI drafting; anthropic 1.13.0 added to the production lock; **zero migrations**. Gates recorded at step 9. |
+| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
+| Production | **v10.21.1** (`pwestudio.online`, Oracle ARM, commit `eafaab0`) | Unchanged until step 8. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
