@@ -17,16 +17,33 @@
 
 - **[决定] Claude 起草方案里要 Lee 定的几件事** — Lee 2026-10-14 定了方向：只起草、人确认后再发，并多用 API。方案随 v10.21.1 的证据收尾写入 `docs/design/Claude_Drafting_Plan_2026-10-14.md`，看其中「等你定」 · 不定：起草功能不开工 · 自 2026-10-14
 
-## 当前四层身份（v10.21.1，2026-10-14 · 准备中，未部署）
+## 当前四层身份（v10.21.1，2026-10-14 · **已发布、已部署**）
 
-> 第 1–5 步进行中。本表在第 9 步按实测回填。
+> 第 1–9 步已执行，本表由实测回填。
 > 操作者：Claude 会话。发布（含第 8 步部署）由 Lee 2026-10-14 在会话里授权：「1. 发布」（第二次）。
+> 轮次文件：`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`（追加一节）。
 
 | 层 | 精确事实 |
 |---|---|
-| Source | 候选在分支 `release/10.21.1`。内容：「排了课连续缺席 3 次」（`c5a11d7`）。**零迁移**。 |
-| Package | 第 6 步构建。 |
-| Production | 仍是 v10.21.0（`33c4e49`）。 |
+| Source | 部署的是 `eafaab014ff80537fc2ca8dc799570e6a50c5272`，已在 `origin/main`。内容：「排了课连续缺席 3 次」（`c5a11d7`）。**零迁移**。local gate `All checks passed`，pytest 2615 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38530856586）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.21.1.tar.gz`，SHA-256 `48bbf8f15b15ff7fac755dbb2bec45028ef5cfc7562af3cd9544b566c4ba0b21`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.21.1.tar.gz`，SHA-256 `b275e927c8b1086e36ae51c93de0d9edeb084d3f2a06bad9fb95805c9308c24b`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`eafaab0…`）。 |
+| Production | `pwestudio.online`，Oracle ARM，commit `eafaab0`，v10.21.1。 |
+| Backup / migration | **本版零迁移**，没有设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。当天 18:36 AEDT 为 v10.21.0 做的数据库备份 `exit=0`。 |
+
+### 部署后验收（生产实测，2026-10-14，v10.21.1）
+
+| 检查 | 结果 |
+|---|---|
+| 公开边缘深度健康 | `appVersion=10.21.1`，`db=ok`，`mode=saas`，`workspaces.stale=0`，`themes.unreadable=0`，5 个租户 |
+| `/s/lets-paint-showcase/v1/students/missed-lessons`（未登录） | 401：路由存在，要求登录 |
+| 客户版本记录 | 有 v10.21.1 条目 |
+| Assist 知识 | `version.json` 的 commit 是 `10.21.1-c81a92e7` |
+
+### 这次不声称的
+
+- 没有在生产上登录看工作台的新一行，也不知道生产数据上会列出多少人。
+- 没有核对生产上各租户是否记签到；不记签到的租户这一行不出现。
 
 ## 上一版四层身份（v10.21.0，2026-10-14 · 已发布、已部署）
 

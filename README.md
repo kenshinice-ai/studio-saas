@@ -21,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.21.1, release candidate** — on branch `release/10.21.1` | Missed-lessons measure for the dashboard; **zero migrations**. Gates recorded at step 9. |
-| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
-| Production | **v10.21.0** (`pwestudio.online`, Oracle ARM, commit `33c4e49`) | Unchanged until step 8. |
+| Source | **v10.21.1, released** — deployed commit `eafaab0` on `main` | Missed-lessons measure for the dashboard; **zero migrations**. Local gate `All checks passed`, pytest 2615 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit (run 38530856586). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.21.1.tar.gz` SHA-256 `48bbf8f15b15ff7fac755dbb2bec45028ef5cfc7562af3cd9544b566c4ba0b21` (archival); `dist/PWE-Studio-Edition-10.21.1.tar.gz` SHA-256 `b275e927c8b1086e36ae51c93de0d9edeb084d3f2a06bad9fb95805c9308c24b`. Three-way commit guard equal. |
+| Production | **v10.21.1** (`pwestudio.online`, Oracle ARM, commit `eafaab0`) | Measured 2026-10-14: deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants; the new route answers 401 without a session. Signed-in screens were checked on the local machine only. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
