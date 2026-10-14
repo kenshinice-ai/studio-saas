@@ -136,6 +136,11 @@ def synthetic_records(per_kind: int, seed: int = 20261014) -> list[dict]:
                 facts |= {"contact_name": name, "class_name": CLASSES[studio["trade"]][1 if zh else 0],
                           "class_date": _date(rng, 2, 12), "start_time": rng.choice(["10:00", "16:30", "18:00"]),
                           "decision": ["approved", "declined", "question"][i % 3]}
+                # The staff note the dialog now asks for (added after round two).
+                if facts["decision"] == "question":
+                    facts["staff_note"] = "问孩子几岁、以前有没有学过" if zh else "Ask the child's age and whether they have learned before."
+                elif facts["decision"] == "declined":
+                    facts["staff_note"] = "这节满了，可以改约同一周的周六上午十点" if zh else "That class is full; offer the Saturday 10:00 class the same week instead."
             elif kind == drafting.REPORT_COMMENT:
                 notes = NOTES[studio["trade"]]["zh" if zh else "en"]
                 k = 1 if i % 4 == 3 else rng.randint(2, 4)
@@ -301,9 +306,10 @@ def main() -> int:
     parser.add_argument("--grader", default="claude-sonnet-5-5")
     parser.add_argument("--out", default=str(APP_ROOT.parent / "outputs" / "drafting-eval-2026-10-14b"))
     parser.add_argument("--max-usd", type=float, default=15.0)
+    parser.add_argument("--kinds", nargs="+", default=list(drafting.KINDS))
     args = parser.parse_args()
 
-    records = synthetic_records(args.per_kind)
+    records = [r for r in synthetic_records(args.per_kind) if r["kind"] in args.kinds]
     by_id = {r["id"]: r for r in records}
     if args.step == "dry-run":
         sizes = [len(drafting.build_request(r["kind"], r["facts"], voice=r["voice"], language=r["language"])["user"])
@@ -380,7 +386,7 @@ def main() -> int:
         rng = random.Random(7)
         chosen = []
         for model in args.models:
-            for kind in drafting.KINDS:
+            for kind in args.kinds:
                 pool = [d for d in good if d["model"] == model and d["kind"] == kind]
                 chosen += rng.sample(pool, min(args.grade_per_kind, len(pool)))
         requests = [(f"g__{SHORT[d['model']]}__{d['id']}", grade_params(by_id[d["id"]], d["draft"], args.grader))

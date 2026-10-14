@@ -194,3 +194,11 @@ def test_the_cost_estimate_uses_the_price_list():
                            input_tokens=1500, output_tokens=300)
 
     assert drafting.estimated_cost_micros(draft) == 12_000  # US$0.012
+
+
+def test_a_24_hour_time_may_be_written_the_12_hour_way():
+    """Evaluation 2026-10-14: every flagged figure in 720 drafts was this."""
+
+    facts = {"start_time": "16:30", "other": "18:00"}
+    assert drafting.unbacked_figures("Class at 4:30 pm, or 4.30pm, then 6pm or 6:00 pm.", facts) == []
+    assert drafting.unbacked_figures("Class at 5:30 pm.", facts) == ["5:30"]

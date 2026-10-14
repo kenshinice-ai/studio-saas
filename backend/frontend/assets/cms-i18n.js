@@ -617,6 +617,10 @@
     ['本周生日', 'Birthdays this week'], ['本月生日', 'Birthdays this month'],
     ['今天没有需要处理的事。', 'Nothing needs handling today.'],
     /* Claude 起草（v10.22）。 */
+    ['想说的要点（选填）', 'What you want to say (optional)'], ['要点', 'Your note'],
+    ['例如：问孩子几岁、以前有没有学过', 'For example: ask the child’s age and whether they have learned before'],
+    ['例如：提一下下周起换教室', 'For example: mention the room changes from next week'],
+    ['这里写的内容会和其他事实一起交给 Claude。', 'What you type here is sent to Claude with the other facts.'],
     ['AI 起草', 'AI drafting'],
     ['AI 起草已关闭', 'AI drafting is off'],
     ['AI 起草已打开', 'AI drafting is on'],

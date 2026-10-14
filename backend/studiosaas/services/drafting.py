@@ -81,6 +81,7 @@ Rules:
 - Use only the facts in the request. Never invent a name, number, date, price, time, policy or promise.
 - If the message needs a fact you were not given, put a short placeholder in square brackets in the text, such as [payment details], and list that fact in "missing".
 - Never offer discounts, refunds, credits or exceptions.
+- If the facts include "staff_note", it is what the staff member wants to say. Build the message around it; it outranks the general task.
 - Write in the language the request asks for. Chinese: natural, polite written Chinese. English: plain Australian English.
 - Sound like the studio, using its voice notes if given. Warm and brief: a message is at most about 120 English words or 200 Chinese characters.
 - Address the family as the facts say. If no parent name is given, address the family of the student by the student's first name.
@@ -206,6 +207,13 @@ def _variants(fact: str) -> set[str]:
         y, m, d = fact.split("-")
         forms |= {f"{d}/{m}/{y}", f"{int(d)}/{int(m)}/{y}", f"{d}/{m}", f"{int(d)}/{int(m)}",
                   f"{int(m)}月{int(d)}日", str(int(d)), str(int(m)), y}
+    if re.fullmatch(r"\d{1,2}:\d{2}", fact):
+        # Times are stored 24-hour; prose writes "4:30 pm", "4.30pm" or "6pm".
+        hour, minute = (int(part) for part in fact.split(":"))
+        twelve = hour % 12 or 12
+        forms |= {f"{twelve}:{minute:02d}", f"{twelve}.{minute:02d}", f"{hour}:{minute:02d}"}
+        if minute == 0:
+            forms |= {str(twelve), str(hour)}
     if re.fullmatch(r"-?\d+(\.\d+)?", fact):
         number = float(fact)
         forms |= {f"{number:,.2f}", f"{number:.2f}", f"{number:,.0f}", f"{number:.0f}"}

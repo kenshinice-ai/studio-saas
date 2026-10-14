@@ -1274,6 +1274,7 @@
     how_to_pay: "付款方式",
     contact_name: "联系人",
     class_name: "班次",
+    staff_note: "要点",
     class_date: "日期",
     start_time: "时间",
     decision: "决定",
@@ -1346,6 +1347,7 @@
     useModalFocus(true, onClose, dialogRef);
     const [language, setLanguage] = useState2(() => window.CmsI18n && window.CmsI18n.language === "en" ? "en" : "zh");
     const [decision, setDecision] = useState2("approved");
+    const [staffNote, setStaffNote] = useState2("");
     const [busy, setBusy] = useState2(false);
     const [error, setError] = useState2("");
     const [result, setResult] = useState2(null);
@@ -1359,7 +1361,7 @@
       try {
         const data = await v1Api("/drafts", {
           method: "POST",
-          body: JSON.stringify({ kind, recordId, language, ...kind === "booking_reply" ? { decision } : {} })
+          body: JSON.stringify({ kind, recordId, language, note: staffNote, ...kind === "booking_reply" ? { decision } : {} })
         });
         setResult(data);
         setSubject(data.draft.subject || "");
@@ -1433,7 +1435,17 @@ ${body}` : body;
           className: `min-h-[44px] px-3 rounded-lg border text-xs font-bold ${decision === value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`
         },
         text
-      ))), /* @__PURE__ */ React.createElement(
+      ))), /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-bold text-gray-500" }, "想说的要点（选填）", /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          value: staffNote,
+          onChange: (e) => setStaffNote(e.target.value),
+          maxLength: 300,
+          rows: 2,
+          placeholder: kind === "booking_reply" ? "例如：问孩子几岁、以前有没有学过" : "例如：提一下下周起换教室",
+          className: "mt-1 w-full p-3 border border-gray-200 rounded-xl text-sm"
+        }
+      ), /* @__PURE__ */ React.createElement("span", { className: "block mt-1 font-normal text-gray-400" }, "这里写的内容会和其他事实一起交给 Claude。")), /* @__PURE__ */ React.createElement(
         "button",
         {
           type: "button",

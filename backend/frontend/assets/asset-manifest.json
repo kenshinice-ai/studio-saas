@@ -3,8 +3,8 @@
   "assets": {
     "admin-i18n.js": "20c2755dd0501ed23cd7d40806084b040ec888e8c253bdfa23940e6eaafec905",
     "brand-system.css": "1bee850f81dbfb311dad70cbfda9ae1ebaa6641e08ee16b2ed91a67740c95ab9",
-    "cms-app.js": "d49c4836f266eb0043dc14509bd0a42a1a347454db401d788a91f0773031a698",
-    "cms-i18n.js": "5a993e832fbe148e9b9e31dddf3a4f6e7f8380c4bd9c0dc146ac4bd88bf423cc",
+    "cms-app.js": "5a0a8ec92853cde4eb6f0ffc18bbfcd622555a93d46e85591c68a4a93fec8235",
+    "cms-i18n.js": "f46ff2e137a99a99065f00f1864c15a93ca6d4606a4dcece6084dd4afc7ec8a4",
     "cms-tailwind.css": "559d079c49b7d00439d626f9b627e46ed1f100e03d1276056a3adab5534d1f62",
     "console-theme.css": "a0b7f2f6ad067a9570aa2b84b93e34801792a850250bb27215a03ccd0d21ada5",
     "customer-resources.css": "f29bfd0fa125f6cdfdc9635e3956a5915d3c6dd94a0c457099e2d1a8f19cc325",

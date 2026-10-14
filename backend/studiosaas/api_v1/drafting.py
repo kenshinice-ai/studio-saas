@@ -54,6 +54,7 @@ KIND_PERMISSIONS = {
 }
 
 VOICE_MAX = 500
+NOTE_MAX = 300
 
 _client = None
 
@@ -181,6 +182,9 @@ def create_draft():
     record_id = str(payload.get("recordId") or "").strip()
     language = str(payload.get("language") or "zh")
     decision = str(payload.get("decision") or "")
+    # What the staff member wants to say, typed in the dialog. Evaluation
+    # 2026-10-14: a "question" reply without it can only be a placeholder.
+    note = str(payload.get("note") or "").strip()[:NOTE_MAX]
     if kind not in KIND_PERMISSIONS:
         return _error("Unknown draft kind.")
     if not record_id:
@@ -202,6 +206,8 @@ def create_draft():
         today = datetime.now(ZoneInfo(_tenant_timezone(conn, tenant.tenant_id))).date()
         try:
             gathered = _drafting.gather(conn, tenant.tenant_id, kind, record_id, today=today, decision=decision)
+            if note:
+                gathered.facts["staff_note"] = note
             request = _drafting.build_request(kind, gathered.facts, voice=current["voice"], language=language)
         except _drafting.RecordNotFound:
             return _error("That record does not exist.", 404)

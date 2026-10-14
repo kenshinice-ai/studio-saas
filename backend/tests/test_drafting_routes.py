@@ -222,3 +222,16 @@ def test_the_privacy_policy_says_what_drafting_sends_and_keeps(client):
     for phrase in ("在店主打开之前它是关闭的", "系统不会替工作室给家长发送任何消息",
                    "电话、邮箱、住址、生日和照片从不发送", "草稿本身和发送的内容都不保存"):
         assert phrase in chinese, phrase
+
+
+@requires_db
+def test_what_the_staff_member_types_reaches_claude_as_a_fact(app, studio, fake_model):
+    _enable(app, studio)
+    client = _as(app, studio, "manager")
+    client.post(f"/s/{studio['slug']}/v1/drafts", headers=HEADERS,
+                json={"kind": "low_credits", "recordId": studio["student_id"], "language": "en",
+                      "note": "Mention the holiday timetable." + "x" * 400})
+
+    facts = __import__("json").loads(fake_model[0]["user"])["facts"]
+    assert facts["staff_note"].startswith("Mention the holiday timetable.")
+    assert len(facts["staff_note"]) == 300

@@ -39,7 +39,7 @@ const FACT_LABELS = {
     last_attended: '上次来', packages: '课包', missed_in_a_row: '连续没来', makeup_expires_on: '补课额度到期',
     missed_lesson_on: '请假那天', payer_name: '付款方', invoice_number: '发票号', amount_outstanding_aud: '未付金额 (AUD)',
     invoice_total_aud: '发票总额 (AUD)', due_date: '到期日', days_overdue: '逾期天数', how_to_pay: '付款方式',
-    contact_name: '联系人', class_name: '班次', class_date: '日期', start_time: '时间', decision: '决定',
+    contact_name: '联系人', class_name: '班次', staff_note: '要点', class_date: '日期', start_time: '时间', decision: '决定',
     period_start: '周期开始', period_end: '周期结束', attendance: '出勤', lesson_notes: '课堂笔记', works: '作品',
 };
 
@@ -91,6 +91,7 @@ function DraftDialog({ kind, recordId, onClose, onUse, useLabel, copyText }) {
     useModalFocus(true, onClose, dialogRef);
     const [language, setLanguage] = useState(() => (window.CmsI18n && window.CmsI18n.language === 'en') ? 'en' : 'zh');
     const [decision, setDecision] = useState('approved');
+    const [staffNote, setStaffNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState(null);
@@ -103,7 +104,7 @@ function DraftDialog({ kind, recordId, onClose, onUse, useLabel, copyText }) {
         try {
             const data = await v1Api('/drafts', {
                 method: 'POST',
-                body: JSON.stringify({ kind, recordId, language, ...(kind === 'booking_reply' ? { decision } : {}) }),
+                body: JSON.stringify({ kind, recordId, language, note: staffNote, ...(kind === 'booking_reply' ? { decision } : {}) }),
             });
             setResult(data);
             setSubject(data.draft.subject || '');
@@ -167,6 +168,12 @@ function DraftDialog({ kind, recordId, onClose, onUse, useLabel, copyText }) {
                             ))}
                         </div>
                     )}
+                    <label className="block text-xs font-bold text-gray-500">想说的要点（选填）
+                        <textarea value={staffNote} onChange={e => setStaffNote(e.target.value)} maxLength={300} rows={2}
+                            placeholder={kind === 'booking_reply' ? '例如：问孩子几岁、以前有没有学过' : '例如：提一下下周起换教室'}
+                            className="mt-1 w-full p-3 border border-gray-200 rounded-xl text-sm"/>
+                        <span className="block mt-1 font-normal text-gray-400">这里写的内容会和其他事实一起交给 Claude。</span>
+                    </label>
                     <button type="button" onClick={draft} disabled={busy}
                         className="w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:bg-gray-300">
                         {busy ? '正在起草…' : (result ? '重新起草' : '起草')}
