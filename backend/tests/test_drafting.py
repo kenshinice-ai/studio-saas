@@ -133,7 +133,8 @@ def _response(body="Hi", stop_reason="end_turn"):
         stop_reason=stop_reason,
         model="claude-haiku-5-5",
         content=[SimpleNamespace(type="text", text=text)],
-        usage=SimpleNamespace(input_tokens=900, output_tokens=120, cache_read_input_tokens=600),
+        usage=SimpleNamespace(input_tokens=900, output_tokens=120, cache_read_input_tokens=600,
+                              cache_creation_input_tokens=0),
     )
 
 
@@ -212,3 +213,28 @@ def test_chinese_times_pass_and_a_worked_out_date_does_not():
     facts = {"class_date": "2026-10-14", "start_time": "16:30"}
     assert drafting.unbacked_figures("10月14日下午4点30分上课。", facts) == []
     assert drafting.unbacked_figures("可以改约周六（10月17日）。", facts) == ["17"]
+
+
+def test_the_cost_estimate_counts_the_cache_write():
+    """Production, 2026-10-14: the first draft wrote ~706 tokens to the cache."""
+
+    first = drafting.Draft(subject="", body="x", missing=[], model="claude-haiku-5-5",
+                           input_tokens=149, output_tokens=160, cache_write_tokens=706)
+    second = drafting.Draft(subject="", body="x", missing=[], model="claude-haiku-5-5",
+                            input_tokens=149, output_tokens=189, cache_read_tokens=706)
+
+    # 149×0.10 + 706×0.10×1.25 + 160×0.50 = 183.15 millionths of a dollar
+    assert drafting.estimated_cost_micros(first) == 183
+    # 149×0.10 + 706×0.10×0.1 + 189×0.50 = 116.46
+    assert drafting.estimated_cost_micros(second) == 116
+
+
+def test_a_reply_records_the_cache_write():
+    message = SimpleNamespace(
+        stop_reason="end_turn", model="claude-haiku-5-5",
+        content=[SimpleNamespace(type="text", text=json.dumps({"subject": "", "body": "Hi", "missing": []}))],
+        usage=SimpleNamespace(input_tokens=149, output_tokens=160, cache_read_input_tokens=0,
+                              cache_creation_input_tokens=706),
+    )
+
+    assert drafting.draft_from_message(message, model="claude-haiku-5-5").cache_write_tokens == 706

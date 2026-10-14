@@ -150,6 +150,7 @@ class Draft:
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
     unbacked: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
@@ -275,6 +276,7 @@ def draft_from_message(message, *, model: str) -> Draft:
     draft.input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
     draft.output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
     draft.cache_read_tokens = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+    draft.cache_write_tokens = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
     return draft
 
 
@@ -319,11 +321,21 @@ PRICES = {
 }
 
 
+#: A five-minute cache write costs 1.25 times the input price.
+CACHE_WRITE_MULTIPLIER = 1.25
+
+
 def estimated_cost_micros(draft: Draft, *, batch: bool = False) -> int:
-    """Estimated cost in millionths of a US dollar. Batches cost half."""
+    """Estimated cost in millionths of a US dollar. Batches cost half.
+
+    Until v10.22.1 the cache write was left out, so the first draft of each
+    five-minute window was under-estimated (measured in production on
+    2026-10-14: about 706 tokens written, roughly US$0.00009 on Haiku).
+    """
 
     rate_in, rate_out, cache_read = PRICES.get(draft.model, PRICES["claude-opus-5-5"])
     dollars = (max(0, draft.input_tokens) * rate_in
+               + draft.cache_write_tokens * rate_in * CACHE_WRITE_MULTIPLIER
                + draft.cache_read_tokens * rate_in * cache_read
                + draft.output_tokens * rate_out) / 1_000_000
     if batch:

@@ -235,6 +235,7 @@ def create_draft():
             metadata={
                 "model": draft.model, "inputTokens": draft.input_tokens,
                 "outputTokens": draft.output_tokens, "cacheReadTokens": draft.cache_read_tokens,
+                "cacheWriteTokens": draft.cache_write_tokens,
                 "costMicrosUsd": _drafting.estimated_cost_micros(draft),
                 "unbacked": len(draft.unbacked), "missing": len(draft.missing),
             },
