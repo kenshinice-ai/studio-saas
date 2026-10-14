@@ -17,17 +17,36 @@
 
 - **[动手] 给 Claude 起草建生产 API 密钥并放到主机** — 推荐：和「API总规划调度」一起定工作区和月度上限，密钥放进 `/srv/pwestudio/shared/production.env` 的 `STUDIOSAAS_DRAFTING_API_KEY`，再重新部署同一提交 · 不定：起草按钮不会出现 · 自 2026-10-14
 
-## 当前四层身份（v10.22.0，2026-10-14 · 准备中，未部署）
+## 当前四层身份（v10.22.0，2026-10-14 · **已发布、已部署**）
 
-> 第 1–5 步进行中。本表在第 9 步按实测回填。
+> 第 1–9 步已执行，本表由实测回填。
 > 操作者：Claude 会话。发布（含第 8 步部署）由 Lee 2026-10-14 在会话里授权：「按照你的建议 开始执行」。
+> 轮次文件：`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`（追加各节）。
 
 | 层 | 精确事实 |
 |---|---|
-| Source | 候选在分支 `release/10.22.0`。内容：Claude 起草（`a2178e8` 至 Haiku 默认模型那一提交）。**零迁移**。新增依赖 anthropic 1.13.0 及其 13 个依赖，写进生产锁文件。 |
-| Package | 第 6 步构建。 |
-| Production | 仍是 v10.21.1（`eafaab0`）。 |
-| 运行时配置 | 生产主机还没有 `STUDIOSAAS_DRAFTING_API_KEY`，所以部署后起草不可用，设置页如实说明。 |
+| Source | 部署的是 `0e6a86c35b550f5425b007a0ececbfc79dce5f86`，已在 `origin/main`。内容：Claude 起草，默认模型 Haiku 5.5。**零迁移**。local gate `All checks passed`，pytest 2662 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38554201731）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.22.0.tar.gz`，SHA-256 `aead8473e7628a1783238137fd32647dd01d4a48d07678bc05b7209af67d52eb`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.22.0.tar.gz`，SHA-256 `50cf7774dbdda29fb072ec77a9a04a6375f590b2104cefdbecc69e4c0a5ad694`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`0e6a86c…`）。 |
+| Production | `pwestudio.online`，Oracle ARM，commit `0e6a86c`，v10.22.0。镜像构建日志：`anthropic-1.13.0` 及其依赖安装成功。 |
+| Backup / migration | **本版零迁移**，没有设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| 运行时配置 | 主机上**还没有** `STUDIOSAAS_DRAFTING_API_KEY`。起草接口回答 503 `unavailable`，设置页说明尚未开通，按钮不出现。 |
+
+### 部署后验收（生产实测，2026-10-14，v10.22.0）
+
+| 检查 | 结果 |
+|---|---|
+| 公开边缘深度健康 | `appVersion=10.22.0`，`db=ok`，`mode=saas`，`workspaces.stale=0`，`themes.unreadable=0`，5 个租户 |
+| `/s/lets-paint-showcase/v1/drafting/settings`、`POST …/v1/drafts`（未登录） | 都是 401 |
+| 隐私政策 | 英文有第十一节「AI drafting in the console」和「12 · Changes to this policy」；中文有「十一 · 在后台用 AI 起草消息」 |
+| 服务条款、客户版本记录 | 有起草一段和 v10.22.0 条目 |
+| Assist 知识 | `version.json` 的 commit 是 `10.22.0-7347fca6` |
+
+### 这次不声称的
+
+- 起草在生产上还不能用：没有密钥。真实起草只在本机评测和本机假接口里验证过。
+- 没有在容器里单独执行 `import anthropic`；依据是构建日志的安装记录。路由只在有密钥时才导入它。
+- 没有登录生产后台看设置页。
 
 ## 上一版四层身份（v10.21.1，2026-10-14 · 已发布、已部署）
 
