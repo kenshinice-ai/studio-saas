@@ -21,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.1, release candidate** — on branch `release/10.22.1` | Drafting cost estimate counts cache writes; **zero migrations**. Gates recorded at step 9. |
-| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
-| Production | **v10.22.0** (`pwestudio.online`, Oracle ARM, commit `0e6a86c`) | Unchanged until step 8. Drafting key live. |
+| Source | **v10.22.1, released** — deployed commit `e1df72e` on `main` | Drafting cost estimate counts cache writes; **zero migrations**. Local gate `All checks passed`, pytest 2664 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.1.tar.gz` SHA-256 `6e9ec67b2a5aab6c2fbce1a793addd636edb46f3f4a183d547cbe37999ce451d` (archival); `dist/PWE-Studio-Edition-10.22.1.tar.gz` SHA-256 `67f03b50b8c22151f2fa5ec0e0f9f965a09eec3d7f849aabd8fb996c7fcdb55f`. Three-way commit guard equal. |
+| Production | **v10.22.1** (`pwestudio.online`, Oracle ARM, commit `e1df72e`) | Measured 2026-10-14: deep health `db=ok`, 5 tenants; drafting key present; a synthetic draft in the container recorded 706 cache-write tokens and an estimate that includes them. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

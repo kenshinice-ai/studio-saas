@@ -18,15 +18,28 @@
 没有。
 
 
-## 当前四层身份（v10.22.1，2026-10-14 · 准备中，未部署）
+## 当前四层身份（v10.22.1，2026-10-14 · **已发布、已部署**）
 
 > 操作者：Claude 会话。发布（含部署）由 Lee 2026-10-14 授权：「修一下费用估算，然后整理文档提交同步 部署」。
 
 | 层 | 精确事实 |
 |---|---|
-| Source | 候选在分支 `release/10.22.1`。内容：起草费用估算算上缓存写入（`d0261a7`），两份设计文档的状态。**零迁移**。 |
-| Package | 第 6 步构建。 |
-| Production | 仍是 v10.22.0（`0e6a86c`），起草密钥已生效。 |
+| Source | 部署的是 `e1df72ed5ffea28504e6106d146eef6bdefb2be1`，已在 `origin/main`。内容：起草费用估算算上缓存写入（`d0261a7`）；两份设计文档写明实际上线的情况。**零迁移**。local gate `All checks passed`，pytest 2664 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.22.1.tar.gz`，SHA-256 `6e9ec67b2a5aab6c2fbce1a793addd636edb46f3f4a183d547cbe37999ce451d`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.22.1.tar.gz`，SHA-256 `67f03b50b8c22151f2fa5ec0e0f9f965a09eec3d7f849aabd8fb996c7fcdb55f`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`e1df72e…`）。 |
+| Production | `pwestudio.online`，Oracle ARM，commit `e1df72e`，v10.22.1。健康 `10.22.1` / `db=ok` / 5 个租户。起草密钥仍在（容器内检查为真）。 |
+| Backup / migration | **本版零迁移**。 |
+
+### 部署后验收（生产实测，2026-10-14，v10.22.1）
+
+| 检查 | 结果 |
+|---|---|
+| 容器内合成起草一次（Haiku 5.5） | 未缓存输入 149、缓存写入 706、缓存读取 0、输出 173；估算 190 微美元，含缓存写入（修复前同样的请求估为 95） |
+| 草稿 | 无对不上的数字 |
+
+### 这次不声称的
+
+- 登录后的界面路径仍只在本机验证过。
 
 ## 上一版四层身份（v10.22.0，2026-10-14 · 已发布、已部署）
 
