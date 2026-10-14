@@ -49,8 +49,9 @@ KIND_BRIEFS: dict[str, str] = {
         "No subject line."
     ),
     LOW_CREDITS: (
-        "Tell the family the student has only a few lessons left on their balance and "
-        "invite them to top up. Mention the packages only if they are given."
+        "Tell the family the student has few or no lessons left on their balance "
+        "(lessons_left says how many) and invite them to top up. Mention the "
+        "packages only if they are given."
     ),
     MISSED_LESSONS: (
         "The student has missed several scheduled lessons in a row. Write a warm "

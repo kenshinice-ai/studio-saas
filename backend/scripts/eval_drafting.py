@@ -56,14 +56,35 @@ FIRST_EN = ["Ava", "Leo", "Mia", "Noah", "Isla", "Jack", "Ruby", "Oscar", "Zoe",
 FIRST_ZH = ["小雨", "子轩", "欣怡", "浩然", "思琪", "一鸣", "若曦", "俊杰", "雨桐", "梓涵"]
 PARENT_EN = ["Ms Chen", "Mr Patel", "Sarah", "", "Mrs Nguyen", ""]
 PARENT_ZH = ["陈女士", "王先生", "李妈妈", "", "张爸爸", ""]
-STUDIOS = ["Harbour Art Studio", "Brightkeys Piano", "Moonlight Dance", "青禾画室", "乐知钢琴", "Northside Pottery"]
-VOICES = ["", "Warm and relaxed. Sign off as 'The Harbour team'.", "简洁、礼貌，用「您」。落款：乐知钢琴前台",
-          "Friendly, first names only, no exclamation marks."]
-NOTES_EN = ["Worked on shading with soft pencils.", "Learned the C major scale hands together.",
-            "Struggled with timing in the second section.", "Finished the watercolour of the harbour.",
-            "Very focused today; asked good questions.", "Practised the recital piece twice."]
-NOTES_ZH = ["练习了素描的明暗过渡。", "双手合练 C 大调音阶。", "第二段节奏还不稳。",
-            "完成了港口水彩画。", "今天很专注，提了好问题。", "演奏会曲目练了两遍。"]
+
+#: Each synthetic studio has one trade, and its notes, classes and sign-off
+#: match it. The first run mixed them (an art studio signing as a piano
+#: school, drawing and scales in one term), and the models spent their
+#: answers flagging the contradictions, which hid the differences between them.
+STUDIOS = [
+    {"name": "Harbour Art Studio", "trade": "art", "voices": ["", "Warm and relaxed. Sign off as 'The Harbour team'."]},
+    {"name": "Brightkeys Piano", "trade": "piano", "voices": ["", "Friendly, first names only, no exclamation marks."]},
+    {"name": "Moonlight Dance", "trade": "dance", "voices": ["", "Upbeat but brief. Sign off as 'Moonlight front desk'."]},
+    {"name": "青禾画室", "trade": "art", "voices": ["", "简洁、礼貌，用「您」。落款：青禾画室前台"]},
+    {"name": "乐知钢琴", "trade": "piano", "voices": ["", "亲切，称呼家长「您」。落款：乐知钢琴 · 小王"]},
+    {"name": "Northside Pottery", "trade": "pottery", "voices": ["", "Plain and kind."]},
+]
+NOTES = {
+    "art": {"en": ["Worked on shading with soft pencils.", "Finished the watercolour of the harbour.",
+                   "Mixed secondary colours confidently.", "Rushed the background; we slowed down together."],
+            "zh": ["练习了素描的明暗过渡。", "完成了港口水彩画。", "调色更有把握了。", "背景画得有点急，我们一起放慢了。"]},
+    "piano": {"en": ["Learned the C major scale hands together.", "Timing in the second section is still uneven.",
+                     "Practised the recital piece twice.", "Sight-read a new minuet well."],
+              "zh": ["双手合练 C 大调音阶。", "第二段节奏还不稳。", "演奏会曲目练了两遍。", "新的小步舞曲视奏得不错。"]},
+    "dance": {"en": ["Held the turns on balance.", "Remembered the whole routine.", "Arms still drop in the jump.",
+                     "Very focused today; asked good questions."],
+              "zh": ["转圈能稳住重心了。", "整段舞记住了。", "跳跃时手臂还会掉下来。", "今天很专注，提了好问题。"]},
+    "pottery": {"en": ["Centred clay on the wheel for the first time.", "Trimmed the bowl foot neatly.",
+                       "Walls came out uneven; practised pulling up.", "Glazed two cups."],
+                "zh": ["第一次在拉坯机上把泥定中心。", "碗底修得很整齐。", "坯壁厚薄不均，练了提拉。", "给两个杯子上了釉。"]},
+}
+CLASSES = {"art": ["Kids Watercolour", "少儿素描"], "piano": ["Beginner Piano", "钢琴启蒙"],
+           "dance": ["Junior Jazz", "少儿芭蕾"], "pottery": ["Wheel Basics", "拉坯入门"]}
 FORBIDDEN = re.compile(r"discount|refund|free lesson|waive|折扣|优惠|退款|免费|减免", re.I)
 
 
@@ -80,7 +101,9 @@ def synthetic_records(per_kind: int, seed: int = 20261014) -> list[dict]:
         for i in range(per_kind):
             zh = i % 2 == 1
             name = rng.choice(FIRST_ZH if zh else FIRST_EN)
-            facts = {"studio": rng.choice(STUDIOS)}
+            studio = rng.choice(STUDIOS)
+            facts = {"studio": studio["name"]}
+            voice = rng.choice(studio["voices"])
             withheld = None
             if kind == drafting.LOW_CREDITS:
                 facts |= {"student_first_name": name, "parent_name": rng.choice(PARENT_ZH if zh else PARENT_EN),
@@ -110,19 +133,21 @@ def synthetic_records(per_kind: int, seed: int = 20261014) -> list[dict]:
                           "makeup_expires_on": _date(rng, 3, 14), "missed_lesson_on": _date(rng, -50, -20),
                           "last_attended": _date(rng, -10, -1)}
             elif kind == drafting.BOOKING_REPLY:
-                facts |= {"contact_name": name, "class_name": rng.choice(["Kids Watercolour", "Beginner Piano", "少儿素描"]),
+                facts |= {"contact_name": name, "class_name": CLASSES[studio["trade"]][1 if zh else 0],
                           "class_date": _date(rng, 2, 12), "start_time": rng.choice(["10:00", "16:30", "18:00"]),
                           "decision": ["approved", "declined", "question"][i % 3]}
             elif kind == drafting.REPORT_COMMENT:
-                notes = NOTES_ZH if zh else NOTES_EN
-                k = 1 if i % 4 == 3 else rng.randint(3, 6)
+                notes = NOTES[studio["trade"]]["zh" if zh else "en"]
+                k = 1 if i % 4 == 3 else rng.randint(2, 4)
                 facts |= {"student_first_name": name, "period_start": "2026-09-01", "period_end": "2026-09-30",
-                          "attendance": {"scheduled": 4, "attended": rng.choice([2, 3, 4]), "cancelled": 0, "makeups": 0},
-                          "lesson_notes": [{"date": f"2026-09-{d:02d}", "course": "Lesson", "note": rng.choice(notes)}
-                                           for d in sorted(rng.sample(range(1, 30), k))],
+                          "attendance": {"scheduled": 4, "attended": max(k, rng.choice([3, 4])), "cancelled": 0, "makeups": 0},
+                          "lesson_notes": [{"date": f"2026-09-{d:02d}", "course": CLASSES[studio["trade"]][1 if zh else 0],
+                                            "note": note}
+                                           for d, note in zip(sorted(rng.sample(range(1, 30), k)), rng.sample(notes, k))],
+                          # one note per lesson, never more notes than lessons attended
                           "works": []}
             out.append({"id": f"{kind}-{i:02d}", "kind": kind, "language": "zh" if zh else "en",
-                        "voice": rng.choice(VOICES), "facts": facts, "withheld": withheld})
+                        "voice": voice, "facts": facts, "withheld": withheld})
     return out
 
 
@@ -274,7 +299,7 @@ def main() -> int:
     parser.add_argument("--per-kind", type=int, default=40)
     parser.add_argument("--grade-per-kind", type=int, default=14)
     parser.add_argument("--grader", default="claude-sonnet-5-5")
-    parser.add_argument("--out", default=str(APP_ROOT.parent / "outputs" / "drafting-eval-2026-10-14"))
+    parser.add_argument("--out", default=str(APP_ROOT.parent / "outputs" / "drafting-eval-2026-10-14b"))
     parser.add_argument("--max-usd", type=float, default=15.0)
     args = parser.parse_args()
 
