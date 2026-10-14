@@ -1,13 +1,12 @@
 # PWE Studio
 
-## v10.21.0 release identity — family calendars, one dashboard list, booking holds
+## v10.21.1 release identity — "stopped coming" means missed lessons
 
-`VERSION` = **10.21.0** and `backend/server.py` reports `APP_VERSION=10.21.0`.
-**Two additive migrations** (`0048` calendar feed token lookup, `0049` booking
-holds). The family calendar feed works under the runtime role and can be issued
-from the CMS; the dashboard keeps one list of exceptions; a public booking
-request holds a free place for 48 hours by default. Round notes:
-`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
+`VERSION` = **10.21.1** and `backend/server.py` reports `APP_VERSION=10.21.1`.
+**Zero migrations.** The dashboard's "stopped coming" row lists students who
+missed their last three scheduled lessons (`services/missed_lessons.py`,
+`GET /v1/students/missed-lessons`) instead of "no class for N days". Round
+notes: `docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -22,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.21.0, released** — deployed commit `33c4e49` on `main` | Calendar feed, dashboard list, booking holds; **two additive migrations** (`0048`, `0049`). Local gate `All checks passed`, pytest 2602 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit (run 38529071733). |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.21.0.tar.gz` SHA-256 `eac90b9914837d65ef5a3c24398355245436e12e662b334bf725bb75e0d714d2` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.21.0.tar.gz` SHA-256 `ccd27628282bc809719cd9b93589845134c7ce8da073e1fcd8eb04ae5e895d95`. Three-way commit guard equal. |
-| Production | **v10.21.0** (`pwestudio.online`, Oracle ARM, commit `33c4e49`) | Measured 2026-10-14: a database backup taken on the host first (`db exit=0` at 18:36 AEDT), then migrations 0048 and 0049 applied; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. A forged calendar token gets 404, not 500. Signed-in screens were checked on the local machine only. |
+| Source | **v10.21.1, release candidate** — on branch `release/10.21.1` | Missed-lessons measure for the dashboard; **zero migrations**. Gates recorded at step 9. |
+| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
+| Production | **v10.21.0** (`pwestudio.online`, Oracle ARM, commit `33c4e49`) | Unchanged until step 8. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
