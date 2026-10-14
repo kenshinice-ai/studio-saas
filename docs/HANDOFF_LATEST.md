@@ -15,7 +15,8 @@
 
 ## 等 Lee
 
-- **[动手] 给 Claude 起草建生产 API 密钥并放到主机** — 推荐：和「API总规划调度」一起定工作区和月度上限，密钥放进 `/srv/pwestudio/shared/production.env` 的 `STUDIOSAAS_DRAFTING_API_KEY`，再重新部署同一提交 · 不定：起草按钮不会出现 · 自 2026-10-14
+没有。
+
 
 ## 当前四层身份（v10.22.0，2026-10-14 · **已发布、已部署**）
 
@@ -30,7 +31,7 @@
 | Package / Edition | `dist/PWE-Studio-Edition-10.22.0.tar.gz`，SHA-256 `50cf7774dbdda29fb072ec77a9a04a6375f590b2104cefdbecc69e4c0a5ad694`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`0e6a86c…`）。 |
 | Production | `pwestudio.online`，Oracle ARM，commit `0e6a86c`，v10.22.0。镜像构建日志：`anthropic-1.13.0` 及其依赖安装成功。 |
 | Backup / migration | **本版零迁移**，没有设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
-| 运行时配置 | 主机上**还没有** `STUDIOSAAS_DRAFTING_API_KEY`。起草接口回答 503 `unavailable`，设置页说明尚未开通，按钮不出现。 |
+| 运行时配置 | 2026-10-14 晚：Lee 在 Console 工作区 `pwe-studio-production`（月上限 US$5，「API总规划调度」建）里生成密钥，自己写进主机 `production.env` 的 `STUDIOSAAS_DRAFTING_API_KEY`（检查命令打印 1）。随后重新部署同一提交 `0e6a86c`，容器重建，健康 `10.22.0` / `db=ok`。 |
 
 ### 部署后验收（生产实测，2026-10-14，v10.22.0）
 
@@ -44,7 +45,9 @@
 
 ### 这次不声称的
 
-- 起草在生产上还不能用：没有密钥。真实起草只在本机评测和本机假接口里验证过。
+- 生产起草的验收是在容器里用合成记录直接调用服务做的（两次：Haiku 5.5，3.5 秒 / 2.1 秒，第二次读到 706 token 缓存，合计约 US$0.0003，草稿无编造数字）。没有走登录后的界面，也没有改任何租户的设置。
+- 店主打开开关、按钮出现、审计写入这条界面路径，只在本机验证过。
+- 应用记的单次费用估算漏算缓存写入（第一次少估约 US$0.00009）。下一版修。
 - 没有在容器里单独执行 `import anthropic`；依据是构建日志的安装记录。路由只在有密钥时才导入它。
 - 没有登录生产后台看设置页。
 
