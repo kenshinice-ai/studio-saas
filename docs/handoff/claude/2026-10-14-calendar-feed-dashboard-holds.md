@@ -1,8 +1,7 @@
 # 2026-10-14 · 日历订阅源、工作台例外清单、约课保留名额
 
-> 状态：**已提交到本地分支，未推送，未发布，未部署。**
-> 分支 `feat/calendar-feed`，在 worktree `~/Developer/worktrees/studiosaas-assist-knowledge`。
-> 生产仍是 v10.20.10（`7bdf353`），见 `docs/HANDOFF_LATEST.md`。
+> 状态：**已发布、已部署**：v10.21.0，commit `33c4e49`（2026-10-14 实测）。
+> 发布由 Lee 2026-10-14 授权：「1. 发布」。四层身份和验收见 `docs/HANDOFF_LATEST.md`。
 > 方向来自 Lee 2026-10-14 对 `docs/design/Calcom_Adoption_Discussion_2026-10-11.md` 的八条回复。
 
 ## 来源
@@ -53,7 +52,7 @@
 | `2e64c5b` | `All checks passed`。pytest 2589 passed / 41 skipped |
 | `73dc4a4` | `All checks passed`。pytest 2602 passed / 41 skipped；租户隔离 257 / 0 |
 
-CI gate 没有跑：分支没有推送。
+CI gate：发布提交 `33c4e49` 通过（run 38529071733）。
 
 ### 测试能抓住缺陷（改坏实现，确认变红，再逐字节还原）
 
@@ -72,7 +71,6 @@ CI gate 没有跑：分支没有推送。
 
 - 有课的订阅源在真实日历客户端里（iPhone、Google）的显示。自动测试只检查了文件内容。
 - 生产库里有没有订阅行。没有查生产。
-- 迁移 0048、0049 在生产库上运行。要发布时随九步走。
 - 生产的发信后端是不是 `console`。如果是，现有五处邮件的内容正被打印进应用日志。没有登录主机查。
 - Edition 下的这三项改动。没有在 Edition 里跑。
 
@@ -88,8 +86,14 @@ CI gate 没有跑：分支没有推送。
 - 两仓各修各的。本仓库没有动 Clinic。
 - 工作台和保留名额是 Studio 的功能，Clinic 不需要照搬。
 
+## Lee 2026-10-14 的回复
+
+1. 发布：已按九步完成。
+2. 自动邮件：「再想想」，说的是 Claude 的 API。没有动手。
+3. 隐私政策那句：同意。Claude 的判断：在自动邮件真正上线的同一次发布里写，现在写会描述一件还没发生的事。
+4. 「连续几周没来」：按推荐（排了课连续缺席 3 次）。另开分支做，不在 v10.21.0 里。
+
 ## 下一步（负责人）
 
-1. Lee：定「等 Lee」里的事。
-2. Claude：Lee 同意推送后，把分支推到 `main`，看 CI gate。
-3. Claude：Lee 同意发布后，按九步发布（版本号建议 v10.21.0，含两个迁移）。
+1. Claude：实现「排了课连续缺席 3 次」，另开分支。发布前再问 Lee。
+2. Lee：想好自动邮件的方向（见「等 Lee」）。

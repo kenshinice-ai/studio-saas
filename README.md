@@ -22,9 +22,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.21.0, release candidate** — on branch `release/10.21.0` | Calendar feed, dashboard list, booking holds; migrations `0048`, `0049`. Local gate and CI gate: recorded at step 9. |
-| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
-| Production | **v10.20.10** (`pwestudio.online`, Oracle ARM, commit `7bdf353`) | Unchanged until step 8. |
+| Source | **v10.21.0, released** — deployed commit `33c4e49` on `main` | Calendar feed, dashboard list, booking holds; **two additive migrations** (`0048`, `0049`). Local gate `All checks passed`, pytest 2602 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit (run 38529071733). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.21.0.tar.gz` SHA-256 `eac90b9914837d65ef5a3c24398355245436e12e662b334bf725bb75e0d714d2` (archival — the Oracle host builds its image from a commit); `dist/PWE-Studio-Edition-10.21.0.tar.gz` SHA-256 `ccd27628282bc809719cd9b93589845134c7ce8da073e1fcd8eb04ae5e895d95`. Three-way commit guard equal. |
+| Production | **v10.21.0** (`pwestudio.online`, Oracle ARM, commit `33c4e49`) | Measured 2026-10-14: a database backup taken on the host first (`db exit=0` at 18:36 AEDT), then migrations 0048 and 0049 applied; deep health `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants. A forged calendar token gets 404, not 500. Signed-in screens were checked on the local machine only. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

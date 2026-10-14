@@ -17,24 +17,38 @@
 
 - **[决定] 自动给家长发邮件怎么做** — Lee 2026-10-14：说的是用 Claude 的 API，「再想想」。推荐：Claude 只起草、人确认后再发；发信通道另定 · 不定：自动邮件不做，隐私政策那句也先不写 · 自 2026-10-14
 
-## 当前四层身份（v10.21.0，2026-10-14 · 准备中，未部署）
+## 当前四层身份（v10.21.0，2026-10-14 · **已发布、已部署**）
 
-> 第 1–5 步进行中。本表在第 9 步按实测回填。
+> 第 1–9 步已执行，本表由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话。发布（含第 8 步部署）由 Lee 2026-10-14 在会话里授权：「1. 发布」。
 > 轮次文件：`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`。
 
 | 层 | 精确事实 |
 |---|---|
-| Source | 候选在分支 `release/10.21.0`。内容：日历订阅源（`103c539`）、工作台例外清单（`2e64c5b`）、约课保留名额（`73dc4a4`）。**两个迁移**：0048、0049，都只加不改。 |
-| Package | 第 6 步构建，哈希在第 9 步记录。 |
-| Production | 仍是 v10.20.10（`7bdf353`）。 |
-| Backup / migration | 本版带迁移。部署脚本会拒绝，直到在生产主机上做完一次数据库备份，并设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<完整发布提交>`。这是迁到 Oracle 后第一次走这条路。 |
+| Source | 部署的是 `33c4e49f3d1690c423af0015476cab9ecf1fcb6a`，已在 `origin/main`。内容：日历订阅源（`103c539`）、工作台例外清单（`2e64c5b`）、约课保留名额（`73dc4a4`）。**两个迁移**：0048、0049，都只加不改。local gate `All checks passed`，pytest 2602 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 38529071733）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.21.0.tar.gz`，SHA-256 `eac90b9914837d65ef5a3c24398355245436e12e662b334bf725bb75e0d714d2`。Oracle 路径不消费它，作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.21.0.tar.gz`，SHA-256 `ccd27628282bc809719cd9b93589845134c7ce8da073e1fcd8eb04ae5e895d95`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`33c4e49…`）。 |
+| Production | `pwestudio.online`，Oracle ARM，commit `33c4e49`，v10.21.0。 |
+| Backup / migration | 部署前在主机上手动触发 `pwe-backup@db.service`：`Result=success`，`/var/log/pwe-backup.status` 新增 `2026-10-14T18:36:01+11:00 db exit=0`。再以 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=33c4e49…` 放行。应用日志：`applied 0048_calendar_feed_token_lookup.sql`、`applied 0049_class_booking_holds.sql`，随后重配受限角色。这是迁到 Oracle 后第一次走带迁移的放行路径。 |
 
-### STOP GATE（第 8 步之前，负责人：Claude）
+### 部署后验收（生产实测，2026-10-14，v10.21.0）
 
-1. 在生产主机上手动触发一次数据库备份。成功判据：备份状态记录里新出现一行 `db … exit=0`，时间是当天。
-2. 确认三方提交守卫全等。
-3. 用上面的变量放行部署。部署后检查：`/health` 的 `db=ok`；迁移表里有 0048、0049。
+| 检查 | 结果 |
+|---|---|
+| 公开边缘深度健康 | `appVersion=10.21.0`，`db=ok`，`mode=saas`，`workspaces.stale=0`，`themes.unreadable=0`，5 个租户 |
+| `/v1/public/calendar/forged-token.ics` | 404，`Calendar not found.`。说明受限角色能执行新函数（否则是 500） |
+| `/v1/public/lets-paint-showcase/timetable` | 200，带 `seatsLeft` |
+| 手册 `/manual/`、`/zh/manual` | 都是新的约课回答（48 小时保留） |
+| 客户版本记录 | 有 v10.21.0 条目 |
+| 演示租户公开课表页 | 回执脚本带保留时长一句 |
+| Assist 知识 | `version.json` 的 commit 是 `10.21.0-77ff4c53` |
+
+### 这次不声称的
+
+- 没有在生产上登录后台。订阅卡片、工作台清单、保留时长设置、待处理列表的保留状态，只在本机验证过。原因：会话不使用生产账号。
+- 没有在生产上真正提交一条约课申请，也没有生成真实的订阅链接。
+- 没有用真实的手机日历订阅过。
+- PWE Assist 的 Worker 何时读到新的 Assist 知识，没有查。
 
 ## 上一版四层身份（v10.20.10，2026-10-10 · 已发布、已部署）
 
