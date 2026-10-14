@@ -113,3 +113,11 @@ CI gate：发布提交 `33c4e49` 通过（run 38529071733）。
 - Lee：「只起草 人确认后再发 而且还可以更多的使用 API 设计一下」。
 - 方案：`docs/design/Claude_Drafting_Plan_2026-10-14.md`。没有写代码，没有用任何 API 密钥。
 - 要 Lee 定的五件事在方案末尾「等你定」，交接索引的「等 Lee」里有一条指向它。
+
+## 追加：Claude 起草第一阶段（分支 `feat/claude-drafting`，`a2178e8`，未推送，未发布）
+
+- Lee 2026-10-14：「1. 可以 2. 含在套餐 3. 先评测 4. 按推荐 5 去问 API 总规划调度拿 api 的使用方式」。
+- 做了：起草服务、`POST /v1/drafts`、店主开关、后台按钮和对话框、隐私政策第十一节、服务条款一段、评测脚本、依赖和 compose 变量。
+- 没做：真实 API 调用。评测等「API总规划调度」回复使用方式（2026-10-14 已发消息，尚未回复）。
+- 验证：`test_drafting.py` 23 条、`test_drafting_routes.py` 10 条；local gate `All checks passed`，pytest 2659 passed / 41 skipped。浏览器：本机假 Messages 接口下走通开关、起草、核对标记。
+- 顺带：SDK 第一次误装进了主检出的 `.venv`（工作树里 pip 的启动行指向那里），之后在工作树自己的环境里重装。主检出 `.venv` 多了 anthropic 及其依赖，无害，合并后本来也需要。
