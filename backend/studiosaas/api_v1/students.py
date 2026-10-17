@@ -1113,7 +1113,7 @@ def create_credit_transaction(student_id: str):
 
         try:
             amount = float(amount_raw)
-            if amount <= 0:
+            if not math.isfinite(amount) or amount <= 0:
                 raise ValueError
         except (TypeError, ValueError):
             return _error("amount must be a positive number.")
@@ -1474,7 +1474,7 @@ def check_in_attendance():
                     debit = float(payload.get("credits", payload.get("amount", 1)))
                 except (TypeError, ValueError):
                     return _error("credits must be a positive number.")
-            if debit <= 0:
+            if not math.isfinite(debit) or debit <= 0:
                 return _error("credits must be a positive number.")
 
             _ensure_default_credit_account(cur, tenant.tenant_id, student_id)
