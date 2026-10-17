@@ -1536,7 +1536,7 @@ def legacy_cms_media_upload():
         if not f or not f.filename:
             return _error("No file provided.")
         kind = str(request.form.get("kind") or "student_photo").strip() or "student_photo"
-        if kind not in MEDIA_UPLOAD_LIMITS:
+        if kind != "student_photo":
             kind = "student_photo"
         try:
             media = _store_media_asset(conn, tenant_id=tenant.tenant_id, file_storage=f, kind=kind)
