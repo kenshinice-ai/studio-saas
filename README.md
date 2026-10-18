@@ -22,9 +22,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.3, release candidate** — on `main`, not deployed | **One migration (0050)**, no data changes. Local gate and CI gate results are recorded at step 9. |
-| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz` (archival) and `dist/PWE-Studio-Edition-10.22.3.tar.gz`. |
-| Production | **v10.22.2** (`pwestudio.online`, Oracle ARM, commit `a64c5e6`) | v10.22.3 is not deployed. |
+| Source | **v10.22.3, released** — deployed commit `5778d17` on `main` | **One migration (0050)**, no data changes. Local gate `All checks passed`, pytest 2741 passed / 41 skipped; CI gate passed on the same commit. |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz` SHA-256 `274bdb2ab3beb7362d6890438e9ee1e1a91fc7f280b16df9dc4cef7ebe6ca899` (archival); `dist/PWE-Studio-Edition-10.22.3.tar.gz` SHA-256 `9d576454f0fe55857529b64c44e428bf03e786543cf5fc4f3a9cfd173b3b4848`. Three-way commit guard equal. |
+| Production | **v10.22.3** (`pwestudio.online`, Oracle ARM, commit `5778d17`) | Measured 2026-10-18: deep health `db=ok`, `mode=saas`; migration 0050 applied after a fresh backup (`db exit=0`); no tenant-table foreign key lacks `tenant_id`. Browser matrix 642 assertions, 0 failed, 21/22 pages. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

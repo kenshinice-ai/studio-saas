@@ -15,27 +15,32 @@
 
 ## 等 Lee
 
-- **[决定] 2026-10-18 安全审计剩下的加固** — 推荐：照 studio-saas 会话 2026-10-18 的汇报做；细节不写在这里，因为仓库是公开的（本机 `docs/security/`） · 不定会卡住：这几项保持现状 · 自 2026-10-18
+- **[动手] 2026-10-18 安全审计剩下的两项（一项主机配置、一项平台设置）** — 推荐：照 studio-saas 会话 2026-10-18 的汇报做；都需要 Lee 本人操作或放权；细节不写在这里，因为仓库是公开的（本机 `docs/security/`） · 不定会卡住：这两项保持现状 · 自 2026-10-18
 
-## 当前四层身份（v10.22.3，2026-10-18 · **已准备，未部署**）
+## 当前四层身份（v10.22.3，2026-10-18 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话。部署由 Lee 2026-10-18 授权：「按照你的推荐 执行 提交 合并 部署」（推荐是单独发一版，部署前手动备份）。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。内容：`a1d3e91` 迁移 0050，40 条租户表之间的外键改为包含 `tenant_id`。**一次迁移，不改数据**。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz`。未构建。作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.22.3.tar.gz`。未构建。 |
-| Production | 仍是 **v10.22.2**（`a64c5e6`）。 |
-| Backup / migration | **本版含迁移 0050。** 部署前步骤见下。 |
+| Source | 部署的是 `5778d17389ec9da073ee091292af3a997f2db06f`，已在 `origin/main`。内容：`a1d3e91` 迁移 0050，40 条租户表之间的外键改为包含 `tenant_id`，11 张父表加 `UNIQUE (tenant_id, id)`。**一次迁移，不改数据**。local gate `All checks passed`，pytest 2741 passed / 41 skipped；CI gate 在同一提交上通过（run 39098138649）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz`，SHA-256 `274bdb2ab3beb7362d6890438e9ee1e1a91fc7f280b16df9dc4cef7ebe6ca899`，`BUILD_INFO` commit `5778d17…`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.22.3.tar.gz`，SHA-256 `9d576454f0fe55857529b64c44e428bf03e786543cf5fc4f3a9cfd173b3b4848`，`BUILD_INFO` commit `5778d17…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。 |
+| Production | `pwestudio.online` = **v10.22.3**（Oracle ARM，commit `5778d17`）。2026-10-18 由 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=5778d17389ec9da073ee091292af3a997f2db06f bash deploy/oracle/pwestudio_arm.sh deploy 5778d17389ec9da073ee091292af3a997f2db06f` 部署，脚本末行 `Deployed: 5778d17389ec as v10.22.3`；应用日志 `applied 0050_tenant_scoped_foreign_keys.sql`。深健康 `appVersion=10.22.3`、`db=ok`、`mode=saas`，磁盘 21.2%。 |
+| Backup / migration | 部署前跨租户计数（生产，只读）：40 条外键、1,143 行、跨租户 0 行。部署前手动备份：`/var/log/pwe-backup.status` 新增 `2026-10-18T15:47:39+11:00 db exit=0`。部署后查 `pg_constraint`：租户表之间不含 `tenant_id` 的外键 0 条；`schema_migrations` 最新为 `0050_tenant_scoped_foreign_keys.sql`。 |
 
-### 第 8 步之前（本版含迁移）
+### 部署后验收（生产实测，2026-10-18）
 
-1. 在生产库上重跑跨租户计数（只读）。成功判据：40 条外键、跨租户 0 行。
-2. 运行 `ssh pwe-arm "sudo systemctl start pwe-backup@db.service"`。成功判据：`/var/log/pwe-backup.status` 新增一行当天的 `db exit=0`。
-3. 运行 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<完整提交> bash deploy/oracle/pwestudio_arm.sh deploy <完整提交>`。成功判据：末行 `Deployed: … as v10.22.3`，应用日志有 `applied 0050_tenant_scoped_foreign_keys.sql`。
-4. 在生产库上查 `pg_constraint`。成功判据：租户表之间不含 `tenant_id` 的外键为 0 条。
+| 验的东西 | 结果 |
+|---|---|
+| 浏览器矩阵 | 642 条断言、0 失败、21/22 页。`cms_roster_teacher` 仍跳过：直连 403，浏览器登录 401 |
+| 外键 | 租户表之间不含 `tenant_id` 的外键 0 条；以 `(tenant_id, …)` 开头的外键共 80 条 |
+
+### 这次不声称的
+
+- **生产上没有做写入验证。** 矩阵只读。写入路径（签到、充值、排课）的验证来自 local gate 和 CI gate。
+- **pwe-clinic 没有做这个迁移。** 表结构同源，大概率有同样的 40 条外键，没有核实。
 
 ## 上一版四层身份（v10.22.2，2026-10-18 · 已发布、已部署）
 
