@@ -1,4 +1,4 @@
-# PWE Studio v10.22.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.22.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -17,7 +17,27 @@
 
 - **[决定] 2026-10-18 安全审计剩下的加固** — 推荐：照 studio-saas 会话 2026-10-18 的汇报做；细节不写在这里，因为仓库是公开的（本机 `docs/security/`） · 不定会卡住：这几项保持现状 · 自 2026-10-18
 
-## 当前四层身份（v10.22.2，2026-10-18 · **已发布、已部署**）
+## 当前四层身份（v10.22.3，2026-10-18 · **已准备，未部署**）
+
+> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 操作者：Claude 会话。部署由 Lee 2026-10-18 授权：「按照你的推荐 执行 提交 合并 部署」（推荐是单独发一版，部署前手动备份）。
+
+| 层 | 精确事实 / 预期 |
+|---|---|
+| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。内容：`a1d3e91` 迁移 0050，40 条租户表之间的外键改为包含 `tenant_id`。**一次迁移，不改数据**。 |
+| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz`。未构建。作归档。 |
+| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.22.3.tar.gz`。未构建。 |
+| Production | 仍是 **v10.22.2**（`a64c5e6`）。 |
+| Backup / migration | **本版含迁移 0050。** 部署前步骤见下。 |
+
+### 第 8 步之前（本版含迁移）
+
+1. 在生产库上重跑跨租户计数（只读）。成功判据：40 条外键、跨租户 0 行。
+2. 运行 `ssh pwe-arm "sudo systemctl start pwe-backup@db.service"`。成功判据：`/var/log/pwe-backup.status` 新增一行当天的 `db exit=0`。
+3. 运行 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR=<完整提交> bash deploy/oracle/pwestudio_arm.sh deploy <完整提交>`。成功判据：末行 `Deployed: … as v10.22.3`，应用日志有 `applied 0050_tenant_scoped_foreign_keys.sql`。
+4. 在生产库上查 `pg_constraint`。成功判据：租户表之间不含 `tenant_id` 的外键为 0 条。
+
+## 上一版四层身份（v10.22.2，2026-10-18 · 已发布、已部署）
 
 > 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话。合并 PR #5 与部署由 Lee 2026-10-18 授权：「按照你的推荐 执行 提交 合并 部署」。

@@ -1,13 +1,13 @@
 # PWE Studio
 
-## v10.22.2 release identity — stricter input checks
+## v10.22.3 release identity — tenant-scoped foreign keys
 
-`VERSION` = **10.22.2** and `backend/server.py` reports `APP_VERSION=10.22.2`.
-**Zero migrations.** Credit amounts, check-in debits, credit-pack credits and
-price, and a new student's opening balance must be finite numbers (`float()`
-accepts "nan" and "inf"); the legacy CMS photo upload stores student photos
-only. From the 2026-10-18 security review: PR #5 (`bcea712`, `638a47c`) and
-`e461175`.
+`VERSION` = **10.22.3** and `backend/server.py` reports `APP_VERSION=10.22.3`.
+**One migration (0050), no data changes.** Forty foreign keys between
+tenant-owned tables now include `tenant_id`, so the database refuses a
+reference to another tenant's row. Measured on production before release:
+1,143 linked rows, none crossing a tenant. `test_tenant_scoped_foreign_keys.py`
+fails on any future key without `tenant_id`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -22,9 +22,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.2, released** — deployed commit `a64c5e6` on `main` | Input checks only; **zero migrations**. Local gate `All checks passed`, pytest 2735 passed / 41 skipped; CI gate passed on the same commit. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.2.tar.gz` SHA-256 `ee19c3a9c0f4636b6d9ad1c28164452e4791389867938c066d52262c2423a4cd` (archival); `dist/PWE-Studio-Edition-10.22.2.tar.gz` SHA-256 `0601fceb2a3d97419031a0534ad1ea6cffb6e822c4c9116baece6a3c192f2d08`. Three-way commit guard equal. |
-| Production | **v10.22.2** (`pwestudio.online`, Oracle ARM, commit `a64c5e6`) | Measured 2026-10-18: deep health `db=ok`, `mode=saas`. Browser matrix 642 assertions, 0 failed, 21/22 pages. |
+| Source | **v10.22.3, release candidate** — on `main`, not deployed | **One migration (0050)**, no data changes. Local gate and CI gate results are recorded at step 9. |
+| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz` (archival) and `dist/PWE-Studio-Edition-10.22.3.tar.gz`. |
+| Production | **v10.22.2** (`pwestudio.online`, Oracle ARM, commit `a64c5e6`) | v10.22.3 is not deployed. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

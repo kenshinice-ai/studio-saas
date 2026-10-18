@@ -56,6 +56,11 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.22.3 — the database itself keeps studios apart</strong><strong data-lang="zh">v10.22.3 —— 数据库自己守住工作室之间的边界</strong>
+      <p data-lang="en">One database migration; no data changes and nothing changes on screen. Each studio's data was already read and written only within that studio, checked by every operation in the system. Now the database itself also refuses a record that points to another studio's record — a second protection that does not depend on the application. Before the migration we checked the production data: no existing record breaks this rule, so nothing had to be changed. A full backup was taken first.</p>
+      <p data-lang="zh">含一次数据库迁移，不改任何数据，界面也没有变化。每个工作室的数据本来就只在自己的范围内读写，由系统的每一条操作检查。现在数据库本身也会拒绝一条记录指向另一个工作室的记录，多了一道不依赖程序的保护。迁移前我们在生产数据上核对过：没有任何一条现有记录违反这条规则，所以不需要修改任何数据。迁移前做了一次完整备份。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.22.2 — stricter input checks</strong><strong data-lang="zh">v10.22.2 —— 输入检查更严格</strong>
       <p data-lang="en">No migration, and nothing changes in normal use. Credits, top-up amounts, credit-pack prices and a student's opening balance now accept only ordinary numbers; anything else is refused with a reason and never stored. The legacy CMS photo upload is used for student photos only. These fixes follow a security review on 18 October 2026.</p>
       <p data-lang="zh">零迁移，正常使用时你看不到任何变化。课时、充值金额、课包价格和学员期初余额，现在只接受正常的数字；不是数字的输入会被拒绝并提示原因，不会被存下来。旧版 CMS 的照片上传只用于学员照片。这是 2026-10-18 一次安全审查后的修复。</p>
