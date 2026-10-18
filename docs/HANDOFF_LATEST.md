@@ -17,18 +17,18 @@
 
 - **[决定] 2026-10-18 安全审计剩下的加固** — 推荐：照 studio-saas 会话 2026-10-18 的汇报做；细节不写在这里，因为仓库是公开的（本机 `docs/security/`） · 不定会卡住：这几项保持现状 · 自 2026-10-18
 
-## 当前四层身份（v10.22.2，2026-10-18 · **已准备，未部署**）
+## 当前四层身份（v10.22.2，2026-10-18 · **已发布、已部署**）
 
-> 第 1–5 步在做；第 6–9 步未执行。下表写的是预期，部署后由实测回填（runbook 第 9 步）。
+> 第 6–9 步已执行，本表已由实测回填（runbook 第 9 步）。
 > 操作者：Claude 会话。合并 PR #5 与部署由 Lee 2026-10-18 授权：「按照你的推荐 执行 提交 合并 部署」。
 
-| 层 | 精确事实 / 预期 |
+| 层 | 精确事实 |
 |---|---|
-| Source | 候选是 `main` 上的发布提交（提交后回填哈希）。内容：PR #5 两处输入校验（`bcea712` 课时数必须是有限数、`638a47c` 旧版照片上传只存学员照片）；`e461175` 旧版保存拒绝非有限数。**零迁移**。 |
-| Package / SaaS | 预期 `dist/PWE-StudioSaaS-aws-10.22.2.tar.gz`。未构建。作归档。 |
-| Package / Edition | 预期 `dist/PWE-Studio-Edition-10.22.2.tar.gz`。未构建。 |
-| Production | 仍是 **v10.22.1**（`e1df72e`）。预期命令：`bash deploy/oracle/pwestudio_arm.sh deploy <发布提交的完整哈希>`。成功判据：脚本末行 `Deployed: … as v10.22.2`。 |
-| Backup / migration | 本版零迁移，不设 `PWESTUDIO_ARM_BACKUP_TAKEN_FOR`。 |
+| Source | 部署的是 `a64c5e6aa5ce7a8c2167fd75917c4735b149604c`，已在 `origin/main`。内容：PR #5 两处输入校验（`bcea712`、`638a47c`）；`e461175` 旧版保存拒绝非有限数；`ac3fd50` 测试归还登录次数。**零迁移**。local gate `All checks passed`，pytest 2735 passed / 41 skipped；CI gate 在同一提交上通过（run 39097402689）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.22.2.tar.gz`，SHA-256 `ee19c3a9c0f4636b6d9ad1c28164452e4791389867938c066d52262c2423a4cd`，`BUILD_INFO` commit `a64c5e6…`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.22.2.tar.gz`，SHA-256 `0601fceb2a3d97419031a0534ad1ea6cffb6e822c4c9116baece6a3c192f2d08`，`BUILD_INFO` commit `a64c5e6…`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等。 |
+| Production | `pwestudio.online` = **v10.22.2**（Oracle ARM，commit `a64c5e6`）。2026-10-18 由 `bash deploy/oracle/pwestudio_arm.sh deploy a64c5e6aa5ce7a8c2167fd75917c4735b149604c` 部署，脚本末行 `Deployed: a64c5e6aa5ce as v10.22.2`；内部与公网深健康 `appVersion=10.22.2`、`db=ok`、`mode=saas`，磁盘 20.5%。浏览器矩阵 642 条断言、0 失败、21/22 页（`cms_roster_teacher` 仍跳过）。 |
+| Backup / migration | **本版零迁移**。主机最近一次定时备份 2026-10-18 03:18 AEDT，`db exit=0`。 |
 
 ## 上一版四层身份（v10.22.1，2026-10-14 · 已发布、已部署）
 
