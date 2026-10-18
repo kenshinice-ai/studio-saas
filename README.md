@@ -1,12 +1,13 @@
 # PWE Studio
 
-## v10.22.1 release identity — drafting cost estimate counts cache writes
+## v10.22.2 release identity — stricter input checks
 
-`VERSION` = **10.22.1** and `backend/server.py` reports `APP_VERSION=10.22.1`.
-**Zero migrations.** The drafting cost estimate now includes the cache write
-(`cacheWriteTokens` in the audit row). AI drafting itself is live since
-v10.22.0 with Lee's production key. Round notes:
-`docs/handoff/claude/2026-10-14-calendar-feed-dashboard-holds.md`.
+`VERSION` = **10.22.2** and `backend/server.py` reports `APP_VERSION=10.22.2`.
+**Zero migrations.** Credit amounts, check-in debits, credit-pack credits and
+price, and a new student's opening balance must be finite numbers (`float()`
+accepts "nan" and "inf"); the legacy CMS photo upload stores student photos
+only. From the 2026-10-18 security review: PR #5 (`bcea712`, `638a47c`) and
+`e461175`.
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -21,9 +22,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.1, released** — deployed commit `e1df72e` on `main` | Drafting cost estimate counts cache writes; **zero migrations**. Local gate `All checks passed`, pytest 2664 passed / 41 skipped, tenant isolation 257 / 0; CI gate passed on the same commit. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.1.tar.gz` SHA-256 `6e9ec67b2a5aab6c2fbce1a793addd636edb46f3f4a183d547cbe37999ce451d` (archival); `dist/PWE-Studio-Edition-10.22.1.tar.gz` SHA-256 `67f03b50b8c22151f2fa5ec0e0f9f965a09eec3d7f849aabd8fb996c7fcdb55f`. Three-way commit guard equal. |
-| Production | **v10.22.1** (`pwestudio.online`, Oracle ARM, commit `e1df72e`) | Measured 2026-10-14: deep health `db=ok`, 5 tenants; drafting key present; a synthetic draft in the container recorded 706 cache-write tokens and an estimate that includes them. |
+| Source | **v10.22.2, release candidate** — on `main`, not deployed | Input checks only; **zero migrations**. Local gate and CI gate results are recorded at step 9. |
+| Package | **not built yet** | Expected `dist/PWE-StudioSaaS-aws-10.22.2.tar.gz` (archival — the Oracle host builds its image from a commit) and `dist/PWE-Studio-Edition-10.22.2.tar.gz`. |
+| Production | **v10.22.1** (`pwestudio.online`, Oracle ARM, commit `e1df72e`) | v10.22.2 is not deployed. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

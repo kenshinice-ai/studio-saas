@@ -56,6 +56,11 @@
   <p data-lang="zh">请按时间顺序阅读：旧条目描述的是当时版本的边界，不覆盖最新状态。当前 Xero 边界为带门控单向传输的 Beta，不再是早期的 Preview-only。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.22.2 — stricter input checks</strong><strong data-lang="zh">v10.22.2 —— 输入检查更严格</strong>
+      <p data-lang="en">No migration, and nothing changes in normal use. Credits, top-up amounts, credit-pack prices and a student's opening balance now accept only ordinary numbers; anything else is refused with a reason and never stored. The legacy CMS photo upload is used for student photos only. These fixes follow a security review on 18 October 2026.</p>
+      <p data-lang="zh">零迁移，正常使用时你看不到任何变化。课时、充值金额、课包价格和学员期初余额，现在只接受正常的数字；不是数字的输入会被拒绝并提示原因，不会被存下来。旧版 CMS 的照片上传只用于学员照片。这是 2026-10-18 一次安全审查后的修复。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.22.1 — a more accurate internal estimate of drafting cost</strong><strong data-lang="zh">v10.22.1 —— 起草费用的内部估算更准确</strong>
       <p data-lang="en">Each AI draft records its usage and an estimated cost in the activity log. The estimate left out one item, the cache write, so the first draft in each five-minute window was under-estimated by about US$0.0001. It is now included. This only affects our own bookkeeping: drafting is included in your subscription and nothing on your screens changes. Zero migrations.</p>
       <p data-lang="zh">每次 AI 起草都会在操作记录里记下用量和估算费用。估算以前漏了一项「缓存写入」，每五分钟内的第一次起草会少估约 0.0001 美元，现在算进去了。这只影响我们内部的记账：起草包含在订阅内，你的界面没有任何变化。零迁移。</p>
