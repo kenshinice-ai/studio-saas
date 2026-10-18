@@ -1,5 +1,6 @@
 """api_v1.tenant — mechanically split from api_v1.py (v10.11.0). Pure move."""
 import json
+import math
 import re
 import time
 import uuid as _uuid
@@ -1236,6 +1237,15 @@ def update_operational_settings():
 
 
 
+def _finite(value) -> bool:
+    """Whether `value` reads as a finite number — not text, not NaN, not ±inf."""
+
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
 @api_v1.route("/legacy-cms/save", methods=["POST"])
 @permission_required("students:write")
 def legacy_cms_save():
@@ -1254,6 +1264,17 @@ def legacy_cms_save():
     can_edit_packages = actor_role in {Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER}
     if not can_edit_packages:
         packages = []
+    # `float()` accepts "nan" and "inf", and NaN passes every comparison the
+    # code below might make. A pack's credits and price, and a new student's
+    # opening balance, are checked here — before anything is written.
+    for package in packages:
+        if not str(package.get("name") or "").strip():
+            continue
+        if not (_finite(package.get("credits") or 1) and _finite(package.get("price") or 0)):
+            return _error("A credit pack's credits and price must be finite numbers.")
+    for student in students:
+        if isinstance(student, dict) and not _finite(student.get("balance") or 0):
+            return _error("A student's balance must be a finite number.")
     with connect() as conn:
         tenant = _tenant_context(conn)
         with conn.cursor() as cur:
