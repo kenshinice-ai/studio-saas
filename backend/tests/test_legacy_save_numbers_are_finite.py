@@ -28,6 +28,14 @@ def world():
     built = build_world(prefix="fin", with_owner_user=True)
     yield built
     destroy_world(built)
+    # Each case signs in once. The login limiter allows 30 attempts a minute
+    # per address for the whole suite, so give back what these cases used
+    # rather than starve whichever test signs in next.
+    import importlib
+
+    store = importlib.import_module("studiosaas.api_v1")._public_rate_limit
+    for key in [k for k in store if k.startswith("login-")]:
+        store.pop(key, None)
 
 
 def _save(client, world, payload):
