@@ -1,13 +1,12 @@
 # PWE Studio
 
-## v10.22.3 release identity — tenant-scoped foreign keys
+## v10.22.4 release identity — what the pages say about balances
 
-`VERSION` = **10.22.3** and `backend/server.py` reports `APP_VERSION=10.22.3`.
-**One migration (0050), no data changes.** Forty foreign keys between
-tenant-owned tables now include `tenant_id`, so the database refuses a
-reference to another tenant's row. Measured on production before release:
-1,143 linked rows, none crossing a tenant. `test_tenant_scoped_foreign_keys.py`
-fails on any future key without `tenant_id`.
+`VERSION` = **10.22.4** and `backend/server.py` reports `APP_VERSION=10.22.4`.
+**Zero migrations; wording only.** The home page card and manual section 05
+no longer claim a balance is a sum that cannot be corrected or that every
+movement records a reason; `test_balance_claims.py` ties the wording to the
+CMS. Prompted by PWE Assist repeating the old claim to visitors (2026-10-22).
 
 > This heading, and the table below it, are written by hand at runbook steps 3
 > and 9. They used to be maintained by `replace_all README.md "$OLD" "$NEW"` in
@@ -22,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.3, released** — deployed commit `5778d17` on `main` | **One migration (0050)**, no data changes. Local gate `All checks passed`, pytest 2741 passed / 41 skipped; CI gate passed on the same commit. |
-| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.3.tar.gz` SHA-256 `274bdb2ab3beb7362d6890438e9ee1e1a91fc7f280b16df9dc4cef7ebe6ca899` (archival); `dist/PWE-Studio-Edition-10.22.3.tar.gz` SHA-256 `9d576454f0fe55857529b64c44e428bf03e786543cf5fc4f3a9cfd173b3b4848`. Three-way commit guard equal. |
-| Production | **v10.22.3** (`pwestudio.online`, Oracle ARM, commit `5778d17`) | Measured 2026-10-18: deep health `db=ok`, `mode=saas`; migration 0050 applied after a fresh backup (`db exit=0`); no tenant-table foreign key lacks `tenant_id`. Browser matrix 642 assertions, 0 failed, 21/22 pages. |
+| Source | **v10.22.4, release candidate** — on branch `release/10.22.4` | Balance wording on the home page and in the manual; **zero migrations**. Gates recorded at step 9. |
+| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
+| Production | **v10.22.3** (`pwestudio.online`, Oracle ARM, commit `5778d17`) | Unchanged until step 8. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
