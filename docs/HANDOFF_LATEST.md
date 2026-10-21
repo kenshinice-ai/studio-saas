@@ -20,16 +20,30 @@
 - **[决定] 流水和同意记录要不要在数据库层面锁死（收回应用角色对 `credit_transactions`、`student_publication_consent_events`、`audit_logs` 的修改和删除权限）** — 推荐：做，先查清租户清除和归档恢复要用哪个角色删这些行 · 不定：「只增不改」只靠代码自觉，数据库不拦 · 自 2026-10-22
 - **[决定] 手动校准余额要不要强制填写原因** — 推荐：要，后台加一个必填原因，接口没有原因就拒绝 · 不定：页面只能写「目前不要求原因」 · 自 2026-10-22
 
-## 当前四层身份（v10.22.4，2026-10-22 · 准备中，未部署）
+## 当前四层身份（v10.22.4，2026-10-22 · **已发布、已部署**）
 
 > 操作者：Claude 会话。发布（含部署）由 Lee 2026-10-22 在会话里授权：「批准」。
 > 起因：PWE Assist 照着首页的话告诉访客「余额不能改、每次变动记录原因」；PWE House 会话先发现，PWE Assist 会话转来，本会话在代码里核实。
 
 | 层 | 精确事实 |
 |---|---|
-| Source | 候选在分支 `release/10.22.4`。内容：首页一张卡、手册第 05 章的余额说法（`d3e28de`），`test_balance_claims.py`。**零迁移**。 |
-| Package | 第 6 步构建。 |
-| Production | 仍是 v10.22.3（`5778d17`）。 |
+| Source | 部署的是 `b6883390fe5b979cf5da788d85bad2514171efbe`，已在 `origin/main`。内容：首页一张卡、手册第 05 章的余额说法（`d3e28de`），`test_balance_claims.py`。**零迁移**。local gate `All checks passed`，pytest 2695 passed / 41 skipped，租户隔离 257 / 0；CI gate 在同一提交上通过（run 39610770065）。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.22.4.tar.gz`，SHA-256 `9b5f246e2939289046c927c1454f5c87e0a7cebd5c0fa189636b961c67df3295`。作归档。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.22.4.tar.gz`，SHA-256 `94fea1abe0f386baa37a8353fbcd81ae461322aaf73e72818f78a60b9ca91825`。两个包通过 `verify_release_bundles.sh`；三方提交守卫全等（`b688339…`）。 |
+| Production | `pwestudio.online`，Oracle ARM，commit `b688339`，v10.22.4。 |
+| Backup / migration | **本版零迁移**。 |
+
+### 部署后验收（生产实测，2026-10-22，v10.22.4）
+
+| 检查 | 结果 |
+|---|---|
+| `/v1/health` | `appVersion=10.22.4` |
+| 首页 `/studio`、`/zh/studio/`，手册 `/manual/`、`/zh/manual` | 新说法各出现 1 次；旧说法（「sum of its entries」「每一笔流水之和」）0 次 |
+| Assist 知识 | `version.json` 是 `10.22.4-71533fa7`；`knowledge.zh.txt` 无旧说法，「手动校准」2 次；版本号已告诉 PWE Assist 会话 |
+
+### 关于测试数
+
+本机 local gate 在 worktree 里跑出 2695 passed，v10.22.3 记录的是 2741。差额来自 `test_python_version_floor.py`：它扫描仓库下所有 `.py` 文件，主检出里有 24 个未进 git 的本地脚本，每个多 2 条。worktree 是干净检出，所以少这些。不是测试丢失。
 
 ## 上一版四层身份（v10.22.3，2026-10-18 · 已发布、已部署）
 

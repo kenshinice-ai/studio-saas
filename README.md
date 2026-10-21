@@ -21,9 +21,9 @@ The documentation authority map is `docs/README.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.22.4, release candidate** — on branch `release/10.22.4` | Balance wording on the home page and in the manual; **zero migrations**. Gates recorded at step 9. |
-| Package | **not built yet** | Built at step 6; hashes recorded at step 9. |
-| Production | **v10.22.3** (`pwestudio.online`, Oracle ARM, commit `5778d17`) | Unchanged until step 8. |
+| Source | **v10.22.4, released** — deployed commit `b688339` on `main` | Balance wording on the home page and in the manual; **zero migrations**. Local gate `All checks passed`, pytest 2695 passed / 41 skipped (clean worktree; see the handoff on the count), tenant isolation 257 / 0; CI gate passed on the same commit (run 39610770065). |
+| Package | **built and verified** | `dist/PWE-StudioSaaS-aws-10.22.4.tar.gz` SHA-256 `9b5f246e2939289046c927c1454f5c87e0a7cebd5c0fa189636b961c67df3295` (archival); `dist/PWE-Studio-Edition-10.22.4.tar.gz` SHA-256 `94fea1abe0f386baa37a8353fbcd81ae461322aaf73e72818f78a60b9ca91825`. Three-way commit guard equal. |
+| Production | **v10.22.4** (`pwestudio.online`, Oracle ARM, commit `b688339`) | Measured 2026-10-22: health `10.22.4`; the new wording is on both language versions of the home page and manual, the old claim on none; Assist knowledge `10.22.4-71533fa7` no longer carries it. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
